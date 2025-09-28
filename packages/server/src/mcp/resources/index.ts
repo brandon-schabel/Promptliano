@@ -307,7 +307,7 @@ export async function readResource(uri: string, projectId: number | null): Promi
       const payload = {
         ok: true,
         server: 'promptliano-mcp',
-        version: '0.11.0',
+        version: '0.12.0',
         time: Date.now()
       }
       return {

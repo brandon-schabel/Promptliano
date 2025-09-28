@@ -53,6 +53,7 @@ import { useProjectGitStatus, useUnstageFiles } from '@/hooks/api-hooks'
 import { useApiClient } from '@/hooks/api/use-api-client'
 import type { GitFileStatus, GitStatus } from '@promptliano/schemas'
 import { GitBranch, Plus, Minus, History, GitCompare } from 'lucide-react'
+import { getGitStatusColor } from '../../git-status-colors'
 
 export type VisibleItem = {
   path: string
@@ -197,33 +198,6 @@ interface FileTreeNodeRowProps {
  * Single row in the file tree (folder or file).
  * ForwardRef so we can focus DOM nodes from parent.
  */
-const getGitStatusColor = (gitFileStatus: GitFileStatus | undefined) => {
-  if (!gitFileStatus || gitFileStatus.status === 'unchanged' || gitFileStatus.status === 'ignored') {
-    return undefined
-  }
-
-  // Use darker colors for unstaged, brighter for staged
-  const isStaged = gitFileStatus.staged
-
-  if (gitFileStatus.status === 'added' || gitFileStatus.status === 'untracked') {
-    return isStaged ? 'text-green-500' : 'text-green-700'
-  }
-
-  if (gitFileStatus.status === 'modified') {
-    return isStaged ? 'text-yellow-500' : 'text-yellow-700'
-  }
-
-  if (gitFileStatus.status === 'deleted') {
-    return isStaged ? 'text-red-500' : 'text-red-700'
-  }
-
-  if (gitFileStatus.status === 'renamed' || gitFileStatus.status === 'copied') {
-    return isStaged ? 'text-blue-500' : 'text-blue-700'
-  }
-
-  return 'text-gray-500'
-}
-
 const FileTreeNodeRow = forwardRef<HTMLDivElement, FileTreeNodeRowProps>(function FileTreeNodeRow(
   {
     item,

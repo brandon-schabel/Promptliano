@@ -1,6 +1,6 @@
 {
   "name": "@promptliano/services",
-  "version": "0.11.0",
+  "version": "0.12.0",
   "module": "index.ts",
   "type": "module",
   "scripts": {
@@ -8,6 +8,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@ai-sdk/ui-utils": "1.2.11",
     "@promptliano/config": "workspace:*",
     "@promptliano/database": "workspace:*",
     "@promptliano/schemas": "workspace:*",

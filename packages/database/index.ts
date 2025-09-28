@@ -24,6 +24,8 @@ export {
   ticketTasks,
   chats,
   chatMessages,
+  chatStreams,
+  chatStreamEvents,
   prompts,
   queues,
   queueItems,

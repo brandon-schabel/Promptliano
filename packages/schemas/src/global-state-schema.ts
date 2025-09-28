@@ -429,6 +429,10 @@ export const appSettingsSchema = z
         mcpInspector: z.boolean().optional().default(false).openapi({
           description: 'Whether MCP Inspector debugging interface is accessible via navigation.',
           example: false
+        }),
+        aiSdk: z.boolean().optional().default(false).openapi({
+          description: 'Whether AI SDK DevTools overlay is enabled for Vercel AI SDK debugging.',
+          example: false
         })
       })
       .optional()
@@ -438,7 +442,8 @@ export const appSettingsSchema = z
         reactScan: false,
         drizzleStudio: false,
         swaggerUI: false,
-        mcpInspector: false
+        mcpInspector: false,
+        aiSdk: false
       })
       .openapi({ description: 'Configuration for enabling/disabling various development tools in the application UI.' })
   })
@@ -560,7 +565,8 @@ export const createSafeGlobalState = (): GlobalState => ({
       reactScan: false,
       drizzleStudio: false,
       swaggerUI: false,
-      mcpInspector: false
+      mcpInspector: false,
+      aiSdk: false
     }
   },
   projectTabs: {

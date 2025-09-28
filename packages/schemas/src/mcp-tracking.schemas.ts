@@ -3,7 +3,7 @@ import { unixTSSchemaSpec } from './schema-utils'
 
 // --- Enums ---
 
-export const mcpExecutionStatusSchema = z.enum(['success', 'error', 'timeout'])
+export const mcpExecutionStatusSchema = z.enum(['success', 'error', 'timeout', 'running'])
 export type MCPExecutionStatus = z.infer<typeof mcpExecutionStatusSchema>
 
 export const mcpStatisticsPeriodSchema = z.enum(['hour', 'day', 'week', 'month'])

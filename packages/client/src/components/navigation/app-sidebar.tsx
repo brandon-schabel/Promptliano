@@ -115,7 +115,8 @@ export function AppSidebar({ ...props }: React.HTMLAttributes<HTMLDivElement>) {
     reactScan: false,
     drizzleStudio: false,
     swaggerUI: false,
-    mcpInspector: false
+    mcpInspector: false,
+    aiSdk: false
   }
 
   const globalTheme = theme || 'dark'

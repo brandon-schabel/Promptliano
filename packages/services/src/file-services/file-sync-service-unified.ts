@@ -21,10 +21,21 @@ import { resolvePath, normalizePathForDb as normalizePathForDbUtil } from '../ut
 import { analyzeCodeImportsExports } from '../utils/code-analysis'
 import { createLogger } from '../utils/logger'
 
-const logger = createLogger('FileSync')
-const watcherLogger = createLogger('FileSync:Watcher')
-const pluginLogger = createLogger('FileSync:Plugin')
-const cleanupLogger = createLogger('FileSync:Cleanup')
+const rawFileSyncDebugFlag = process.env.FILE_SYNC_DEBUG_LOGS?.trim().toLowerCase()
+const isFileSyncDebugEnabled =
+  rawFileSyncDebugFlag === 'true' ||
+  rawFileSyncDebugFlag === '1' ||
+  rawFileSyncDebugFlag === 'yes' ||
+  rawFileSyncDebugFlag === 'on'
+
+const fileSyncLoggerOptions = isFileSyncDebugEnabled ? undefined : { maxLevel: 'warn' as const }
+
+const createFileSyncLogger = (context: string) => createLogger(context, fileSyncLoggerOptions)
+
+const logger = createFileSyncLogger('FileSync')
+const watcherLogger = createFileSyncLogger('FileSync:Watcher')
+const pluginLogger = createFileSyncLogger('FileSync:Plugin')
+const cleanupLogger = createFileSyncLogger('FileSync:Cleanup')
 
 // -------------------------------------------------------------------------------- //
 // -------------------------------- SYNC OPTIMIZATION UTILITIES -------------------- //
@@ -35,7 +46,7 @@ const cleanupLogger = createLogger('FileSync:Cleanup')
  */
 class DebouncedSync {
   private timers = new Map<number, NodeJS.Timeout>()
-  private logger = createLogger('DebouncedSync')
+  private logger = createFileSyncLogger('DebouncedSync')
 
   scheduleSync(projectId: number, syncFn: () => Promise<void>, delay: number = 500): void {
     // Cancel existing timer for this project
@@ -83,7 +94,7 @@ class DebouncedSync {
  */
 class SyncLockManager {
   private locks = new Map<number, boolean>()
-  private logger = createLogger('SyncLock')
+  private logger = createFileSyncLogger('SyncLock')
 
   isLocked(projectId: number): boolean {
     return this.locks.get(projectId) === true

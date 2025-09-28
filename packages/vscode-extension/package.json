@@ -1,0 +1,145 @@
+{
+  "name": "@promptliano/vscode-extension",
+  "displayName": "Promptliano Flow",
+  "description": "Read-only view of Promptliano Flow tickets, tasks, and queues inside VS Code.",
+  "version": "0.1.0",
+  "publisher": "promptliano",
+  "license": "MIT",
+  "type": "commonjs",
+  "main": "./dist/extension.js",
+  "engines": {
+    "vscode": "^1.88.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onCommand:promptlianoFlow.refresh",
+    "onCommand:promptlianoFlow.openTicketDetails",
+    "onCommand:promptlianoFlow.openQueueDetails",
+    "onCommand:promptlianoFlow.openPromptPreview",
+    "onCommand:promptlianoFlow.copyTicketMarkdown",
+    "onCommand:promptlianoFlow.copyTaskMarkdown",
+    "onView:promptlianoFlowView"
+  ],
+  "contributes": {
+    "views": {
+      "explorer": [
+        {
+          "id": "promptlianoFlowView",
+          "name": "Promptliano Flow",
+          "contextualTitle": "Promptliano Flow"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "promptlianoFlow.refresh",
+        "title": "Refresh Promptliano Flow"
+      },
+      {
+        "command": "promptlianoFlow.openTicketDetails",
+        "title": "Show Ticket Details"
+      },
+      {
+        "command": "promptlianoFlow.openQueueDetails",
+        "title": "Show Queue Details"
+      },
+      {
+        "command": "promptlianoFlow.openPromptPreview",
+        "title": "Open Prompt"
+      },
+      {
+        "command": "promptlianoFlow.copyTicketMarkdown",
+        "title": "Copy Ticket as Markdown"
+      },
+      {
+        "command": "promptlianoFlow.copyTaskMarkdown",
+        "title": "Copy Task as Markdown"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "promptlianoFlow.refresh",
+          "when": "view == promptlianoFlowView",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "promptlianoFlow.openTicketDetails",
+          "when": "view == promptlianoFlowView && viewItem == promptlianoTicket",
+          "group": "inline"
+        },
+        {
+          "command": "promptlianoFlow.openQueueDetails",
+          "when": "view == promptlianoFlowView && viewItem == promptlianoQueue",
+          "group": "inline"
+        },
+        {
+          "command": "promptlianoFlow.openPromptPreview",
+          "when": "view == promptlianoFlowView && viewItem == promptlianoPrompt",
+          "group": "inline"
+        },
+        {
+          "command": "promptlianoFlow.copyTicketMarkdown",
+          "when": "view == promptlianoFlowView && viewItem == promptlianoTicket",
+          "group": "2_copy"
+        },
+        {
+          "command": "promptlianoFlow.copyTaskMarkdown",
+          "when": "view == promptlianoFlowView && viewItem == promptlianoTask",
+          "group": "2_copy"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Promptliano Flow",
+      "properties": {
+        "promptlianoFlow.apiBaseUrl": {
+          "type": "string",
+          "default": "http://localhost:3147",
+          "description": "Promptliano API base URL used by the Flow extension."
+        },
+        "promptlianoFlow.apiToken": {
+          "type": "string",
+          "markdownDescription": "Optional API token for authenticated requests. Stored in plain text in settings.json; prefer environment configuration when possible.",
+          "default": ""
+        },
+        "promptlianoFlow.projectIds": {
+          "type": "array",
+          "description": "Optional list of project IDs to display. Leave empty to include all projects accessible to the API user.",
+          "default": [],
+          "items": {
+            "type": "number"
+          }
+        },
+        "promptlianoFlow.showCompleted": {
+          "type": "boolean",
+          "description": "Include completed tickets and tasks in the tree view.",
+          "default": false
+        },
+        "promptlianoFlow.appBaseUrl": {
+          "type": "string",
+          "description": "Base URL for opening tickets in the Promptliano web app. Leave empty to reuse the API base URL.",
+          "default": ""
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "bun build src/extension.ts --target node --format cjs --outdir dist --sourcemap --external vscode",
+    "watch": "bun build src/extension.ts --target node --format cjs --outdir dist --sourcemap --external vscode --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "bun test"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.88.0",
+    "typescript": "^5.8.3"
+  },
+  "dependencies": {
+    "@promptliano/api-client": "workspace:*",
+    "@promptliano/schemas": "workspace:*"
+  }
+}

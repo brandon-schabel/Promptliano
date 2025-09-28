@@ -74,6 +74,8 @@ export async function createInitialSchema() {
       'ticket_tasks',
       'chats',
       'chat_messages',
+      'chat_streams',
+      'chat_stream_events',
       'prompts',
       'queues',
       'queue_items',
@@ -110,7 +112,10 @@ async function createPerformanceIndexes() {
     'CREATE INDEX IF NOT EXISTS idx_tasks_ticket_done ON ticket_tasks(ticket_id, done)',
     'CREATE INDEX IF NOT EXISTS idx_messages_chat_created ON chat_messages(chat_id, created_at)',
     'CREATE INDEX IF NOT EXISTS idx_queue_items_queue_status ON queue_items(queue_id, status)',
-    'CREATE INDEX IF NOT EXISTS idx_files_project_relevant ON files(project_id, is_relevant)'
+    'CREATE INDEX IF NOT EXISTS idx_files_project_relevant ON files(project_id, is_relevant)',
+    'CREATE INDEX IF NOT EXISTS idx_chat_streams_chat_started ON chat_streams(chat_id, started_at)',
+    'CREATE INDEX IF NOT EXISTS idx_chat_stream_events_stream_seq ON chat_stream_events(stream_id, seq)',
+    'CREATE INDEX IF NOT EXISTS idx_chat_stream_events_type ON chat_stream_events(type)'
 
     // Full-text search indexes (if needed)
     // 'CREATE VIRTUAL TABLE IF NOT EXISTS fts_tickets USING fts5(title, overview, content=tickets)',
@@ -152,6 +157,51 @@ async function ensureSchemaUpgrades() {
         | { name?: string }
         | undefined
       return !!res?.name
+    }
+
+    if (!tableExists('chat_streams')) {
+      try {
+        rawDb.exec(`CREATE TABLE \`chat_streams\` (
+  \`id\` integer PRIMARY KEY AUTOINCREMENT,
+  \`chat_id\` integer NOT NULL,
+  \`direction\` text NOT NULL,
+  \`provider\` text NOT NULL,
+  \`model\` text NOT NULL,
+  \`started_at\` integer NOT NULL,
+  \`finished_at\` integer,
+  \`finish_reason\` text,
+  \`usage_json\` text,
+  \`message_metadata_json\` text,
+  \`format\` text NOT NULL DEFAULT 'ui',
+  \`version\` integer NOT NULL DEFAULT 1,
+  \`assistant_message_id\` integer,
+  \`created_at\` integer NOT NULL,
+  \`updated_at\` integer NOT NULL,
+  FOREIGN KEY (\`chat_id\`) REFERENCES \`chats\`(\`id\`) ON DELETE cascade,
+  FOREIGN KEY (\`assistant_message_id\`) REFERENCES \`chat_messages\`(\`id\`) ON DELETE set null
+)`)
+        rawDb.exec('CREATE INDEX IF NOT EXISTS `idx_chat_streams_chat_started` ON `chat_streams` (`chat_id`, `started_at`)')
+      } catch (e) {
+        console.warn('⚠️ Failed to ensure chat_streams table:', e)
+      }
+    }
+
+    if (!tableExists('chat_stream_events')) {
+      try {
+        rawDb.exec(`CREATE TABLE \`chat_stream_events\` (
+  \`id\` integer PRIMARY KEY AUTOINCREMENT,
+  \`stream_id\` integer NOT NULL,
+  \`seq\` integer NOT NULL,
+  \`ts\` integer NOT NULL,
+  \`type\` text NOT NULL,
+  \`payload\` text,
+  FOREIGN KEY (\`stream_id\`) REFERENCES \`chat_streams\`(\`id\`) ON DELETE cascade
+)`)
+        rawDb.exec('CREATE INDEX IF NOT EXISTS `idx_chat_stream_events_stream_seq` ON `chat_stream_events` (`stream_id`, `seq`)')
+        rawDb.exec('CREATE INDEX IF NOT EXISTS `idx_chat_stream_events_type` ON `chat_stream_events` (`type`)')
+      } catch (e) {
+        console.warn('⚠️ Failed to ensure chat_stream_events table:', e)
+      }
     }
 
     // Ensure new file columns added after initial deployments

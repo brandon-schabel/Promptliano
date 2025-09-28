@@ -2,6 +2,8 @@
 
 This guide aligns contributors and AI agents on how to work in this monorepo. The stack uses Bun >1.2, TypeScript, and workspaces under `packages/*`.
 
+- Never use python to read/write files
+
 ## Use the Promptliano MCP For Quick Repo Context
 
 ### Utilize Promptliano to add important context, planning tickets and tasks
@@ -65,6 +67,40 @@ This guide aligns contributors and AI agents on how to work in this monorepo. Th
 
 - The response is a newline-separated list of matching paths. Handle the literal string `No file suggestions found` as the empty result case.
 - Use `project_manager`'s `search` action only when you have an exact string to find; that action requires `data.query` and will reject requests missing it.
+
+#### `get_file_content` usage
+
+- Provide `data.path` using the workspace-relative path (for example `packages/server/src/index.ts`).
+- If you encounter `FILE_NOT_FOUND`, verify the path with `browse_files`, `get_file_tree`, or `suggest_files`; the error response includes sample paths to help.
+- Example invocation:
+
+```
+promptliano.project_manager({
+  "projectId": 1,
+  "action": "get_file_content",
+  "data": {
+    "path": "packages/server/src/index.ts"
+  }
+})
+```
+
+#### `search` usage
+
+- `data.query` is required. Keys such as `pattern` are not recognized.
+- Optional fields like `searchType`, `limit`, and `caseSensitive` tune the results; omit `path` unless the tool explicitly documents it.
+- Example invocation:
+
+```
+promptliano.project_manager({
+  "projectId": 1,
+  "action": "search",
+  "data": {
+    "query": "dist/",
+    "searchType": "exact",
+    "limit": 20
+  }
+})
+```
 
 - When doing file modifications prefer using your built in tools
 - When using file searches use search and suggest files, suggest files allows you to use natural language to search for files, you can pass in a limit based on how many results you would like to see

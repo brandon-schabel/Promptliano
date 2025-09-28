@@ -4,11 +4,42 @@ import { useAppSettings } from '@/hooks/use-kv-local-storage'
 import { Card, CardContent, CardHeader, CardTitle } from '@promptliano/ui'
 import { Button } from '@promptliano/ui'
 import { Link } from '@tanstack/react-router'
-import { Database, Settings } from 'lucide-react'
+import { Database, Info, Settings } from 'lucide-react'
 
 function DrizzleStudioPage() {
   const [settings] = useAppSettings()
   const devToolsEnabled = settings?.devToolsEnabled
+  const drizzleEnvEnabled = (import.meta.env.DEVTOOLS_ENABLE_DRIZZLE_STUDIO ?? 'false') === 'true'
+
+  if (!drizzleEnvEnabled) {
+    return (
+      <div className='container mx-auto p-6'>
+        <Card>
+          <CardHeader>
+            <CardTitle className='flex items-center gap-2'>
+              <Database className='h-5 w-5' />
+              Drizzle Studio Disabled by Environment
+            </CardTitle>
+          </CardHeader>
+          <CardContent className='space-y-4'>
+            <div className='flex items-start gap-3 text-muted-foreground'>
+              <Info className='h-5 w-5 mt-0.5 text-foreground' />
+              <p>
+                Set <code>DEVTOOLS_ENABLE_DRIZZLE_STUDIO=true</code> in your <code>.env</code> file, then restart the
+                development server (<code>bun run dev</code>) to start Drizzle Studio automatically.
+              </p>
+            </div>
+            <Button asChild>
+              <Link to='/settings' search={{ tab: 'dev' }}>
+                <Settings className='h-4 w-4 mr-2' />
+                Review Dev Tool Settings
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
 
   // Redirect if dev tool is not enabled
   if (!devToolsEnabled?.drizzleStudio) {

@@ -26,10 +26,11 @@ import { DotsHorizontalIcon } from '@radix-ui/react-icons'
 import { formatShortcut } from '@/lib/shortcuts'
 import { useProjectFileMap, useSelectedFiles } from '@/hooks/utility-hooks/use-selected-files'
 import { FileViewerDialog } from '../navigation/file-viewer-dialog'
-import { ProjectFile } from '@promptliano/schemas'
+import { ProjectFile, type GitFileStatus } from '@promptliano/schemas'
 import { useCopyClipboard } from '@/hooks/utility-hooks/use-copy-clipboard'
 import { useProjectTabById, useUpdateProjectTabState } from '@/hooks/use-kv-local-storage'
-import { useUpdateFileContent } from '@/hooks/api-hooks'
+import { useProjectGitStatus, useUpdateFileContent } from '@/hooks/api-hooks'
+import { getGitStatusColor } from './git-status-colors'
 
 type SelectedFilesListProps = {
   onRemoveFile: (fileId: number) => void
@@ -63,6 +64,26 @@ export const SelectedFilesList = forwardRef<SelectedFilesListRef, SelectedFilesL
     const { selectedProjectId } = projectTab
 
     const projectFileMap = useProjectFileMap(selectedProjectId)
+    const { data: gitStatus } = useProjectGitStatus(selectedProjectId)
+
+    const gitStatusData = useMemo(() => {
+      if (!gitStatus) return null
+      if ((gitStatus as any).success && (gitStatus as any).data) {
+        return (gitStatus as any).data as { files?: GitFileStatus[] }
+      }
+      return gitStatus as { files?: GitFileStatus[] }
+    }, [gitStatus])
+
+    const gitStatusMap = useMemo(() => {
+      const map = new Map<string, GitFileStatus>()
+      const files = gitStatusData?.files
+      if (Array.isArray(files)) {
+        files.forEach((file) => {
+          map.set(file.path, file)
+        })
+      }
+      return map
+    }, [gitStatusData])
 
     const [focusedIndex, setFocusedIndex] = useState<number>(-1)
     const itemRefs = useRef<(HTMLDivElement | null)[]>([])
@@ -510,6 +531,12 @@ export const SelectedFilesList = forwardRef<SelectedFilesListRef, SelectedFilesL
                 }
                 const shortcutNumber = index + 1
                 const showShortcut = shortcutNumber <= 9
+                const gitFileStatus = gitStatusMap.get(file.path)
+                const gitStatusClass = getGitStatusColor(gitFileStatus)
+                const gitStatusTitle =
+                  gitFileStatus && gitFileStatus.status !== 'unchanged' && gitFileStatus.status !== 'ignored'
+                    ? `Git: ${gitFileStatus.status} (${gitFileStatus.staged ? 'staged' : 'unstaged'})`
+                    : undefined
 
                 return (
                   <div
@@ -573,7 +600,9 @@ export const SelectedFilesList = forwardRef<SelectedFilesListRef, SelectedFilesL
                         {showShortcut && (
                           <span className='text-xs text-muted-foreground mr-2 whitespace-nowrap'>{shortcutNumber}</span>
                         )}
-                        <span className='text-sm truncate'>{file.name}</span>
+                        <span className={cn('text-sm truncate', gitStatusClass)} title={gitStatusTitle}>
+                          {file.name}
+                        </span>
                         {file.content && (
                           <div className='ml-auto'>
                             <Badge className='ml-2'>
@@ -583,7 +612,13 @@ export const SelectedFilesList = forwardRef<SelectedFilesListRef, SelectedFilesL
                         )}
                       </div>
                       <div>
-                        <span className='text-xs text-muted-foreground truncate'>
+                        <span
+                          className={cn(
+                            'text-xs truncate',
+                            gitStatusClass ? gitStatusClass : 'text-muted-foreground'
+                          )}
+                          title={gitStatusTitle}
+                        >
                           {file.path.split('/').slice(-3).join('/').slice(-30)}
                         </span>
                       </div>

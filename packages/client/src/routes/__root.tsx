@@ -43,6 +43,12 @@ const TanStackRouterDevtools = React.lazy(() =>
   }))
 )
 
+const AIDevtools = React.lazy(() =>
+  import('@ai-sdk-tools/devtools').then((module) => ({
+    default: module.AIDevtools
+  }))
+)
+
 function GlobalCommandPalette() {
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
@@ -188,8 +194,11 @@ function RootComponent() {
     reactScan: false,
     drizzleStudio: false,
     swaggerUI: false,
-    mcpInspector: false
+    mcpInspector: false,
+    aiSdk: false
   }
+
+  const isDevEnv = import.meta.env.DEV
 
   // Use React Scan hook for dynamic loading
   useReactScan(devToolsEnabled.reactScan)
@@ -247,6 +256,11 @@ function RootComponent() {
             {devToolsEnabled.tanstackRouter && (
               <Suspense fallback={null}>
                 <TanStackRouterDevtools position='bottom-right' />
+              </Suspense>
+            )}
+            {isDevEnv && devToolsEnabled.aiSdk && (
+              <Suspense fallback={null}>
+                <AIDevtools />
               </Suspense>
             )}
           </ComponentErrorBoundary>

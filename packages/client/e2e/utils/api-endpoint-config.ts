@@ -33,7 +33,7 @@ export const API_ENDPOINTS = {
 
   // AI endpoints (Manual routes - different pattern)
   AI: {
-    CHAT: '/api/ai/chat', // Not /api/chat/completions!
+    CHAT: '/api/chat',
     GENERATE_TEXT: '/api/ai/generate/text',
     STREAM: '/api/gen-ai/stream',
     STRUCTURED: '/api/gen-ai/structured'

@@ -33,6 +33,7 @@ export interface MCPTrackingServiceDeps {
  * Handles MCP tool execution tracking, analytics, and error pattern detection
  */
 export function createMCPTrackingService(deps: MCPTrackingServiceDeps = {}) {
+  type FinalExecutionStatus = Exclude<MCPExecutionStatus, 'running'>
   const logger = deps.logger || createServiceLogger('MCPTracking')
   const executionRepo = deps.executionRepository || mcpExecutionRepository
   const statsRepo = deps.statisticsRepository || mcpStatisticsRepository
@@ -88,7 +89,7 @@ export function createMCPTrackingService(deps: MCPTrackingServiceDeps = {}) {
    */
   async function completeMCPToolExecution(
     executionId: number,
-    status: MCPExecutionStatus,
+    status: FinalExecutionStatus,
     outputSize?: number,
     errorMessage?: string,
     errorCode?: string,
@@ -371,12 +372,13 @@ export function createMCPTrackingService(deps: MCPTrackingServiceDeps = {}) {
   async function getTopErrorPatterns(
     projectId?: number,
     limit: number = 10
-  ): Promise<Array<{ pattern: Record<string, unknown>; count: number; lastSeen: number }>> {
+  ): Promise<Array<{ pattern: Record<string, unknown>; toolName: string; count: number; lastSeen: number }>> {
     return withErrorContext(
       async () => {
         const patterns = await errorPatternsRepo.getTopPatterns(projectId, limit)
         return patterns.map((pattern) => ({
-          pattern: { message: pattern.errorPattern, type: pattern.errorType },
+          pattern: { message: pattern.errorPattern, type: pattern.errorType, toolName: pattern.toolName },
+          toolName: pattern.toolName,
           count: pattern.occurrenceCount,
           lastSeen: pattern.lastOccurredAt instanceof Date ? pattern.lastOccurredAt.getTime() : pattern.lastOccurredAt
         }))
@@ -412,7 +414,7 @@ export function createMCPTrackingService(deps: MCPTrackingServiceDeps = {}) {
   async function updateStatisticsAsync(
     toolName: string,
     projectId: number | undefined,
-    status: MCPExecutionStatus,
+    status: FinalExecutionStatus,
     durationMs: number,
     outputSize?: number
   ): Promise<void> {

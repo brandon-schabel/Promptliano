@@ -16,7 +16,7 @@ import { Theme } from '@promptliano/schemas'
 import { useAppSettings } from '@/hooks/use-kv-local-storage'
 import { MCPGlobalConfigEditor } from '@/components/settings/mcp-global-config-editor'
 import { ServerConfiguration } from '@/components/settings/server-configuration'
-import { ArrowRight, Cloud, Database, FileJson, Terminal, Zap, Router, Bug } from 'lucide-react'
+import { ArrowRight, Cloud, Database, FileJson, Terminal, Zap, Router, Bug, Cpu } from 'lucide-react'
 
 type ThemeOption = {
   label: string
@@ -51,10 +51,13 @@ export function SettingsPage() {
       reactScan: false,
       drizzleStudio: false,
       swaggerUI: false,
-      mcpInspector: false
+      mcpInspector: false,
+      aiSdk: false
     }
   } = settings
   const isDarkMode = theme === 'dark'
+  const drizzleEnvEnabled = (import.meta.env.DEVTOOLS_ENABLE_DRIZZLE_STUDIO ?? 'false') === 'true'
+  const mcpInspectorEnvEnabled = (import.meta.env.DEVTOOLS_ENABLE_MCP_INSPECTOR ?? 'false') === 'true'
 
   const [autoRefreshEnabled, setAutoRefreshEnabled] = useLocalStorage('autoRefreshEnabled', true)
 
@@ -75,6 +78,9 @@ export function SettingsPage() {
   }
 
   const handleDevToolToggle = (tool: keyof typeof devToolsEnabled, enabled: boolean) => {
+    if ((tool === 'drizzleStudio' && !drizzleEnvEnabled) || (tool === 'mcpInspector' && !mcpInspectorEnvEnabled)) {
+      return
+    }
     updateSettings({
       devToolsEnabled: {
         ...devToolsEnabled,
@@ -333,6 +339,24 @@ export function SettingsPage() {
                       onCheckedChange={(checked) => handleDevToolToggle('reactScan', checked)}
                     />
                   </div>
+
+                  <div className='flex items-center justify-between'>
+                    <div className='flex items-center gap-3'>
+                      <div className='p-2 bg-teal-100 dark:bg-teal-900 rounded-lg'>
+                        <Cpu className='h-5 w-5 text-teal-600 dark:text-teal-400' />
+                      </div>
+                      <div>
+                        <Label className='text-sm font-medium'>AI SDK DevTools</Label>
+                        <p className='text-sm text-muted-foreground'>
+                          Inspect AI SDK tool calls, state, and performance while developing
+                        </p>
+                      </div>
+                    </div>
+                    <Switch
+                      checked={devToolsEnabled.aiSdk}
+                      onCheckedChange={(checked) => handleDevToolToggle('aiSdk', checked)}
+                    />
+                  </div>
                 </div>
 
                 {/* External Tools */}
@@ -348,10 +372,17 @@ export function SettingsPage() {
                       </div>
                     </div>
                     <Switch
-                      checked={devToolsEnabled.drizzleStudio}
+                      checked={drizzleEnvEnabled && devToolsEnabled.drizzleStudio}
                       onCheckedChange={(checked) => handleDevToolToggle('drizzleStudio', checked)}
+                      disabled={!drizzleEnvEnabled}
                     />
                   </div>
+                  {!drizzleEnvEnabled && (
+                    <p className='text-xs text-muted-foreground pl-11'>
+                      Enable by setting <code>DEVTOOLS_ENABLE_DRIZZLE_STUDIO=true</code> in <code>.env</code> then restart dev
+                      server.
+                    </p>
+                  )}
 
                   <div className='flex items-center justify-between'>
                     <div className='flex items-center gap-3'>
@@ -380,10 +411,17 @@ export function SettingsPage() {
                       </div>
                     </div>
                     <Switch
-                      checked={devToolsEnabled.mcpInspector}
+                      checked={mcpInspectorEnvEnabled && devToolsEnabled.mcpInspector}
                       onCheckedChange={(checked) => handleDevToolToggle('mcpInspector', checked)}
+                      disabled={!mcpInspectorEnvEnabled}
                     />
                   </div>
+                  {!mcpInspectorEnvEnabled && (
+                    <p className='text-xs text-muted-foreground pl-11'>
+                      Enable by setting <code>DEVTOOLS_ENABLE_MCP_INSPECTOR=true</code> in <code>.env</code> then restart dev
+                      server.
+                    </p>
+                  )}
                 </div>
               </div>
             </CardContent>

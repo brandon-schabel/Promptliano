@@ -21,12 +21,15 @@ import {
   genTextStream,
   providerKeyService,
   updateProviderSettings,
-  handleChatMessage
-} from '@promptliano/services' // Import the service instance
+  toDataStreamResponse
+} from '@promptliano/services'
+import type { UIMessage } from 'ai'
+import type { StreamChatSessionParams } from '../ai/chat/session'
 import { type APIProviders, type ProviderKey } from '@promptliano/database'
 import { type ProviderKeysConfig, ModelFetcherService } from '@promptliano/services'
 import { OLLAMA_BASE_URL, LMSTUDIO_BASE_URL } from '@promptliano/services/src/model-providers/provider-defaults'
-import { stream } from 'hono/streaming'
+import { streamChatSession } from '../ai/chat/session'
+import { createMcpToolSuite } from '../ai/mcp/registry'
 
 // Define the Zod schema for filename suggestions
 const FilenameSuggestionSchema = z
@@ -53,34 +56,165 @@ const ProvidersListResponseSchema = z
         id: z.string(),
         name: z.string(),
         isCustom: z.boolean().optional(),
-        baseUrl: z.string().optional()
+        baseUrl: z.string().optional(),
+        configured: z.boolean().optional(),
+        requiresConfiguration: z.boolean().optional()
       })
     )
   })
   .openapi('ProvidersListResponse')
 
-// Vercel AI SDK-compatible chat request schema (messages-based)
-const AiSdkChatRequestSchema = z
+const ChatIdParamSchema = z
   .object({
-    id: z.string().optional().describe('Chat/session identifier (maps to chatId)'),
-    messages: z
-      .array(
+    chatId: z
+      .string()
+      .regex(/^\d+$/)
+      .transform((value) => Number(value))
+      .openapi({
+        param: {
+          name: 'chatId',
+          in: 'path'
+        },
+        example: '42'
+      })
+  })
+  .openapi('ChatIdParam')
+
+const ChatMcpSessionResponseSchema = z
+  .object({
+    success: z.literal(true),
+    data: z.object({
+      serverId: z.number(),
+      tools: z.array(
         z.object({
-          role: z.enum(['user', 'assistant', 'system']),
-          content: z.string()
+          id: z.string(),
+          name: z.string(),
+          description: z.string().optional(),
+          parameters: z
+            .array(
+              z.object({
+                name: z.string(),
+                type: z.string().optional(),
+                description: z.string().optional(),
+                required: z.boolean().optional(),
+                enum: z.array(z.union([z.string(), z.number()])).optional(),
+                default: z.any().optional()
+              })
+            )
+            .optional()
         })
       )
-      .min(1),
-    provider: z.string().optional().default('openai'),
-    model: z.string(),
-    temperature: z.number().optional(),
-    maxTokens: z.number().int().optional(),
-    topP: z.number().optional()
+    })
   })
-  .openapi('AiSdkChatRequest')
+  .openapi('ChatMcpSessionResponse')
+
+const ChatMcpToolInvokeSchema = z
+  .object({
+    toolId: z.string().optional(),
+    message: z.string().min(1).optional(),
+    arguments: z.record(z.string(), z.any()).optional(),
+    limit: z.number().int().positive().max(50).optional()
+  })
+  .openapi('ChatMcpToolInvokeRequest')
+
+const ChatMcpToolInvokeResponseSchema = z
+  .object({
+    success: z.literal(true),
+    data: z.object({
+      toolId: z.string(),
+      content: z.string().nullable(),
+      raw: z.any()
+    })
+  })
+  .openapi('ChatMcpToolInvokeResponse')
+
+const AiSdkChatMessageSchema = z.object({
+  id: z.string().optional(),
+  role: z.enum(['user', 'assistant', 'system']),
+  content: z.any().optional(),
+  parts: z.array(z.any()).optional(),
+  createdAt: z.number().optional()
+})
+
+const AiSdkChatRequestSchema = z.object({
+  id: z.string().optional(),
+  provider: z.string().optional(),
+  model: z.string().optional(),
+  temperature: z.number().optional(),
+  maxTokens: z.number().int().positive().optional(),
+  topP: z.number().optional(),
+  frequencyPenalty: z.number().optional(),
+  presencePenalty: z.number().optional(),
+  responseFormat: z.any().optional(),
+  toolsEnabled: z.boolean().optional(),
+  toolChoice: z.enum(['auto', 'none']).optional(),
+  maxSteps: z.number().int().positive().optional(),
+  forceFinalText: z.boolean().optional(),
+  parallelToolCalls: z.boolean().optional(),
+  enableChatAutoNaming: z.boolean().optional(),
+  messages: z.array(AiSdkChatMessageSchema).min(1)
+})
+
+const postAiChatSdkRoute = createRoute({
+  method: 'post',
+  path: '/api/ai/chat/sdk',
+  tags: ['AI'],
+  summary: 'Stream chat completions via AI SDK',
+  request: {
+    body: {
+      content: {
+        'application/json': {
+          schema: AiSdkChatRequestSchema
+        }
+      },
+      required: true,
+      description: 'Chat request payload for AI SDK streaming'
+    }
+  },
+  responses: {
+    200: {
+      description: 'UI message event stream',
+      content: {
+        'text/event-stream': {
+          schema: z.any()
+        }
+      }
+    }
+  }
+})
 
 // Use the imported structuredDataSchemas from @promptliano/schemas
 // which now includes all our asset generators
+
+const getChatMcpSessionRoute = createRoute({
+  method: 'get',
+  path: '/api/ai/chat/{chatId}/mcp-session',
+  tags: ['AI'],
+  summary: 'Get MCP session metadata for a chat',
+  request: {
+    params: ChatIdParamSchema
+  },
+  responses: createStandardResponses(ChatMcpSessionResponseSchema)
+})
+
+const postChatMcpToolRoute = createRoute({
+  method: 'post',
+  path: '/api/ai/chat/{chatId}/mcp/tools/run',
+  tags: ['AI'],
+  summary: 'Invoke the default Promptliano MCP tool for a chat turn',
+  request: {
+    params: ChatIdParamSchema,
+    body: {
+      content: {
+        'application/json': {
+          schema: ChatMcpToolInvokeSchema
+        }
+      },
+      required: true
+    }
+  },
+  responses: createStandardResponses(ChatMcpToolInvokeResponseSchema)
+})
 
 const getProvidersRoute = createRoute({
   method: 'get',
@@ -99,50 +233,6 @@ const getModelsRoute = createRoute({
     query: ModelsQuerySchema
   },
   responses: createStandardResponses(ModelsListResponseSchema)
-})
-
-// AI SDK chat endpoint compatible with @ai-sdk/react useChat
-const postAiChatSdkRoute = createRoute({
-  method: 'post',
-  path: '/api/ai/chat',
-  tags: ['AI'],
-  summary: 'Chat completion (Vercel AI SDK compatible, streaming)',
-  request: {
-    body: {
-      content: {
-        'application/json': {
-          schema: AiSdkChatRequestSchema
-        }
-      },
-      required: true
-    }
-  },
-  responses: {
-    200: {
-      content: {
-        'text/event-stream': {
-          schema: z.string().openapi({ description: 'Stream of response tokens (Vercel AI SDK format)' })
-        }
-      },
-      description: 'Successfully initiated AI response stream.'
-    },
-    400: {
-      content: {
-        'application/json': {
-          schema: ApiErrorResponseSchema
-        }
-      },
-      description: 'Bad request - invalid chat request parameters.'
-    },
-    500: {
-      content: {
-        'application/json': {
-          schema: ApiErrorResponseSchema
-        }
-      },
-      description: 'Internal server error.'
-    }
-  }
 })
 
 const generateTextRoute = createRoute({
@@ -247,20 +337,81 @@ const updateProviderSettingsRoute = createRoute({
 })
 
 export const genAiRoutes = new OpenAPIHono()
+  .openapi(getChatMcpSessionRoute, async (c) => {
+    c.req.valid('param') // maintain validation for chatId even if unused
+    const suite = await createMcpToolSuite()
+    const tools = suite.metadata.map((entry) => ({
+      id: entry.name,
+      name: entry.name,
+      description: entry.description,
+      parameters: [] as unknown[]
+    }))
+    await suite.cleanup()
+
+    return c.json(
+      successResponse({
+        serverId: 0,
+        tools
+      }),
+      200
+    )
+  })
+  .openapi(postChatMcpToolRoute, async (c) => {
+    const { chatId } = c.req.valid('param')
+    const body = c.req.valid('json')
+
+    const resolvedToolId = body.toolId ?? 'project_manager'
+
+    const suite = await createMcpToolSuite()
+    const tool = suite.tools[resolvedToolId]
+
+    if (!tool) {
+      await suite.cleanup()
+      throw new ApiError(404, `Unknown MCP tool: ${resolvedToolId}`, 'MCP_TOOL_NOT_FOUND')
+    }
+
+    const inferredArguments = body.arguments ??
+      (body.message
+        ? { query: body.message }
+        : {})
+
+    if (typeof tool.execute !== 'function') {
+      await suite.cleanup()
+      throw new ApiError(500, `MCP tool '${resolvedToolId}' cannot be executed`, 'MCP_TOOL_EXECUTION_ERROR')
+    }
+
+    let execution: unknown
+    try {
+      execution = await tool.execute(inferredArguments, undefined as any)
+    } finally {
+      try {
+        await suite.cleanup()
+      } catch (cleanupError) {
+        console.error('[MCP] Failed to clean up tool suite after execution', cleanupError)
+      }
+    }
+
+    const content = typeof execution === 'string' ? execution : JSON.stringify(execution)
+
+    return c.json(
+      successResponse({
+        toolId: resolvedToolId,
+        content,
+        raw: execution
+      }),
+      200
+    )
+  })
   .openapi(postAiChatSdkRoute, async (c) => {
     const body = c.req.valid('json') as z.infer<typeof AiSdkChatRequestSchema>
 
-    // Extract the most recent user message and optional system message
-    const lastUser = [...body.messages].reverse().find((m) => m.role === 'user')
-    const systemMsg = body.messages.find((m) => m.role === 'system')?.content
-
     const chatId = body.id ? Number(body.id) : NaN
-    if (!lastUser || !Number.isFinite(chatId)) {
+    if (!Number.isFinite(chatId) || !Array.isArray(body.messages) || body.messages.length === 0) {
       return c.json(
         {
           success: false,
           error: {
-            message: !Number.isFinite(chatId) ? 'Missing or invalid chat id' : 'Missing user message',
+            message: !Number.isFinite(chatId) ? 'Missing or invalid chat id' : 'Messages array is required',
             code: 'INVALID_CHAT_REQUEST'
           }
         },
@@ -268,33 +419,117 @@ export const genAiRoutes = new OpenAPIHono()
       )
     }
 
-    // Prepare unified options expected by the chat handler
-    const unifiedOptions = {
-      provider: body.provider || 'openai',
+    const options = {
+      provider: body.provider,
       model: body.model,
       ...(body.temperature !== undefined && { temperature: body.temperature }),
       ...(body.maxTokens !== undefined && { maxTokens: body.maxTokens }),
-      ...(body.topP !== undefined && { topP: body.topP })
+      ...(body.topP !== undefined && { topP: body.topP }),
+      ...(body.frequencyPenalty !== undefined && { frequencyPenalty: body.frequencyPenalty }),
+      ...(body.presencePenalty !== undefined && { presencePenalty: body.presencePenalty }),
+      ...(body.responseFormat !== undefined && { responseFormat: body.responseFormat })
     }
 
-    c.header('Content-Type', 'text/event-stream; charset=utf-8')
-    c.header('Cache-Control', 'no-cache')
-    c.header('Connection', 'keep-alive')
+    const normalizedMessages = body.messages.map((message, index) => ({
+      ...message,
+      id: message.id ?? `msg-${index}`,
+      parts: Array.isArray(message.parts) ? message.parts : []
+    })) as unknown as UIMessage[]
 
-    const readableStream = await handleChatMessage({
+    const rawSystemMessage = body.messages.find((msg) => msg.role === 'system')
+    const systemMessageContent = typeof rawSystemMessage?.content === 'string' ? rawSystemMessage.content : undefined
+
+    const sessionParams: StreamChatSessionParams = {
       chatId,
-      userMessage: lastUser.content,
-      options: unifiedOptions,
-      systemMessage: systemMsg
-    })
+      messages: normalizedMessages,
+      provider: body.provider || 'openai',
+      model: body.model,
+      options,
+      toolsEnabled: body.toolsEnabled ?? false,
+      toolChoice: body.toolChoice,
+      maxSteps: body.maxSteps,
+      providerKey: body.provider || 'openai',
+      enableChatAutoNaming: !!body.enableChatAutoNaming,
+      debug: false
+    }
 
-    return c.body(readableStream.toDataStream(), 200, {
-      'Content-Type': 'text/event-stream; charset=utf-8',
-      'Cache-Control': 'no-cache'
-    })
+    if (systemMessageContent) {
+      sessionParams.systemMessage = systemMessageContent as string
+    }
+
+    if (
+      body.maxSteps !== undefined ||
+      body.forceFinalText !== undefined ||
+      body.parallelToolCalls !== undefined
+    ) {
+      sessionParams.agenticOverrides = {
+        ...(body.maxSteps !== undefined ? { maxSteps: body.maxSteps } : {}),
+        ...(body.forceFinalText !== undefined ? { forceFinalText: body.forceFinalText } : {}),
+        ...(body.parallelToolCalls !== undefined ? { parallelToolCalls: body.parallelToolCalls } : {})
+      }
+    }
+
+    const { stream, cleanup } = await streamChatSession(sessionParams)
+
+    return toDataStreamResponse(stream, { onComplete: cleanup })
   })
   .openapi(getProvidersRoute, async (c) => {
     try {
+      const providersRequiringKeys = new Set([
+        'openai',
+        'anthropic',
+        'google_gemini',
+        'groq',
+        'together',
+        'xai',
+        'openrouter',
+        'copilot'
+      ])
+
+      const providerEnvVarMap: Record<string, string[]> = {
+        openai: ['OPENAI_API_KEY'],
+        anthropic: ['ANTHROPIC_API_KEY'],
+        google_gemini: ['GOOGLE_GENERATIVE_AI_API_KEY'],
+        googlegemini: ['GOOGLE_GENERATIVE_AI_API_KEY'],
+        groq: ['GROQ_API_KEY'],
+        together: ['TOGETHER_API_KEY'],
+        xai: ['XAI_API_KEY'],
+        openrouter: ['OPENROUTER_API_KEY'],
+        copilot: ['COPILOT_API_KEY'],
+        githubcopilot: ['COPILOT_API_KEY']
+      }
+
+      const normalizeProvider = (value: string) => value.toLowerCase()
+      const compactProvider = (value: string) => normalizeProvider(value).replace(/[^a-z]/g, '')
+
+      const providerKeys = await providerKeyService.listKeysCensoredKeys()
+      const configuredProviders = new Set<string>()
+
+      for (const key of providerKeys) {
+        if (!key?.provider) continue
+        const normalized = normalizeProvider(String(key.provider))
+        configuredProviders.add(normalized)
+        configuredProviders.add(compactProvider(normalized))
+      }
+
+      const hasEnvConfig = (providerId: string): boolean => {
+        const normalized = normalizeProvider(providerId)
+        const envVars = providerEnvVarMap[normalized] ?? providerEnvVarMap[compactProvider(providerId)]
+        if (!envVars) return false
+        return envVars.some((envVar) => Boolean(process.env[envVar]))
+      }
+
+      const isProviderConfigured = (providerId: string): boolean => {
+        const normalized = normalizeProvider(providerId)
+        if (!providersRequiringKeys.has(normalized)) {
+          return true
+        }
+        if (configuredProviders.has(normalized) || configuredProviders.has(compactProvider(providerId))) {
+          return true
+        }
+        return hasEnvConfig(providerId)
+      }
+
       // Get predefined providers
       const predefinedProviders = [
         { id: 'openai', name: 'OpenAI', isCustom: false },
@@ -309,17 +544,29 @@ export const genAiRoutes = new OpenAPIHono()
         { id: 'ollama', name: 'Ollama', isCustom: false }
       ]
 
-      // Get custom providers
-      const customProviders = await providerKeyService.getCustomProviders()
-      const formattedCustomProviders = customProviders.map((cp) => ({
-        id: cp.id,
-        name: cp.name,
-        isCustom: true,
-        baseUrl: cp.baseUrl
-      }))
+      const enhancedPredefinedProviders = predefinedProviders.map((provider) => {
+        const normalizedId = normalizeProvider(provider.id)
+        const requiresConfiguration = providersRequiringKeys.has(normalizedId)
+        return {
+          ...provider,
+          configured: isProviderConfigured(provider.id),
+          requiresConfiguration
+        }
+      })
+
+      const customProviders = providerKeys
+        .filter((key) => normalizeProvider(String(key.provider)) === 'custom' && key.baseUrl)
+        .map((key) => ({
+          id: `custom_${key.id}`,
+          name: key.name || 'Custom Provider',
+          isCustom: true,
+          baseUrl: key.baseUrl || undefined,
+          configured: true,
+          requiresConfiguration: false
+        }))
 
       // Combine both lists
-      const allProviders = [...predefinedProviders, ...formattedCustomProviders]
+      const allProviders = [...enhancedPredefinedProviders, ...customProviders]
 
       return c.json(successResponse(allProviders), 200)
     } catch (error) {
@@ -331,7 +578,7 @@ export const genAiRoutes = new OpenAPIHono()
     const body = c.req.valid('json')
     const { prompt, options, systemMessage } = body
 
-    const aiSDKStream = await genTextStream({
+    const textStream = await genTextStream({
       prompt,
       ...(options && {
         options: options
@@ -339,14 +586,7 @@ export const genAiRoutes = new OpenAPIHono()
       systemMessage
     })
 
-    c.header('Content-Type', 'text/event-stream; charset=utf-8')
-    c.header('Cache-Control', 'no-cache')
-    c.header('Connection', 'keep-alive')
-
-    return c.body(aiSDKStream.toDataStream(), 200, {
-      'Content-Type': 'text/event-stream; charset=utf-8',
-      'Cache-Control': 'no-cache'
-    })
+    return toDataStreamResponse(textStream)
   })
   .openapi(generateTextRoute, async (c) => {
     const body = c.req.valid('json')

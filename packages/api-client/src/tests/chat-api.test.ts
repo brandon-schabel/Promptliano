@@ -7,7 +7,6 @@ import {
   ChatSchema,
   type Chat,
   type ChatMessage,
-  AiChatStreamRequestSchema,
   ForkChatBodySchema,
   ForkChatFromMessageBodySchema,
   MessageRoleEnum
@@ -147,64 +146,8 @@ describe('Chat API Tests', () => {
     }
   })
 
-  test('POST /api/ai/chat - Send a message to a chat (stream) and verify messages', async () => {
-    if (testChats.length === 0) {
-      console.warn('Skipping POST /api/ai/chat test as no chats exist.')
-      return
-    }
-    const targetChat = testChats[0]!
-    const tempId = Date.now()
-    const userMessageContent = 'Hello AI, this is a test message from client test!'
-    const aiChatRequestData = {
-      chatId: targetChat.id,
-      userMessage: userMessageContent,
-      tempId: tempId,
-      options: { provider: 'ollama' as any, model: 'llama3', temperature: 0.1 }
-    }
-
-    expect(AiChatStreamRequestSchema.safeParse(aiChatRequestData).success).toBe(true)
-
-    try {
-      const stream = await client.chats.streamChat(aiChatRequestData)
-      expect(stream).toBeInstanceOf(ReadableStream)
-
-      // Consume the stream
-      const reader = stream.getReader()
-      let receivedText = ''
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-        receivedText += new TextDecoder().decode(value)
-      }
-      console.log('Streamed AI response:', receivedText)
-      expect(receivedText.length).toBeGreaterThan(0)
-    } catch (error) {
-      if (
-        error instanceof PromptlianoError &&
-        (error.statusCode === 503 || error.message.includes('Failed to get model interface'))
-      ) {
-        console.warn('AI Service unavailable, skipping full stream content verification.')
-        return
-      }
-      throw error
-    }
-
-    // Verify messages after stream
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-
-    const messagesResult = await client.chats.getMessages(targetChat.id)
-    expect(messagesResult.success).toBe(true)
-    expect(Array.isArray(messagesResult.data)).toBe(true)
-
-    const userMessage = messagesResult.data.find(
-      (m) => m.role === MessageRoleEnum.enum.user && m.content === userMessageContent
-    )
-    expect(userMessage).toBeDefined()
-    if (userMessage) testMessages.push(userMessage)
-
-    const assistantMessage = messagesResult.data.find((m) => m.role === MessageRoleEnum.enum.assistant)
-    expect(assistantMessage).toBeDefined()
-    if (assistantMessage) testMessages.push(assistantMessage)
+  test('POST /api/chat - streamChat helper is deprecated', async () => {
+    await expect(client.chats.streamChat({})).rejects.toThrow('streamChat is deprecated')
   })
 
   test('DELETE /api/chats/{chatId}/messages/{messageId} - Delete a message', async () => {

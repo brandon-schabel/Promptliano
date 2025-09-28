@@ -41,7 +41,7 @@ export function createMCPServer(): Server {
   const server = new Server(
     {
       name: 'promptliano-mcp',
-      version: '0.11.0'
+      version: '0.12.0'
     },
     {
       capabilities: {

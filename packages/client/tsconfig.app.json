@@ -23,7 +23,7 @@
     "paths": {
       "@ui": ["./src/components/ui"],
       "@ui/*": ["./src/components/ui/*"],
-      "@/*": ["./src/*"],
+      "@/*": ["./src/*", "../ui/src/*"],
       "@promptliano/hook-factory": ["../hook-factory/src/index.ts"],
       "@promptliano/hook-factory/*": ["../hook-factory/src/*"],
       "@promptliano/shared": ["../shared/src/index.ts"],

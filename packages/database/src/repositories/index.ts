@@ -8,6 +8,7 @@ export * from './base-repository'
 export * from './project-repository'
 export * from './ticket-repository' // Also exports taskRepository
 export * from './chat-repository' // Also exports messageRepository
+export * from './chat-stream-repository'
 export * from './prompt-repository'
 export * from './queue-repository' // Also exports queueItemRepository
 export * from './file-repository'

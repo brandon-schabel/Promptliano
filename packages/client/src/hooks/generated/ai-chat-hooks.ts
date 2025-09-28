@@ -13,8 +13,10 @@
  * Adds optimistic updates and enhanced error handling
  */
 
-import { useChat, type Message } from '@ai-sdk/react'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useChat } from '@ai-sdk/react'
+import { lastAssistantMessageIsCompleteWithToolCalls } from 'ai'
+import { DefaultChatTransport, type UIMessage } from 'ai'
+import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { nanoid } from 'nanoid'
@@ -48,6 +50,14 @@ export type AiChatStreamRequest = {
   model: string
   temperature?: number
   maxTokens?: number
+  topP?: number
+  frequencyPenalty?: number
+  presencePenalty?: number
+  responseFormat?: unknown
+  toolsEnabled?: boolean
+  enableChatAutoNaming?: boolean
+  toolChoice?: 'auto' | 'none'
+  maxSteps?: number
 }
 
 export type AiGenerateTextRequest = {
@@ -77,7 +87,65 @@ export type AiSdkOptions = {
   topP?: number
   frequencyPenalty?: number
   presencePenalty?: number
+  responseFormat?: unknown
 }
+
+export type ToolEventType = 'session-initialized' | 'tool-invocation' | 'tool-result' | 'tool-error'
+
+export type ChatUiMessage = UIMessage<any, any> & {
+  content?: string
+  createdAt?: Date | number
+  parts?: any[]
+}
+
+export interface ToolEvent {
+  id: string
+  type: ToolEventType
+  toolId: string
+  title: string
+  content?: string | null
+  timestamp: number
+  raw?: unknown
+}
+
+const extractTextFromParts = (parts: any[]): string => {
+  if (!Array.isArray(parts)) return ''
+
+  const text = parts
+    .filter((p) => p?.type === 'text' && typeof p.text === 'string')
+    .map((p) => p.text)
+    .join('\n')
+    .trim()
+
+  if (text) return text
+
+  const toolResults = parts
+    .filter((p) => p?.type === 'tool-invocation' && p?.toolInvocation?.state === 'result')
+    .map((p) => {
+      const result = p.toolInvocation?.result
+      if (typeof result === 'string') return result
+      try {
+        return JSON.stringify(result)
+      } catch {
+        return ''
+      }
+    })
+    .filter(Boolean)
+
+  return toolResults.join('\n').trim()
+}
+
+const formatToolValue = (value: unknown): string => {
+  if (value === null || value === undefined) return ''
+  if (typeof value === 'string') return value
+  try {
+    return JSON.stringify(value, null, 2)
+  } catch (error) {
+    return String(value)
+  }
+}
+
+const normalizeToolTitle = (toolId: string): string => toolId.replace(/_/g, ' ')
 
 export type APIProviders =
   | 'anthropic'
@@ -269,160 +337,511 @@ interface UseAIChatProps {
   model: string
   systemMessage?: string
   enableChatAutoNaming?: boolean
+  toolsEnabled?: boolean
 }
 
 // useAppSettings, parseAIError and extractProviderName are imported above
 
-export function useAIChat({ chatId, provider, model, systemMessage, enableChatAutoNaming = false }: UseAIChatProps) {
-  // Track if initial messages have been loaded to prevent infinite loops
+export function useAIChat({
+  chatId,
+  provider,
+  model,
+  systemMessage,
+  enableChatAutoNaming = false,
+  toolsEnabled = true
+}: UseAIChatProps) {
   const initialMessagesLoadedRef = useRef(false)
-
-  // Track parsed error for UI display
   const [parsedError, setParsedError] = useState<ReturnType<typeof parseAIError> | null>(null)
+  const [sessionToolEvents, setSessionToolEvents] = useState<ToolEvent[]>([])
+  const [isFetchingInitialMessages, setIsFetchingInitialMessages] = useState(false)
+  const [isErrorFetchingInitial, setIsErrorFetchingInitial] = useState(false)
+  const [input, setInput] = useState('')
 
-  // Get app settings for provider URLs
   const [appSettings] = useAppSettings()
 
-  // Initialize Vercel AI SDK's useChat hook with enhanced error handling
-  const { messages, input, handleInputChange, isLoading, error, setMessages, append, reload, stop, setInput } = useChat(
-    {
-      api: `${SERVER_HTTP_ENDPOINT}/api/ai/chat`,
-      id: chatId.toString(),
-      initialMessages: [],
-      onError: (err) => {
-        console.error('[useAIChat] API Error:', err)
+  const chatIdentifier = useMemo(() => {
+    return Number.isFinite(chatId) && chatId > 0 ? chatId.toString() : `chat-${chatId}`
+  }, [chatId])
 
-        // Parse the error using stub implementation
-        const providerName = extractProviderName(err) || provider
-        const parsed = parseAIError(err, providerName)
-        setParsedError(parsed)
+  const transport = useMemo(
+    () =>
+      new DefaultChatTransport<ChatUiMessage>({
+        api: `${SERVER_HTTP_ENDPOINT}/api/chat`,
+        prepareSendMessagesRequest: ({
+          messages,
+          body: requestBody
+        }: {
+          messages: ChatUiMessage[]
+          body?: Record<string, any>
+        }) => {
+          const chatIdValue = Number.isFinite(chatId) && chatId > 0 ? chatId.toString() : undefined
+          const baseBody = {
+            provider,
+            chatId: chatIdValue,
+            enableMcp: toolsEnabled,
+            model: model || undefined,
+            system: systemMessage || undefined,
+            enableChatAutoNaming,
+            maxSteps: toolsEnabled ? 6 : 1,
+            toolChoice: toolsEnabled ? 'auto' : 'none'
+          }
 
-        // Enhanced toast notifications
-        if (parsed?.type === 'MISSING_API_KEY') {
-          toast.error('API Key Missing', {
-            description: parsed.message || 'API key is required',
-            action: {
-              label: 'Settings',
-              onClick: () => (window.location.href = '/settings')
-            }
-          })
-        } else if (parsed?.type === 'RATE_LIMIT') {
-          toast.warning('Rate Limit Exceeded', { description: parsed.message || 'Rate limit exceeded' })
-        } else if (parsed?.type === 'CONTEXT_LENGTH_EXCEEDED') {
-          toast.error('Message Too Long', { description: parsed.message || 'Message too long' })
-        } else {
-          toast.error(`${parsed?.provider || 'AI'} Error`, {
-            description: parsed?.message || err?.message || 'Unknown error'
-          })
+          const merged = {
+            ...baseBody,
+            ...(requestBody ?? {}),
+            messages
+          }
+
+          return { body: merged }
         }
-      }
-    }
+      }),
+    [chatId, enableChatAutoNaming, model, provider, systemMessage, toolsEnabled]
   )
 
-  // Fetch existing messages
-  const {
-    data: initialMessagesData,
-    refetch: refetchMessages,
-    isFetching: isFetchingInitialMessages,
-    isError: isErrorFetchingInitial
-  } = useGetMessages(chatId)
+const addToolResultRef = useRef<((args: { tool: any; toolCallId: string; output: any }) => Promise<void>) | null>(null)
 
-  // Load initial messages into useChat state
-  useEffect(() => {
-    if (initialMessagesData && !initialMessagesLoadedRef.current && !isFetchingInitialMessages && !isLoading) {
-      const formattedMessages: Message[] = initialMessagesData.map((msg: any) => ({
-        id: msg.id.toString(),
-        role: msg.role as 'user' | 'assistant' | 'system',
-        content: msg.content,
-        createdAt: msg.created ? new Date(msg.created) : new Date()
-      }))
-      setMessages(formattedMessages)
-      initialMessagesLoadedRef.current = true
+const {
+  messages: rawMessages,
+  sendMessage: sendChatMessage,
+  regenerate,
+  stop,
+  status,
+  error,
+  setMessages,
+  clearError: clearChatError,
+  addToolResult
+} = useChat<ChatUiMessage>({
+    id: chatIdentifier,
+    transport,
+    messages: [],
+    sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
+    onToolCall: async ({ toolCall }) => {
+      const addToolResult = addToolResultRef.current
+      if (!addToolResult) return
+
+      // Handle simple client-side tools only. Server/provider tools should stream back via the server.
+      try {
+        const name = toolCall.toolName ?? ''
+        if (name === 'client:getLocalSetting') {
+          const toolCallAny = toolCall as any
+          const args =
+            (toolCallAny?.args && typeof toolCallAny.args === 'object' ? (toolCallAny.args as Record<string, unknown>) : null) ??
+            (toolCallAny?.input && typeof toolCallAny.input === 'object' ? (toolCallAny.input as Record<string, unknown>) : null) ??
+            (toolCallAny?.arguments && typeof toolCallAny.arguments === 'object'
+              ? (toolCallAny.arguments as Record<string, unknown>)
+              : null)
+          const key = typeof args?.key === 'string' ? args.key : undefined
+          const value = key && typeof window !== 'undefined' ? window.localStorage.getItem(key) : null
+          await addToolResult({
+            toolCallId: toolCall.toolCallId,
+            tool: name,
+            output: value != null ? { key, value } : { key: key ?? '', value: null }
+          })
+          return
+        }
+
+        // For all other tools (including dynamic provider/server tools), let the server handle them.
+        return
+      } catch (error) {
+        console.error('[useAIChat] Failed to handle tool call on client', error)
+        await addToolResult({
+          toolCallId: toolCall.toolCallId,
+          tool: (toolCall.toolName ?? 'client-tool') as any,
+          output: {
+            error: error instanceof Error ? error.message : String(error)
+          }
+        })
+      }
+    },
+    onError: (err) => {
+      console.error('[useAIChat] API Error:', err)
+
+      const providerName = extractProviderName(err) || provider
+      const parsed = parseAIError(err, providerName)
+      setParsedError(parsed)
+
+      if (parsed?.type === 'MISSING_API_KEY') {
+        toast.error('API Key Missing', {
+          description: parsed.message || 'API key is required',
+          action: {
+            label: 'Settings',
+            onClick: () => (window.location.href = '/settings')
+          }
+        })
+      } else if (parsed?.type === 'RATE_LIMIT') {
+        toast.warning('Rate Limit Exceeded', { description: parsed.message || 'Rate limit exceeded' })
+      } else if (parsed?.type === 'CONTEXT_LENGTH_EXCEEDED') {
+        toast.error('Message Too Long', { description: parsed.message || 'Message too long' })
+      } else {
+        toast.error(`${parsed?.provider || 'AI'} Error`, {
+          description: parsed?.message || err?.message || 'Unknown error'
+        })
     }
-  }, [initialMessagesData, setMessages, isFetchingInitialMessages, isLoading])
+  }
+})
 
-  // Reset loaded flag when chatId changes
+addToolResultRef.current = addToolResult
+
+// Normalize so UI always has a .content string derived from parts when streaming
+const messages = useMemo<ChatUiMessage[]>(() => {
+  const list = rawMessages ?? []
+  return list.map((message) => {
+    if (typeof message.content === 'string' && message.content.length > 0) {
+      return message
+    }
+
+    const text = extractTextFromParts((message as any).parts ?? [])
+    return text ? { ...message, content: text } : message
+  })
+}, [rawMessages])
+
+  const normalizeHistoryMessage = useCallback((msg: any): ChatUiMessage => {
+    const randomId = typeof globalThis.crypto?.randomUUID === 'function'
+      ? globalThis.crypto.randomUUID()
+      : Date.now()
+    const id = msg?.id ? String(msg.id) : `msg_${randomId}`
+    const createdValue = msg?.createdAt ?? msg?.created ?? msg?.metadata?.storedAt ?? Date.now()
+    const createdAt = typeof createdValue === 'string' || typeof createdValue === 'number'
+      ? new Date(createdValue)
+      : new Date()
+
+    const metadata = (msg?.metadata && typeof msg.metadata === 'object') ? msg.metadata : undefined
+    const metadataParts = Array.isArray(metadata?.parts) ? (metadata.parts as any[]) : undefined
+
+    const sanitizedParts: any[] = []
+    const textFromMessage = typeof msg?.content === 'string' ? msg.content : ''
+    if (textFromMessage && textFromMessage.trim().length > 0) {
+      sanitizedParts.push({ type: 'text', text: textFromMessage })
+    } else if (metadataParts) {
+      const textPart = metadataParts.find((part) => part && typeof part === 'object' && part.type === 'text' && typeof part.text === 'string')
+      if (textPart?.text && textPart.text.trim().length > 0) {
+        sanitizedParts.push({ type: 'text', text: textPart.text })
+      }
+    }
+
+    return {
+      id,
+      role: msg?.role ?? 'assistant',
+      content: typeof msg?.content === 'string' ? msg.content : '',
+      parts: sanitizedParts,
+      metadata,
+      createdAt
+    } as ChatUiMessage
+  }, [])
+
+  const fetchHistory = useCallback(async () => {
+    if (!Number.isFinite(chatId) || chatId <= 0) {
+      setMessages([])
+      initialMessagesLoadedRef.current = true
+      return [] as ChatUiMessage[]
+    }
+
+    setIsFetchingInitialMessages(true)
+    setIsErrorFetchingInitial(false)
+
+    try {
+      const response = await fetch(`${SERVER_HTTP_ENDPOINT}/api/history?chatId=${chatId}&includeRaw=1`)
+      if (!response.ok) {
+        throw new Error(`Failed to load chat history (status ${response.status})`)
+      }
+
+      const payload = await response.json()
+
+      const toAbsoluteUrl = (value: string | undefined | null) => {
+        if (!value) return undefined
+        return /^https?:/i.test(value) ? value : `${SERVER_HTTP_ENDPOINT}${value}`
+      }
+
+      const rawStreams: Array<{
+        id: number
+        replayUrl: string
+        eventsUrl: string
+        provider: string
+        model: string
+        finishReason?: string | null
+        usage?: Record<string, unknown> | null
+        format?: 'ui' | 'data'
+      }> = Array.isArray(payload?.streams) ? (payload.streams as any[]) : []
+      const streamMap = new Map<number, (typeof rawStreams)[number]>()
+      for (const stream of rawStreams) {
+        if (stream && typeof stream.id === 'number') {
+          streamMap.set(stream.id, stream)
+        }
+      }
+
+      const historyMessages: ChatUiMessage[] = Array.isArray(payload?.messages)
+        ? (payload.messages as any[]).map((message) => {
+            const normalized = normalizeHistoryMessage(message)
+            const metadata = normalized.metadata && typeof normalized.metadata === 'object' ? normalized.metadata : undefined
+            const streamId = metadata?.streamId
+            if (streamId && typeof streamId === 'number' && streamMap.has(streamId)) {
+              const stream = streamMap.get(streamId)!
+              const replayUrl = stream.replayUrl
+              const eventsUrl = stream.eventsUrl
+              const existingMetadata = metadata ?? {}
+              normalized.metadata = {
+                ...existingMetadata,
+                streamId,
+                replayUrl: toAbsoluteUrl(replayUrl) ?? existingMetadata.replayUrl,
+                eventsUrl: toAbsoluteUrl(eventsUrl) ?? existingMetadata.eventsUrl,
+                streamFormat: stream.format ?? 'ui',
+                provider: stream.provider ?? existingMetadata.provider,
+                model: stream.model ?? existingMetadata.model,
+                finishReason: existingMetadata.finishReason ?? stream.finishReason ?? undefined,
+                usage: existingMetadata.usage ?? stream.usage ?? undefined
+              }
+            }
+            return normalized
+          })
+        : []
+
+      setMessages(historyMessages as ChatUiMessage[])
+      initialMessagesLoadedRef.current = true
+      return historyMessages
+    } catch (err) {
+      setIsErrorFetchingInitial(true)
+      console.error('[useAIChat] Failed to load chat history', err)
+      throw err
+    } finally {
+      setIsFetchingInitialMessages(false)
+    }
+  }, [chatId, normalizeHistoryMessage, setMessages])
+
   useEffect(() => {
     initialMessagesLoadedRef.current = false
   }, [chatId])
 
-  // Enhanced sendMessage function
+  useEffect(() => {
+    if (initialMessagesLoadedRef.current || isFetchingInitialMessages) {
+      return
+    }
+
+    fetchHistory().catch(() => {
+      // errors handled via state; swallow here to avoid unhandled rejection
+    })
+  }, [fetchHistory, isFetchingInitialMessages])
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadSession() {
+      if (!Number.isFinite(chatId) || chatId <= 0 || !toolsEnabled) {
+        setSessionToolEvents([])
+        return
+      }
+
+      try {
+        const response = await fetch(`${SERVER_HTTP_ENDPOINT}/api/ai/chat/${chatId}/mcp-session`)
+        if (!response.ok) {
+          throw new Error(`Failed to load MCP session (status ${response.status})`)
+        }
+
+        const payload = await response.json()
+        if (cancelled) return
+
+        const tools = Array.isArray(payload?.data?.tools) ? payload.data.tools : []
+
+        setSessionToolEvents([
+          {
+            id: `session-${chatId}`,
+            type: 'session-initialized',
+            toolId: String(payload?.data?.serverId ?? 'promptliano-mcp'),
+            title: 'MCP session ready',
+            content: tools.length ? `Tools: ${tools.map((tool: any) => tool.name).join(', ')}` : undefined,
+            timestamp: Date.now(),
+            raw: payload?.data
+          }
+        ])
+      } catch (error) {
+        if (cancelled) return
+        setSessionToolEvents([
+          {
+            id: `session-error-${chatId}-${Date.now()}`,
+            type: 'tool-error',
+            toolId: 'promptliano-mcp',
+            title: 'MCP session unavailable',
+            content: error instanceof Error ? error.message : String(error),
+            timestamp: Date.now()
+          }
+        ])
+      }
+    }
+
+    loadSession()
+
+    return () => {
+      cancelled = true
+    }
+  }, [chatId, toolsEnabled])
+
+  const invocationEvents = useMemo(() => {
+    const events = new Map<string, ToolEvent>()
+
+    for (const msg of messages ?? []) {
+      const timestamp = msg.createdAt instanceof Date ? msg.createdAt.getTime() : Date.now()
+      const parts = Array.isArray((msg as any).parts) ? (msg as any).parts : []
+
+      parts.forEach((part: any, index: number) => {
+        if (!part) return
+
+        if (part.type === 'tool-invocation') {
+          const invocation = part.toolInvocation || part.tool_call || part.invocation
+          if (!invocation) return
+
+          const toolCallId = invocation.toolCallId || invocation.id || `${msg.id || 'tool'}-${index}`
+          const toolName = invocation.toolName || invocation.toolId || invocation.name || 'tool'
+          const state = invocation.state || 'call'
+          const eventType: ToolEventType = state === 'result' ? 'tool-result' : 'tool-invocation'
+          const key = `${toolCallId}-${eventType}`
+
+          const content =
+            eventType === 'tool-result'
+              ? formatToolValue(invocation.result ?? invocation.output ?? invocation.response)
+              : invocation.args || invocation.arguments
+                ? `Args: ${formatToolValue(invocation.args ?? invocation.arguments)}`
+                : undefined
+
+          events.set(key, {
+            id: key,
+            type: eventType,
+            toolId: toolName,
+            title: normalizeToolTitle(toolName),
+            content: content ?? undefined,
+            timestamp,
+            raw: invocation
+          })
+          return
+        }
+
+        if (part.type === 'tool') {
+          const toolName = part.toolName || part.name || 'tool'
+          const eventType: ToolEventType = part.toolEventType === 'result' ? 'tool-result' : 'tool-invocation'
+          const key = `${toolName}-${part.toolCallId ?? `${msg.id || 'tool'}-${index}`}-${eventType}`
+
+          const content =
+            eventType === 'tool-result'
+              ? formatToolValue(part.result ?? part.output ?? part.response)
+              : part.args || part.arguments
+                ? `Args: ${formatToolValue(part.args ?? part.arguments)}`
+                : undefined
+
+          events.set(key, {
+            id: key,
+            type: eventType,
+            toolId: toolName,
+            title: normalizeToolTitle(toolName),
+            content: content ?? undefined,
+            timestamp,
+            raw: part
+          })
+        }
+      })
+    }
+
+    return Array.from(events.values()).sort((a, b) => a.timestamp - b.timestamp)
+  }, [messages])
+
+  const toolEvents = useMemo(() => {
+    if (sessionToolEvents.length === 0) {
+      return invocationEvents
+    }
+    return [...sessionToolEvents, ...invocationEvents].sort((a, b) => a.timestamp - b.timestamp)
+  }, [sessionToolEvents, invocationEvents])
+
+  const buildRequestExtras = useCallback(
+    (modelSettings?: AiSdkOptions) => {
+      const extras: Record<string, unknown> = {}
+
+      extras.maxSteps = toolsEnabled ? 6 : 1
+
+      if (modelSettings) {
+        if (modelSettings.temperature !== undefined) extras.temperature = modelSettings.temperature
+        if (modelSettings.maxTokens !== undefined) extras.maxTokens = modelSettings.maxTokens
+        if (modelSettings.topP !== undefined) extras.topP = modelSettings.topP
+        if (modelSettings.frequencyPenalty !== undefined) extras.frequencyPenalty = modelSettings.frequencyPenalty
+        if (modelSettings.presencePenalty !== undefined) extras.presencePenalty = modelSettings.presencePenalty
+        if (modelSettings.responseFormat !== undefined) extras.responseFormat = modelSettings.responseFormat
+        if ((modelSettings as any)?.model) extras.model = (modelSettings as any).model
+        if ((modelSettings as any)?.provider) extras.provider = (modelSettings as any).provider
+      }
+
+      if (provider === 'ollama' && appSettings.ollamaGlobalUrl) {
+        extras.ollamaUrl = appSettings.ollamaGlobalUrl
+      } else if (provider === 'lmstudio' && appSettings.lmStudioGlobalUrl) {
+        extras.lmstudioUrl = appSettings.lmStudioGlobalUrl
+      }
+
+      return extras
+    },
+    [appSettings.lmStudioGlobalUrl, appSettings.ollamaGlobalUrl, provider, toolsEnabled]
+  )
+
   const sendMessage = useCallback(
     async (messageContent: string, modelSettings?: AiSdkOptions) => {
       if (!messageContent.trim()) return
 
-      // Clear previous errors
       setParsedError(null)
-
-      const userMessageId = Date.now()
-      const messageForSdkState: Message = {
-        id: userMessageId.toString(),
-        role: 'user',
-        content: messageContent.trim(),
-        createdAt: new Date()
-      }
-
-      // Prepare SDK options with provider URL integration
-      let sdkOptions: AiSdkOptions | undefined = undefined
-      if (modelSettings) {
-        sdkOptions = {
-          ...(modelSettings.temperature !== undefined && { temperature: modelSettings.temperature }),
-          ...(modelSettings.maxTokens !== undefined && { maxTokens: modelSettings.maxTokens }),
-          ...(modelSettings.topP !== undefined && { topP: modelSettings.topP }),
-          ...(modelSettings.frequencyPenalty !== undefined && { frequencyPenalty: modelSettings.frequencyPenalty }),
-          ...(modelSettings.presencePenalty !== undefined && { presencePenalty: modelSettings.presencePenalty })
-          // provider and model are handled separately
-        }
-      }
-
-      // Add provider URLs
-      if (provider === 'ollama' && appSettings.ollamaGlobalUrl) {
-        sdkOptions = { ...sdkOptions, ollamaUrl: appSettings.ollamaGlobalUrl }
-      } else if (provider === 'lmstudio' && appSettings.lmStudioGlobalUrl) {
-        sdkOptions = { ...sdkOptions, lmstudioUrl: appSettings.lmStudioGlobalUrl }
-      }
-
-      // Construct request body with proper defaults
-      const requestBody: AiChatStreamRequest = {
-        messages: [
-          ...(systemMessage ? [{ role: 'system' as const, content: systemMessage }] : []),
-          { role: 'user' as const, content: messageContent.trim() }
-        ],
-        model: model || (sdkOptions as any)?.model || 'gpt-4',
-        provider: provider || (sdkOptions as any)?.provider || 'openai'
-      }
-
       setInput('')
-      await append(messageForSdkState, { body: requestBody })
+
+      const bodyExtras = {
+        provider,
+        model,
+        system: systemMessage,
+        toolChoice: toolsEnabled ? 'auto' : 'none',
+        ...buildRequestExtras(modelSettings)
+      }
+
+      await sendChatMessage(
+        {
+          role: 'user',
+          content: messageContent.trim(),
+          parts: [{ type: 'text', text: messageContent.trim() }]
+        },
+        { body: bodyExtras }
+      )
     },
-    [
-      append,
-      chatId,
-      provider,
-      model,
-      systemMessage,
-      setInput,
-      setParsedError,
-      enableChatAutoNaming,
-      appSettings.ollamaGlobalUrl,
-      appSettings.lmStudioGlobalUrl
-    ]
+    [buildRequestExtras, model, provider, sendChatMessage, systemMessage, toolsEnabled]
   )
 
+  const handleInputChange = useCallback((event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setInput(event.target.value)
+  }, [])
+
   const handleFormSubmit = useCallback(
-    (e: React.FormEvent<HTMLFormElement>) => {
-      e.preventDefault()
+    (event: FormEvent<HTMLFormElement>) => {
+      event.preventDefault()
+      if (!input.trim()) return
       sendMessage(input)
     },
-    [sendMessage, input]
+    [input, sendMessage]
   )
 
   const clearError = useCallback(() => {
     setParsedError(null)
+    clearChatError()
+  }, [clearChatError])
+
+  const isLoading = status === 'submitted' || status === 'streaming'
+
+  const reload = useCallback(() => {
+    return regenerate({
+      body: {
+        provider,
+        model,
+        system: systemMessage,
+        toolChoice: toolsEnabled ? 'auto' : 'none',
+        ...buildRequestExtras()
+      }
+    })
+  }, [buildRequestExtras, model, provider, regenerate, systemMessage, toolsEnabled])
+
+  const setInputValue = useCallback((value: string) => {
+    setInput(value)
   }, [])
 
+  const refetchMessages = useCallback(() => fetchHistory(), [fetchHistory])
+
   return {
-    // Core streaming functionality (preserved from original)
     messages,
     input,
     handleInputChange,
@@ -431,12 +850,11 @@ export function useAIChat({ chatId, provider, model, systemMessage, enableChatAu
     error,
     parsedError,
     clearError,
-    setInput,
+    setInput: setInputValue,
     reload,
     stop,
     sendMessage,
-
-    // Additional functionality
+    toolEvents,
     isFetchingInitialMessages,
     isErrorFetchingInitial,
     refetchMessages
@@ -564,8 +982,9 @@ export function useStreamChat() {
 
   return useMutation({
     mutationFn: (data: AiChatStreamRequest) => {
+      void data
       if (!client) throw new Error('API client not initialized')
-      return client.chats.streamChat(data)
+      throw new Error('streamChat is deprecated. Use the new AI chat hook backed by /api/chat.')
     },
     onError: (error: Error) => {
       toast.error(error.message || 'Failed to start chat stream')
@@ -585,30 +1004,26 @@ export function useAIChatV2({
   model: string
   systemMessage?: string
 }) {
-  const { data: messages, refetch: refetchMessages } = useGetMessages(chatId)
-  const streamChat = useStreamChat()
-
-  const sendMessage = async (userMessage: string, options?: Partial<AiChatStreamRequest>) => {
-    try {
-      const stream = await streamChat.mutateAsync({
-        chatId,
-        userMessage,
-        systemMessage,
-        provider,
-        model,
-        ...options
-      } as any)
-      return stream
-    } catch (error) {
-      throw error
-    }
-  }
+  const {
+    messages,
+    sendMessage,
+    isLoading,
+    error,
+    refetchMessages
+  } = useAIChat({
+    chatId,
+    provider,
+    model,
+    systemMessage,
+    enableChatAutoNaming: false,
+    toolsEnabled: true
+  })
 
   return {
-    messages: messages || [],
+    messages: messages ?? [],
     sendMessage,
-    isLoading: streamChat.isPending,
-    error: streamChat.error,
+    isLoading,
+    error,
     refetchMessages
   }
 }

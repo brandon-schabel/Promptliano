@@ -17,7 +17,7 @@ describe('AI Endpoints Integration Tests', () => {
       ai: {
         lmstudio: {
           enabled: true,
-          baseUrl: process.env.LMSTUDIO_BASE_URL || 'http://192.168.1.38:1234',
+          baseUrl: process.env.LMSTUDIO_BASE_URL || 'http://localhost:1234',
           model: 'openai/gpt-oss-20b',
           timeout: 30000
         },

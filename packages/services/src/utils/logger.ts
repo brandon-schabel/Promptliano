@@ -1,5 +1,9 @@
 type LogLevel = 'error' | 'warn' | 'info' | 'debug' | 'verbose'
 
+type LoggerOptions = {
+  maxLevel?: LogLevel
+}
+
 const LOG_LEVELS: Record<LogLevel, number> = {
   error: 0,
   warn: 1,
@@ -20,11 +24,29 @@ const LOG_COLORS = {
 class Logger {
   private context?: string
   private currentLevel: number
+  private maxLevel?: LogLevel
 
-  constructor(context?: string) {
+  constructor(context?: string, options: LoggerOptions = {}) {
     this.context = context
+    this.maxLevel = options.maxLevel
+
     const envLevel = (process.env.LOG_LEVEL || (process.env.NODE_ENV === 'production' ? 'info' : 'debug')) as LogLevel
     this.currentLevel = LOG_LEVELS[envLevel] ?? LOG_LEVELS.info
+
+    this.applyMaxLevel()
+  }
+
+  private applyMaxLevel(): void {
+    if (!this.maxLevel) {
+      return
+    }
+
+    const cap = LOG_LEVELS[this.maxLevel]
+    if (cap === undefined) {
+      return
+    }
+
+    this.currentLevel = Math.min(this.currentLevel, cap)
   }
 
   private shouldLog(level: LogLevel): boolean {
@@ -70,13 +92,18 @@ class Logger {
     console.log(this.formatMessage('verbose', message, data))
   }
 
+  setMaxLevel(level: LogLevel): void {
+    this.maxLevel = level
+    this.applyMaxLevel()
+  }
+
   child(context: string): Logger {
     const childContext = this.context ? `${this.context}:${context}` : context
-    return new Logger(childContext)
+    return new Logger(childContext, { maxLevel: this.maxLevel })
   }
 }
 
-export const createLogger = (context?: string) => new Logger(context)
+export const createLogger = (context?: string, options?: LoggerOptions) => new Logger(context, options)
 
 // Default logger instance
 export const logger = createLogger()

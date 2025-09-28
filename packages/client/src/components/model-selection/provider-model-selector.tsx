@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo } from 'react'
-import type { APIProviders, ProviderKey } from '@promptliano/database'
+import type { APIProviders } from '@promptliano/database'
 import { cn } from '@/lib/utils'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@promptliano/ui'
 import { PromptlianoCombobox } from '@/components/promptliano/promptliano-combobox'
@@ -7,8 +7,6 @@ import { useGetModels, useGetProviders } from '@/hooks/generated'
 import { useServerConnection } from '@/hooks/use-server-connection'
 import { useAppSettings } from '@/hooks/use-kv-local-storage'
 import {
-  isValidProviderKey,
-  isValidModelsResponse,
   validateModelsArray,
   type ValidatedModelData,
   extractErrorMessage
@@ -66,38 +64,72 @@ export function ProviderModelSelector({
   const { isConnected } = useServerConnection()
 
   // Prepare provider options from API response
-  const availableProviders = useMemo(() => {
+  const { providerOptions, missingConfiguredProviders, providersLoaded } = useMemo(() => {
+    const defaultOptions: ComboboxOption[] = [
+      { value: 'openai', label: 'OpenAI' },
+      { value: 'anthropic', label: 'Anthropic' },
+      { value: 'google_gemini', label: 'Google Gemini' },
+      { value: 'groq', label: 'Groq' },
+      { value: 'together', label: 'Together' },
+      { value: 'xai', label: 'XAI' },
+      { value: 'openrouter', label: 'OpenRouter' },
+      { value: 'lmstudio', label: 'LMStudio' },
+      { value: 'ollama', label: 'Ollama' }
+    ]
+
+    const applyFilter = (options: ComboboxOption[]) => {
+      if (filterProviders && filterProviders.length > 0) {
+        return options.filter((option) => filterProviders.includes(option.value as APIProviders))
+      }
+      return options
+    }
+
     if (!providersData) {
-      // Fallback to predefined providers if API hasn't loaded yet
-      return [
-        { value: 'openai', label: 'OpenAI' },
-        { value: 'anthropic', label: 'Anthropic' },
-        { value: 'google_gemini', label: 'Google Gemini' },
-        { value: 'groq', label: 'Groq' },
-        { value: 'together', label: 'Together' },
-        { value: 'xai', label: 'XAI' },
-        { value: 'openrouter', label: 'OpenRouter' },
-        { value: 'lmstudio', label: 'LMStudio' },
-        { value: 'ollama', label: 'Ollama' }
-      ]
+      return {
+        providerOptions: applyFilter(defaultOptions),
+        missingConfiguredProviders: [] as string[],
+        providersLoaded: false
+      }
     }
 
-    // Transform provider data (supports both predefined and custom providers)
-    const allProviders = (Array.isArray(providersData) ? providersData : [])
-      .map((p: any): ComboboxOption | null => {
-        const value = typeof p?.id !== 'undefined' ? String(p.id) : p?.provider
-        const label = p?.name || p?.provider || (typeof value === 'string' ? value : '')
-        if (!value || !label) return null
-        return { value, label }
-      })
-      .filter(Boolean) as ComboboxOption[]
+    const rawProviders: any[] = Array.isArray(providersData)
+      ? providersData
+      : Array.isArray((providersData as any)?.data)
+        ? ((providersData as any).data as any[])
+        : []
 
-    // Apply filter if specified
-    if (filterProviders && filterProviders.length > 0) {
-      return allProviders.filter((option: ComboboxOption) => filterProviders.includes(option.value as APIProviders))
+    if (!Array.isArray(rawProviders) || rawProviders.length === 0) {
+      return {
+        providerOptions: [] as ComboboxOption[],
+        missingConfiguredProviders: [] as string[],
+        providersLoaded: true
+      }
     }
 
-    return allProviders
+    const missing: string[] = []
+    const normalizedOptions: ComboboxOption[] = []
+
+    for (const raw of rawProviders) {
+      const value = typeof raw?.id !== 'undefined' ? String(raw.id) : raw?.provider
+      const label = raw?.name || raw?.provider || (typeof value === 'string' ? value : '')
+      if (!value || !label) continue
+
+      const requiresConfiguration = Boolean(raw?.requiresConfiguration)
+      const isConfigured = raw?.configured !== false
+
+      if (requiresConfiguration && !isConfigured) {
+        missing.push(label)
+        continue
+      }
+
+      normalizedOptions.push({ value, label })
+    }
+
+    return {
+      providerOptions: applyFilter(normalizedOptions),
+      missingConfiguredProviders: missing,
+      providersLoaded: true
+    }
   }, [providersData, filterProviders])
 
   // Prepare model options with comprehensive validation
@@ -141,6 +173,15 @@ export function ProviderModelSelector({
     }
   }, [comboboxOptions, currentModel, onModelChange])
 
+  useEffect(() => {
+    if (!providersLoaded) return
+    if (providerOptions.length === 0) return
+    const hasCurrent = providerOptions.some((option) => option.value === provider)
+    if (!hasCurrent) {
+      onProviderChange(providerOptions[0].value)
+    }
+  }, [providersLoaded, providerOptions, provider, onProviderChange])
+
   const handleModelChange = useCallback(
     (value: string | null) => {
       if (value !== null) {
@@ -157,45 +198,100 @@ export function ProviderModelSelector({
     className
   )
 
-  const providerSelectClassName = cn('w-full', layout === 'compact' && 'min-w-[120px]', providerClassName)
+  const providerSelectClassName = cn('w-full', providerClassName)
+  const modelComboboxClassName = cn('w-full min-w-[150px]', modelClassName)
 
-  const modelComboboxClassName = cn('w-full min-w-[150px]', layout === 'compact' && 'min-w-[120px]', modelClassName)
+  const providerWrapperClassName = cn(
+    'flex flex-col gap-1',
+    layout !== 'vertical' && 'flex-1',
+    layout === 'horizontal' && 'min-w-[200px]',
+    layout === 'compact' && 'min-w-[120px]'
+  )
+
+  const modelWrapperClassName = cn('flex flex-col gap-1', layout !== 'vertical' && 'flex-1')
+
+  const providerSelectDisabled = disabled || providerOptions.length === 0
+  const providerPlaceholder = providerOptions.length > 0
+    ? 'Select provider'
+    : providersLoaded
+      ? 'Configure a provider in Settings'
+      : 'Loading providers...'
+
+  const selectedProviderValue = providerOptions.some((option) => option.value === provider)
+    ? provider
+    : undefined
+
+  const missingProvidersText = missingConfiguredProviders.join(', ')
 
   return (
     <div className={containerClassName}>
-      {showLabels && layout === 'vertical' && <label className='text-sm font-medium'>Provider</label>}
-      <Select value={provider} onValueChange={(val) => onProviderChange(val)} disabled={disabled}>
-        <SelectTrigger className={providerSelectClassName}>
-          <SelectValue placeholder='Select provider' />
-        </SelectTrigger>
-        <SelectContent>
-          {availableProviders.map((option: ComboboxOption) => (
-            <SelectItem key={option.value} value={option.value}>
-              {option.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      <div className={providerWrapperClassName}>
+        {showLabels && layout === 'vertical' && <label className='text-sm font-medium'>Provider</label>}
+        <Select
+          value={selectedProviderValue}
+          onValueChange={(val) => onProviderChange(val)}
+          disabled={providerSelectDisabled}
+        >
+          <SelectTrigger className={providerSelectClassName}>
+            <SelectValue placeholder={providerPlaceholder} />
+          </SelectTrigger>
+          <SelectContent>
+            {providerOptions.map((option: ComboboxOption) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {providersLoaded && missingConfiguredProviders.length > 0 && (
+          <p className='text-xs text-muted-foreground'>
+            Add API keys for {missingProvidersText} in{' '}
+            <a href='/settings' className='underline'>
+              Settings
+            </a>{' '}
+            to enable them.
+          </p>
+        )}
+        {providersLoaded && providerOptions.length === 0 && missingConfiguredProviders.length === 0 && (
+          <p className='text-xs text-muted-foreground'>
+            Configure a provider in{' '}
+            <a href='/settings' className='underline'>
+              Settings
+            </a>{' '}
+            to enable models.
+          </p>
+        )}
+      </div>
 
-      {showLabels && layout === 'vertical' && <label className='text-sm font-medium'>Model</label>}
-      <PromptlianoCombobox
-        options={comboboxOptions}
-        value={currentModel}
-        onValueChange={handleModelChange}
-        placeholder={
-          isLoadingModels
-            ? 'Loading...'
-            : !isConnected
-              ? 'Connect server to load models'
-              : comboboxOptions.length === 0
-                ? 'No models (add API key?)'
-                : 'Select model'
-        }
-        searchPlaceholder='Search models...'
-        className={modelComboboxClassName}
-        popoverClassName='w-[300px]'
-        disabled={disabled || !isConnected || isLoadingModels || comboboxOptions.length === 0}
-      />
+      <div className={modelWrapperClassName}>
+        {showLabels && layout === 'vertical' && <label className='text-sm font-medium'>Model</label>}
+        <PromptlianoCombobox
+          options={comboboxOptions}
+          value={currentModel}
+          onValueChange={handleModelChange}
+          placeholder={
+            isLoadingModels
+              ? 'Loading...'
+              : !isConnected
+                ? 'Connect server to load models'
+                : providerOptions.length === 0
+                  ? 'Configure a provider to load models'
+                  : comboboxOptions.length === 0
+                    ? 'No models available'
+                    : 'Select model'
+          }
+          searchPlaceholder='Search models...'
+          className={modelComboboxClassName}
+          popoverClassName='w-[300px]'
+          disabled={
+            disabled ||
+            providerOptions.length === 0 ||
+            !isConnected ||
+            isLoadingModels ||
+            comboboxOptions.length === 0
+          }
+        />
+      </div>
     </div>
   )
 }

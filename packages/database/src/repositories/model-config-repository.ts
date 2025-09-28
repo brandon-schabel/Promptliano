@@ -55,6 +55,25 @@ export const modelConfigRepository = {
   },
 
   /**
+   * Get active configuration for a specific provider/model pair
+   */
+  async getByProviderAndModel(provider: string, model: string): Promise<ModelConfig | null> {
+    const results = await db
+      .select()
+      .from(modelConfigs)
+      .where(
+        and(
+          eq(modelConfigs.provider, provider),
+          eq(modelConfigs.model, model),
+          eq(modelConfigs.isActive, true)
+        )
+      )
+      .limit(1)
+
+    return (results[0] as ModelConfig) || null
+  },
+
+  /**
    * Get system presets
    */
   async getSystemPresets(): Promise<ModelConfig[]> {

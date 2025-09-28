@@ -32,13 +32,13 @@ This will:
 
 If you prefer to download and run Promptliano manually:
 
-[Download Promptliano's Latest Prebuilt Bun Server and UI Bundle](https://github.com/brandon-schabel/promptliano/releases/download/v0.11.0/promptliano-0.11.0-bun-bundle.zip)
+[Download Promptliano's Latest Prebuilt Bun Server and UI Bundle](https://github.com/brandon-schabel/promptliano/releases/download/v0.12.0/promptliano-0.12.0-bun-bundle.zip)
 
-[Download Promptliano For MacOS arm64 Binary - M1 and Newer](https://github.com/brandon-schabel/promptliano/releases/download/v0.11.0/promptliano-0.11.0-macos-arm64.zip)
+[Download Promptliano For MacOS arm64 Binary - M1 and Newer](https://github.com/brandon-schabel/promptliano/releases/download/v0.12.0/promptliano-0.12.0-macos-arm64.zip)
 
-[Download Promptliano For Windows x64 Binary](https://github.com/brandon-schabel/promptliano/releases/download/v0.11.0/promptliano-0.11.0-windows-x64.zip)
+[Download Promptliano For Windows x64 Binary](https://github.com/brandon-schabel/promptliano/releases/download/v0.12.0/promptliano-0.12.0-windows-x64.zip)
 
-[Download Promptliano For Linux x64 Binary](https://github.com/brandon-schabel/promptliano/releases/download/v0.11.0/promptliano-0.11.0-linux-x64.zip)
+[Download Promptliano For Linux x64 Binary](https://github.com/brandon-schabel/promptliano/releases/download/v0.12.0/promptliano-0.12.0-linux-x64.zip)
 
 > Once you have downloaded Promptliano for your platform please read "Running Binaries", especially for MacOS
 
@@ -51,7 +51,7 @@ Don't have NPM or Bun? Install Bun with curl on Mac/Linux `curl -fsSL https://bu
 Extract the zip file and cd into the extracted zip file and run the Promptliano server.
 
 ```bash
-cd promptliano-0.11.0-bun-bundle && bun run start
+cd promptliano-0.12.0-bun-bundle && bun run start
 ```
 
 ### Access Promptliano
@@ -171,6 +171,9 @@ Upgrading from older versions: run database migrations (below) to drop legacy se
 - MCP Inspector Proxy: `MCP_INSPECTOR_SERVER_PORT` (default: 6277)
   - Alternatively, set Inspector's native vars: `CLIENT_PORT` / `SERVER_PORT`.
     The dev script maps `MCP_INSPECTOR_*` to these for the Inspector process.
+- Dev tool autostart flags (default: disabled)
+  - `DEVTOOLS_ENABLE_DRIZZLE_STUDIO` — launch Drizzle Studio when running `bun run dev`
+  - `DEVTOOLS_ENABLE_MCP_INSPECTOR` — launch the MCP Inspector UI + proxy during `bun run dev` or `bun run dev:server`
 
 Example:
 
@@ -235,13 +238,11 @@ Example `mcp.json` (macOS/Linux script):
 }
 ```
 
-Note: `bun run dev` auto-generates `.mcp-inspector.config.json` and starts the Inspector preconfigured to Promptliano (stdio). It runs headless and does not open a browser tab. To disable Inspector autostart:
-
-```bash
-MCP_INSPECTOR_AUTOSTART=false bun run dev
-```
-
-The server-only script (`bun run dev:server`) also starts the Inspector headlessly. You can run it manually anytime with `bun run mcp:inspector`.
+Note: `bun run dev` auto-generates `.mcp-inspector.config.json` and can start the Inspector preconfigured to Promptliano (stdio).
+Set `DEVTOOLS_ENABLE_MCP_INSPECTOR=true` in `.env` to launch it headlessly (no browser tab) alongside the dev server. The same
+flag controls `bun run dev:server`. Leave it `false` to skip starting the Inspector automatically; you can still run
+`bun run mcp:inspector` manually at any time. Similarly, `DEVTOOLS_ENABLE_DRIZZLE_STUDIO=true` launches Drizzle Studio when you
+run `bun run dev`.
 
 Advanced: An HTTP endpoint may be available at `http://localhost:3147/api/mcp` (project‑scoped: `/api/projects/{id}/mcp`). STDIO is recommended for the Inspector.
 
@@ -276,7 +277,7 @@ See docs/copilot-integration.md for a full guide and architecture details.
 On Linux you should be able to just navigate to the promptliano binary file in the terminal and run it for example:
 
 ```bash
-cd ~/Downloads/promptliano-v0.11.0
+cd ~/Downloads/promptliano-v0.12.0
 ```
 
 Run the linux binary file:
@@ -290,7 +291,7 @@ Run the linux binary file:
 Currently I don't have MacOS code signing, so it just says the binary is damaged, but really it is quarntined. In order to run the binary on Mac you would have to do the following
 
 ```bash
-cd ~/Downloads/promptliano-v0.11.0
+cd ~/Downloads/promptliano-v0.12.0
 ```
 
 Then run to remove the quarantine:
@@ -307,18 +308,18 @@ Finally you can run the Promptliano app by running the binary file as you normal
 
 ### Running on Windows
 
-After downloading and extracting the appropriate zip file (e.g., `promptliano-v0.11.0-windows-x64.zip`), open Command Prompt or PowerShell.
+After downloading and extracting the appropriate zip file (e.g., `promptliano-v0.12.0-windows-x64.zip`), open Command Prompt or PowerShell.
 
 Navigate to the extracted folder. For example, if you extracted it to your Downloads folder:
 
 ```batch
-cd %USERPROFILE%\Downloads\promptliano-v0.11.0-windows-x64
+cd %USERPROFILE%\Downloads\promptliano-v0.12.0-windows-x64
 ```
 
 Or using PowerShell:
 
 ```powershell
-cd $env:USERPROFILE\Downloads\promptliano-v0.11.0-windows-x64
+cd $env:USERPROFILE\Downloads\promptliano-v0.12.0-windows-x64
 ```
 
 Then, run the executable:

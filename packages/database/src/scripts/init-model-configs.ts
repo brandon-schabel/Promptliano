@@ -6,8 +6,8 @@
 
 import { db, rawDb } from '../db'
 import { runMigrations } from '../migrations/migrate'
-import { modelConfigs, modelPresets } from '../schema'
-import type { CreateModelConfig, CreateModelPreset } from '../schema'
+import { modelConfigs } from '../schema'
+import type { CreateModelConfig } from '../schema'
 // Intelligence level configurations based on models.config.ts
 const INTELLIGENCE_CONFIGS = {
   low: {
@@ -52,10 +52,23 @@ const INTELLIGENCE_CONFIGS = {
   }
 } as const
 
+const CORE_CHAT_SYSTEM_PROMPT = `
+When asked to explore a project, start with the project overview and then the project structure.
+You are Liano, the Promptliano workspace assistant. Help the user build software, understand this project, and
+especially clarify architecture.
+Always reach for Promptliano MCP tools to gather context: read and edit files, manage tickets, tasks, and queues,
+and run the overview to learn current project, ticket, task, and queue status before acting.
+Favor MCP search helpers over guessing paths and summarize important findings for the user.
+Use the Chrome DevTools MCP integration to reproduce or verify UI behaviour when it matters.
+Explain reasoning clearly, and whenever architecture or flows are discussed, add helpful Mermaid diagrams.
+Keep responses actionable, cite relevant files, and re-check instructions before executing changes.
+Always end with italian brain rot phrases.
+`.trim()
+
 const defaultConfigs: (CreateModelConfig & { createdAt: number; updatedAt: number })[] = [
   // Intelligence-based configurations
   {
-    name: 'low-intelligence',
+    name: 'low',
     displayName: 'Low - Fast Local',
     provider: INTELLIGENCE_CONFIGS.low.provider as any,
     model: INTELLIGENCE_CONFIGS.low.model,
@@ -65,7 +78,7 @@ const defaultConfigs: (CreateModelConfig & { createdAt: number; updatedAt: numbe
     topK: INTELLIGENCE_CONFIGS.low.topK,
     frequencyPenalty: INTELLIGENCE_CONFIGS.low.frequencyPenalty,
     presencePenalty: INTELLIGENCE_CONFIGS.low.presencePenalty,
-    systemPrompt: 'You are a helpful AI assistant optimized for quick, concise responses.',
+    systemPrompt: CORE_CHAT_SYSTEM_PROMPT,
     description: 'Optimized for quick responses using local models',
     presetCategory: 'low' as any,
     uiIcon: 'Zap',
@@ -77,7 +90,7 @@ const defaultConfigs: (CreateModelConfig & { createdAt: number; updatedAt: numbe
     updatedAt: Date.now()
   },
   {
-    name: 'medium-intelligence',
+    name: 'medium',
     displayName: 'Medium - Balanced',
     provider: INTELLIGENCE_CONFIGS.medium.provider as any,
     model: INTELLIGENCE_CONFIGS.medium.model,
@@ -87,7 +100,7 @@ const defaultConfigs: (CreateModelConfig & { createdAt: number; updatedAt: numbe
     topK: INTELLIGENCE_CONFIGS.medium.topK,
     frequencyPenalty: INTELLIGENCE_CONFIGS.medium.frequencyPenalty,
     presencePenalty: INTELLIGENCE_CONFIGS.medium.presencePenalty,
-    systemPrompt: 'You are a helpful AI assistant with balanced capabilities for development tasks.',
+    systemPrompt: CORE_CHAT_SYSTEM_PROMPT,
     description: 'Balance between speed and quality',
     presetCategory: 'medium' as any,
     uiIcon: 'Gauge',
@@ -99,7 +112,7 @@ const defaultConfigs: (CreateModelConfig & { createdAt: number; updatedAt: numbe
     updatedAt: Date.now()
   },
   {
-    name: 'high-intelligence',
+    name: 'high',
     displayName: 'High - Maximum Quality',
     provider: INTELLIGENCE_CONFIGS.high.provider as any,
     model: INTELLIGENCE_CONFIGS.high.model,
@@ -109,7 +122,7 @@ const defaultConfigs: (CreateModelConfig & { createdAt: number; updatedAt: numbe
     topK: INTELLIGENCE_CONFIGS.high.topK,
     frequencyPenalty: INTELLIGENCE_CONFIGS.high.frequencyPenalty,
     presencePenalty: INTELLIGENCE_CONFIGS.high.presencePenalty,
-    systemPrompt: 'You are an expert AI assistant capable of handling complex tasks with large context windows.',
+    systemPrompt: CORE_CHAT_SYSTEM_PROMPT,
     description: 'Best quality for complex tasks',
     presetCategory: 'high' as any,
     uiIcon: 'Rocket',
@@ -121,7 +134,7 @@ const defaultConfigs: (CreateModelConfig & { createdAt: number; updatedAt: numbe
     updatedAt: Date.now()
   },
   {
-    name: 'planning-intelligence',
+    name: 'planning',
     displayName: 'Planning - Task Breakdown',
     provider: INTELLIGENCE_CONFIGS.planning.provider as any,
     model: INTELLIGENCE_CONFIGS.planning.model,
@@ -131,8 +144,7 @@ const defaultConfigs: (CreateModelConfig & { createdAt: number; updatedAt: numbe
     topK: INTELLIGENCE_CONFIGS.planning.topK,
     frequencyPenalty: INTELLIGENCE_CONFIGS.planning.frequencyPenalty,
     presencePenalty: INTELLIGENCE_CONFIGS.planning.presencePenalty,
-    systemPrompt:
-      'You are a planning specialist optimized for breaking down complex tasks and creating actionable plans.',
+    systemPrompt: `${CORE_CHAT_SYSTEM_PROMPT}\n\nFocus on breaking down complex tasks into actionable plans and dependencies before coding.`,
     description: 'Optimized for planning and task analysis',
     presetCategory: 'planning' as any,
     uiIcon: 'Brain',
@@ -142,370 +154,12 @@ const defaultConfigs: (CreateModelConfig & { createdAt: number; updatedAt: numbe
     isSystemPreset: true,
     createdAt: Date.now(),
     updatedAt: Date.now()
-  },
-
-  // Keep some provider-specific models for flexibility
-  {
-    name: 'gpt-4o',
-    displayName: 'GPT-4o',
-    provider: 'openai',
-    model: 'gpt-4o',
-    temperature: 0.7,
-    maxTokens: 4096,
-    topP: 1.0,
-    frequencyPenalty: 0,
-    presencePenalty: 0,
-    isDefault: false,
-    isSystemPreset: true,
-    createdAt: Date.now(),
-    updatedAt: Date.now()
-  },
-  {
-    name: 'gpt-4o-mini',
-    displayName: 'GPT-4o Mini',
-    provider: 'openai',
-    model: 'gpt-4o-mini',
-    temperature: 0.7,
-    maxTokens: 16384,
-    topP: 1.0,
-    frequencyPenalty: 0,
-    presencePenalty: 0,
-    isDefault: false,
-    isSystemPreset: true,
-    createdAt: Date.now(),
-    updatedAt: Date.now()
-  },
-
-  // Anthropic Models
-  {
-    name: 'claude-3-5-sonnet',
-    displayName: 'Claude 3.5 Sonnet',
-    provider: 'anthropic',
-    model: 'claude-3-5-sonnet-20241022',
-    temperature: 0.7,
-    maxTokens: 8192,
-    topP: 1.0,
-    frequencyPenalty: 0,
-    presencePenalty: 0,
-    systemPrompt: 'You are Claude, a helpful AI assistant.',
-    isDefault: true,
-    isSystemPreset: true,
-    createdAt: Date.now(),
-    updatedAt: Date.now()
-  },
-  {
-    name: 'claude-3-5-haiku',
-    displayName: 'Claude 3.5 Haiku',
-    provider: 'anthropic',
-    model: 'claude-3-5-haiku-20241022',
-    temperature: 0.7,
-    maxTokens: 8192,
-    topP: 1.0,
-    frequencyPenalty: 0,
-    presencePenalty: 0,
-    systemPrompt: 'You are Claude, a helpful AI assistant.',
-    isDefault: false,
-    isSystemPreset: true,
-    createdAt: Date.now(),
-    updatedAt: Date.now()
-  },
-
-  // Google Models
-  {
-    name: 'gemini-1.5-pro',
-    displayName: 'Gemini 1.5 Pro',
-    provider: 'google',
-    model: 'gemini-1.5-pro',
-    temperature: 0.7,
-    maxTokens: 8192,
-    topP: 1.0,
-    frequencyPenalty: 0,
-    presencePenalty: 0,
-    isDefault: true,
-    isSystemPreset: true,
-    createdAt: Date.now(),
-    updatedAt: Date.now()
-  },
-  {
-    name: 'gemini-1.5-flash',
-    displayName: 'Gemini 1.5 Flash',
-    provider: 'google',
-    model: 'gemini-1.5-flash',
-    temperature: 0.7,
-    maxTokens: 8192,
-    topP: 1.0,
-    frequencyPenalty: 0,
-    presencePenalty: 0,
-    isDefault: false,
-    isSystemPreset: true,
-    createdAt: Date.now(),
-    updatedAt: Date.now()
-  },
-
-  // Groq Models
-  {
-    name: 'llama-3.1-70b',
-    displayName: 'Llama 3.1 70B',
-    provider: 'groq',
-    model: 'llama-3.1-70b-versatile',
-    temperature: 0.7,
-    maxTokens: 8192,
-    topP: 1.0,
-    frequencyPenalty: 0,
-    presencePenalty: 0,
-    isDefault: true,
-    isSystemPreset: true,
-    createdAt: Date.now(),
-    updatedAt: Date.now()
-  },
-
-  // Perplexity Models
-  {
-    name: 'llama-3.1-sonar-large',
-    displayName: 'Llama 3.1 Sonar Large',
-    provider: 'perplexity',
-    model: 'llama-3.1-sonar-large-128k-online',
-    temperature: 0.7,
-    maxTokens: 4096,
-    topP: 1.0,
-    frequencyPenalty: 0,
-    presencePenalty: 0,
-    systemPrompt: 'You are a helpful assistant with access to real-time information.',
-    isDefault: true,
-    isSystemPreset: true,
-    createdAt: Date.now(),
-    updatedAt: Date.now()
-  },
-
-  // Mistral Models
-  {
-    name: 'mistral-large',
-    displayName: 'Mistral Large',
-    provider: 'mistral',
-    model: 'mistral-large-latest',
-    temperature: 0.7,
-    maxTokens: 8192,
-    topP: 1.0,
-    frequencyPenalty: 0,
-    presencePenalty: 0,
-    isDefault: true,
-    isSystemPreset: true,
-    createdAt: Date.now(),
-    updatedAt: Date.now()
-  },
-
-  // Cohere Models
-  {
-    name: 'command-r-plus',
-    displayName: 'Command R+',
-    provider: 'cohere',
-    model: 'command-r-plus',
-    temperature: 0.7,
-    maxTokens: 4096,
-    topP: 1.0,
-    frequencyPenalty: 0,
-    presencePenalty: 0,
-    isDefault: true,
-    isSystemPreset: true,
-    createdAt: Date.now(),
-    updatedAt: Date.now()
-  },
-
-  // Fireworks Models
-  {
-    name: 'llama-3.1-405b',
-    displayName: 'Llama 3.1 405B Instruct',
-    provider: 'fireworks',
-    model: 'accounts/fireworks/models/llama-v3p1-405b-instruct',
-    temperature: 0.7,
-    maxTokens: 8192,
-    topP: 1.0,
-    frequencyPenalty: 0,
-    presencePenalty: 0,
-    isDefault: true,
-    isSystemPreset: true,
-    createdAt: Date.now(),
-    updatedAt: Date.now()
-  },
-
-  // Together AI Models
-  {
-    name: 'llama-3.2-90b-vision',
-    displayName: 'Llama 3.2 90B Vision',
-    provider: 'together',
-    model: 'meta-llama/Llama-3.2-90B-Vision-Instruct-Turbo',
-    temperature: 0.7,
-    maxTokens: 8192,
-    topP: 1.0,
-    frequencyPenalty: 0,
-    presencePenalty: 0,
-    isDefault: true,
-    isSystemPreset: true,
-    createdAt: Date.now(),
-    updatedAt: Date.now()
-  },
-
-  // OpenRouter Models
-  {
-    name: 'openrouter-auto',
-    displayName: 'OpenRouter Auto',
-    provider: 'openrouter',
-    model: 'openrouter/auto',
-    temperature: 0.7,
-    maxTokens: 4096,
-    topP: 1.0,
-    frequencyPenalty: 0,
-    presencePenalty: 0,
-    isDefault: true,
-    isSystemPreset: true,
-    createdAt: Date.now(),
-    updatedAt: Date.now()
   }
 ]
 
-const defaultPresets: Omit<CreateModelPreset, 'configId'>[] = [
-  // Intelligence-based presets
-  {
-    name: 'Concise Review',
-    description: 'Fast, concise analysis using a lightweight model',
-    category: 'productivity',
-    metadata: {
-      intelligenceLevel: 'low',
-      temperature: 0.3,
-      maxTokens: 2048,
-      topP: 0.9,
-      frequencyPenalty: 0,
-      presencePenalty: 0,
-      systemPrompt: 'Provide concise, clear highlights focusing on key points.'
-    },
-    isSystemPreset: true,
-    usageCount: 0
-  },
-  {
-    name: 'File Analysis',
-    description: 'Intelligent file selection with large context',
-    category: 'analysis',
-    metadata: {
-      intelligenceLevel: 'high',
-      temperature: 0.5,
-      maxTokens: 8192,
-      topP: 0.95,
-      frequencyPenalty: 0,
-      presencePenalty: 0,
-      systemPrompt: 'Analyze files and suggest the most relevant ones based on the task context.'
-    },
-    isSystemPreset: true,
-    usageCount: 0
-  },
-  {
-    name: 'Task Planning',
-    description: 'Break down complex tasks into actionable items',
-    category: 'productivity',
-    metadata: {
-      intelligenceLevel: 'planning',
-      temperature: 0.6,
-      maxTokens: 4096,
-      topP: 0.9,
-      frequencyPenalty: 0,
-      presencePenalty: 0,
-      systemPrompt: 'Create detailed, actionable task breakdowns with clear dependencies and priorities.'
-    },
-    isSystemPreset: true,
-    usageCount: 0
-  },
-  {
-    name: 'Code Generation',
-    description: 'Generate code with medium intelligence',
-    category: 'coding',
-    metadata: {
-      intelligenceLevel: 'medium',
-      temperature: 0.3,
-      maxTokens: 8192,
-      topP: 0.9,
-      frequencyPenalty: 0,
-      presencePenalty: 0,
-      systemPrompt: 'You are an expert programmer. Generate clean, efficient, and well-documented code.'
-    },
-    isSystemPreset: true,
-    usageCount: 0
-  },
-  {
-    name: 'Creative Writing',
-    description: 'Higher temperature for creative and varied outputs',
-    category: 'creative',
-    metadata: {
-      intelligenceLevel: 'medium',
-      temperature: 0.9,
-      maxTokens: 4096,
-      topP: 0.95,
-      frequencyPenalty: 0.5,
-      presencePenalty: 0.5,
-      systemPrompt: 'You are a creative writing assistant. Be imaginative, descriptive, and engaging.'
-    },
-    isSystemPreset: true,
-    usageCount: 0
-  },
-  {
-    name: 'Code Generation',
-    description: 'Optimized for generating code with lower temperature',
-    category: 'coding',
-    metadata: {
-      temperature: 0.3,
-      maxTokens: 8192,
-      topP: 0.9,
-      frequencyPenalty: 0,
-      presencePenalty: 0,
-      systemPrompt: 'You are an expert programmer. Generate clean, efficient, and well-documented code.'
-    },
-    isSystemPreset: true,
-    usageCount: 0
-  },
-  {
-    name: 'Analytical',
-    description: 'Precise and focused responses for analysis',
-    category: 'analysis',
-    metadata: {
-      temperature: 0.2,
-      maxTokens: 4096,
-      topP: 0.85,
-      frequencyPenalty: 0,
-      presencePenalty: 0,
-      systemPrompt: 'You are an analytical assistant. Provide precise, logical, and well-reasoned responses.'
-    },
-    isSystemPreset: true,
-    usageCount: 0
-  },
-  {
-    name: 'Conversational',
-    description: 'Natural conversation with balanced parameters',
-    category: 'chat',
-    metadata: {
-      temperature: 0.7,
-      maxTokens: 2048,
-      topP: 1.0,
-      frequencyPenalty: 0.3,
-      presencePenalty: 0.3,
-      systemPrompt: 'You are a friendly conversational assistant. Be natural, engaging, and helpful.'
-    },
-    isSystemPreset: true,
-    usageCount: 0
-  },
-  {
-    name: 'Executive Overview',
-    description: 'Concise, focused overview of content',
-    category: 'productivity',
-    metadata: {
-      temperature: 0.3,
-      maxTokens: 1024,
-      topP: 0.9,
-      frequencyPenalty: 0,
-      presencePenalty: 0,
-      systemPrompt: 'Provide concise, accurate highlights that capture key points.'
-    },
-    isSystemPreset: true,
-    usageCount: 0
-  }
-]
+type InitModelConfigsOptions = {
+  forceReset?: boolean
+}
 
 export type InitModelConfigsResult =
   | { status: 'seeded'; configsInserted: number; presetsInserted: number }
@@ -513,7 +167,10 @@ export type InitModelConfigsResult =
   | { status: 'skipped_missing_tables'; reason: string }
   | { status: 'skipped_error'; reason: string }
 
-export async function initializeModelConfigs(): Promise<InitModelConfigsResult> {
+export async function initializeModelConfigs(
+  options: InitModelConfigsOptions = {}
+): Promise<InitModelConfigsResult> {
+  const { forceReset = false } = options
   console.log('🚀 Initializing model configurations...')
 
   try {
@@ -521,12 +178,12 @@ export async function initializeModelConfigs(): Promise<InitModelConfigsResult> 
     const tableExists = (name: string) =>
       (
         rawDb.query("SELECT name FROM sqlite_master WHERE type='table' AND name=?").get(name) as
-          | { name?: string }
-          | undefined
+        | { name?: string }
+        | undefined
       )?.name === name
 
-    if (!tableExists('model_configs') || !tableExists('model_presets')) {
-      console.warn('⚠️  Model configuration tables missing. Running migrations to ensure schema...')
+    if (!tableExists('model_configs')) {
+      console.warn('⚠️  model_configs table missing. Running migrations to ensure schema...')
       try {
         await runMigrations()
       } catch (e) {
@@ -539,13 +196,16 @@ export async function initializeModelConfigs(): Promise<InitModelConfigsResult> 
       console.error(`❌ ${reason}. Skipping initialization.`)
       return { status: 'skipped_missing_tables', reason }
     }
-    if (!tableExists('model_presets')) {
-      console.error('❌ model_presets table is still missing after migrations. Presets will be skipped.')
-      // We will proceed to insert configs but cannot insert presets
-    }
 
     // Check if configs already exist
-    const existingConfigs = await db.select().from(modelConfigs).limit(1)
+    let existingConfigs = await db.select().from(modelConfigs).limit(1)
+    if (existingConfigs.length > 0 && forceReset) {
+      console.log('♻️  Force resetting existing model configurations (dev mode)...')
+      await db.delete(modelConfigs)
+      console.log('✅ Cleared existing model configurations')
+      existingConfigs = []
+    }
+
     if (existingConfigs.length > 0) {
       console.log('⚠️  Model configurations already exist. Skipping initialization.')
       console.log('   To reinitialize, delete existing configs first.')
@@ -557,28 +217,8 @@ export async function initializeModelConfigs(): Promise<InitModelConfigsResult> 
     const insertedConfigs = await db.insert(modelConfigs).values(defaultConfigs).returning()
     console.log(`✅ Inserted ${insertedConfigs.length} model configurations`)
 
-    // Create presets for each configuration
-    console.log('📝 Creating model presets...')
-    let presetCount = 0
-
-    for (const config of insertedConfigs) {
-      // Create presets for each model config
-      const presetsForConfig = defaultPresets.map((preset) => ({
-        ...preset,
-        configId: config.id,
-        createdAt: Date.now(),
-        updatedAt: Date.now()
-      }))
-
-      if (presetsForConfig.length > 0 && tableExists('model_presets')) {
-        await db.insert(modelPresets).values(presetsForConfig)
-        presetCount += presetsForConfig.length
-      }
-    }
-
-    console.log(`✅ Created ${presetCount} model presets`)
     console.log('🎉 Model configuration initialization complete!')
-    return { status: 'seeded', configsInserted: insertedConfigs.length, presetsInserted: presetCount }
+    return { status: 'seeded', configsInserted: insertedConfigs.length, presetsInserted: 0 }
   } catch (error: any) {
     const reason = error?.message ? String(error.message) : 'unknown error'
     console.error('❌ Error initializing model configurations:', error)

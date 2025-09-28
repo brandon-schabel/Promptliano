@@ -622,6 +622,257 @@ export { ComponentErrorBoundary } from './components/errors/component-error-boun
 export { AIErrorDisplay } from './components/errors/ai-error-display'
 export { parseAIError, extractProviderName } from './components/errors/error-utils'
 
+// AI elements
+export {
+  Actions,
+  Action,
+  type ActionsProps,
+  type ActionProps
+} from './components/ai-elements/actions'
+export {
+  Artifact,
+  ArtifactHeader,
+  ArtifactClose,
+  ArtifactTitle,
+  ArtifactDescription,
+  ArtifactActions,
+  ArtifactAction,
+  ArtifactContent,
+  type ArtifactProps,
+  type ArtifactHeaderProps,
+  type ArtifactCloseProps,
+  type ArtifactTitleProps,
+  type ArtifactDescriptionProps,
+  type ArtifactActionsProps,
+  type ArtifactActionProps,
+  type ArtifactContentProps
+} from './components/ai-elements/artifact'
+export {
+  Branch,
+  BranchMessages,
+  BranchSelector,
+  BranchPrevious,
+  BranchNext,
+  BranchPage,
+  type BranchProps,
+  type BranchMessagesProps,
+  type BranchSelectorProps,
+  type BranchPreviousProps,
+  type BranchNextProps,
+  type BranchPageProps
+} from './components/ai-elements/branch'
+export {
+  ChainOfThought,
+  ChainOfThoughtHeader,
+  ChainOfThoughtStep,
+  ChainOfThoughtSearchResults,
+  ChainOfThoughtSearchResult,
+  ChainOfThoughtContent,
+  ChainOfThoughtImage,
+  type ChainOfThoughtProps,
+  type ChainOfThoughtHeaderProps,
+  type ChainOfThoughtStepProps,
+  type ChainOfThoughtSearchResultsProps,
+  type ChainOfThoughtSearchResultProps,
+  type ChainOfThoughtContentProps,
+  type ChainOfThoughtImageProps
+} from './components/ai-elements/chain-of-thought'
+export {
+  Conversation,
+  ConversationContent,
+  ConversationEmptyState,
+  ConversationScrollButton,
+  type ConversationProps,
+  type ConversationContentProps,
+  type ConversationEmptyStateProps,
+  type ConversationScrollButtonProps
+} from './components/ai-elements/conversation'
+export { Image, type ImageProps } from './components/ai-elements/image'
+export {
+  Context,
+  ContextTrigger,
+  ContextContent,
+  ContextContentHeader,
+  ContextContentBody,
+  ContextContentFooter,
+  ContextInputUsage,
+  ContextOutputUsage,
+  ContextReasoningUsage,
+  ContextCacheUsage
+} from './components/ai-elements/context'
+export {
+  CodeBlock as AIMessageCodeBlock,
+  CodeBlockCopyButton
+} from './components/ai-elements/code-block'
+export {
+  InlineCitation,
+  InlineCitationText,
+  InlineCitationCard,
+  InlineCitationCardTrigger,
+  InlineCitationCardBody,
+  InlineCitationCarousel,
+  InlineCitationCarouselContent,
+  InlineCitationCarouselItem,
+  InlineCitationCarouselHeader,
+  InlineCitationCarouselIndex,
+  InlineCitationCarouselPrev,
+  InlineCitationCarouselNext,
+  InlineCitationSource,
+  InlineCitationQuote,
+  type InlineCitationProps,
+  type InlineCitationTextProps,
+  type InlineCitationCardProps,
+  type InlineCitationCardTriggerProps,
+  type InlineCitationCardBodyProps,
+  type InlineCitationCarouselProps,
+  type InlineCitationCarouselContentProps,
+  type InlineCitationCarouselItemProps,
+  type InlineCitationCarouselHeaderProps,
+  type InlineCitationCarouselIndexProps,
+  type InlineCitationCarouselPrevProps,
+  type InlineCitationCarouselNextProps,
+  type InlineCitationSourceProps,
+  type InlineCitationQuoteProps
+} from './components/ai-elements/inline-citation'
+export {
+  Message,
+  MessageContent,
+  MessageAvatar,
+  type MessageProps,
+  type MessageContentProps,
+  type MessageAvatarProps
+} from './components/ai-elements/message'
+export {
+  OpenIn,
+  OpenInContent,
+  OpenInItem,
+  OpenInLabel,
+  OpenInSeparator,
+  OpenInTrigger,
+  OpenInChatGPT,
+  OpenInClaude,
+  OpenInT3,
+  OpenInScira,
+  OpenInv0,
+  type OpenInProps,
+  type OpenInContentProps,
+  type OpenInItemProps,
+  type OpenInLabelProps,
+  type OpenInSeparatorProps,
+  type OpenInTriggerProps,
+  type OpenInChatGPTProps,
+  type OpenInClaudeProps,
+  type OpenInT3Props,
+  type OpenInSciraProps,
+  type OpenInv0Props
+} from './components/ai-elements/open-in-chat'
+export {
+  usePromptInputAttachments,
+  PromptInputAttachment,
+  PromptInputAttachments,
+  PromptInputActionAddAttachments,
+  PromptInput,
+  PromptInputBody,
+  PromptInputTextarea,
+  PromptInputToolbar,
+  PromptInputTools,
+  PromptInputButton,
+  PromptInputActionMenu,
+  PromptInputActionMenuTrigger,
+  PromptInputActionMenuContent,
+  PromptInputActionMenuItem,
+  PromptInputSubmit,
+  PromptInputModelSelect,
+  PromptInputModelSelectTrigger,
+  PromptInputModelSelectContent,
+  PromptInputModelSelectItem,
+  PromptInputModelSelectValue,
+  type PromptInputAttachmentProps,
+  type PromptInputAttachmentsProps,
+  type PromptInputActionAddAttachmentsProps,
+  type PromptInputMessage,
+  type PromptInputProps,
+  type PromptInputBodyProps,
+  type PromptInputTextareaProps,
+  type PromptInputToolbarProps,
+  type PromptInputToolsProps,
+  type PromptInputButtonProps,
+  type PromptInputActionMenuProps,
+  type PromptInputActionMenuTriggerProps,
+  type PromptInputActionMenuContentProps,
+  type PromptInputActionMenuItemProps,
+  type PromptInputSubmitProps,
+  type PromptInputModelSelectProps,
+  type PromptInputModelSelectTriggerProps,
+  type PromptInputModelSelectContentProps,
+  type PromptInputModelSelectItemProps,
+  type PromptInputModelSelectValueProps
+} from './components/ai-elements/prompt-input'
+export {
+  Reasoning,
+  ReasoningTrigger,
+  ReasoningContent,
+  type ReasoningProps,
+  type ReasoningTriggerProps,
+  type ReasoningContentProps
+} from './components/ai-elements/reasoning'
+export { Response } from './components/ai-elements/response'
+export { Loader, type LoaderProps } from './components/ai-elements/loader'
+export {
+  Sources,
+  SourcesTrigger,
+  SourcesContent,
+  Source,
+  type SourcesProps,
+  type SourcesTriggerProps,
+  type SourcesContentProps,
+  type SourceProps
+} from './components/ai-elements/sources'
+export {
+  Suggestions,
+  Suggestion,
+  type SuggestionsProps,
+  type SuggestionProps
+} from './components/ai-elements/suggestion'
+export {
+  TaskItemFile,
+  TaskItem,
+  Task,
+  TaskTrigger,
+  TaskContent,
+  type TaskItemFileProps,
+  type TaskItemProps,
+  type TaskProps,
+  type TaskTriggerProps,
+  type TaskContentProps
+} from './components/ai-elements/task'
+export {
+  Tool,
+  ToolHeader,
+  ToolContent,
+  ToolInput,
+  ToolOutput,
+  type ToolProps,
+  type ToolHeaderProps,
+  type ToolContentProps,
+  type ToolInputProps,
+  type ToolOutputProps
+} from './components/ai-elements/tool'
+export {
+  WebPreview,
+  WebPreviewNavigation,
+  WebPreviewNavigationButton,
+  WebPreviewUrl,
+  WebPreviewBody,
+  WebPreviewConsole,
+  type WebPreviewProps,
+  type WebPreviewNavigationProps,
+  type WebPreviewNavigationButtonProps,
+  type WebPreviewUrlProps,
+  type WebPreviewBodyProps,
+  type WebPreviewConsoleProps
+} from './components/ai-elements/web-preview'
+
 // Utilities
 export { cn, formatDate } from './utils'
 
@@ -680,3 +931,22 @@ export type { MonacoDiffViewerProps } from './components/editors/monaco-diff-vie
 export type { LazyMonacoEditorProps } from './components/editors/lazy-monaco-editor'
 export type { LazyMonacoDiffViewerProps } from './components/editors/lazy-monaco-diff-viewer'
 export type { AIErrorType, AIErrorDisplayProps } from './components/errors/ai-error-display'
+export type * from './components/ai-elements/actions'
+export type * from './components/ai-elements/artifact'
+export type * from './components/ai-elements/branch'
+export type * from './components/ai-elements/chain-of-thought'
+export type * from './components/ai-elements/conversation'
+export type * from './components/ai-elements/context'
+export type { CodeBlockProps as AIMessageCodeBlockProps, CodeBlockCopyButtonProps } from './components/ai-elements/code-block'
+export type * from './components/ai-elements/inline-citation'
+export type * from './components/ai-elements/message'
+export type * from './components/ai-elements/open-in-chat'
+export type * from './components/ai-elements/prompt-input'
+export type * from './components/ai-elements/reasoning'
+export type * from './components/ai-elements/image'
+export type * from './components/ai-elements/sources'
+export type * from './components/ai-elements/suggestion'
+export type * from './components/ai-elements/loader'
+export type * from './components/ai-elements/task'
+export type * from './components/ai-elements/tool'
+export type * from './components/ai-elements/web-preview'

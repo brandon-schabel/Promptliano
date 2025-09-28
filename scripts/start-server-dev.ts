@@ -35,8 +35,7 @@ async function startServerDev() {
     const serverPort = Number(process.env.SERVER_PORT || process.env.PORT || 3147)
     const inspectorClientPort = Number(process.env.MCP_INSPECTOR_CLIENT_PORT || process.env.CLIENT_PORT || 6274)
     const inspectorServerPort = Number(process.env.MCP_INSPECTOR_SERVER_PORT || 6277)
-    // Default: autostart inspector unless explicitly disabled
-    const autostartInspector = String(process.env.MCP_INSPECTOR_AUTOSTART ?? 'true').toLowerCase() !== 'false'
+    const enableMcpInspector = String(process.env.DEVTOOLS_ENABLE_MCP_INSPECTOR ?? 'false').toLowerCase() === 'true'
 
     // Start server (default: 3147)
     console.log('🚀 Starting server...')
@@ -48,7 +47,7 @@ async function startServerDev() {
     processes.push(serverProcess)
 
     // Start MCP Inspector (UI + proxy) — enabled by default, but keep headless
-    if (autostartInspector) {
+    if (enableMcpInspector) {
       await killPort(inspectorClientPort)
       await killPort(inspectorServerPort)
 
@@ -85,7 +84,7 @@ async function startServerDev() {
       })
       processes.push(inspectorProcess)
     } else {
-      console.log('🛠️  MCP Inspector autostart is disabled. Set MCP_INSPECTOR_AUTOSTART=true to enable.')
+      console.log('🛠️  MCP Inspector autostart disabled. Set DEVTOOLS_ENABLE_MCP_INSPECTOR=true to enable.')
     }
 
     // Handle process termination
