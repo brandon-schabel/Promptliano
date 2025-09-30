@@ -99,6 +99,16 @@ export const AiChatStreamRequestSchema = z
     enableChatAutoNaming: z.boolean().optional().default(false),
     toolsEnabled: z.boolean().optional().default(false),
     toolChoice: z.enum(['auto', 'none']).optional(),
+    /**
+     * Maximum number of messages from chat history to include as context.
+     * Must be between 1 and 100. If not specified, includes all messages.
+     */
+    maxMessagesToInclude: z.number().int().min(1).max(100).optional(),
+    /**
+     * Whether to include the system prompt in the message context.
+     * Defaults to true. Set to false to exclude system messages from context.
+     */
+    includeSystemPrompt: z.boolean().optional().default(true),
     options: z
       .object({
         provider: z.string(),

@@ -276,6 +276,15 @@ export * from './src/core/base-service'
 export * from './src/utils/logger'
 export * from './src/utils/model-usage-logger'
 
+// Message Context Service
+export {
+  createMessageContextService,
+  messageContextService,
+  type MessageContextOptions,
+  type MessageContextResult,
+  type Message as MessageContextMessage
+} from './src/message-context-service'
+
 // server side utils
 // Removed project summary service exports
 export * from './src/utils/file-importance-scorer'

@@ -2,6 +2,7 @@ import type { FileSuggestionStrategy } from '@promptliano/database'
 import { createFileRelevanceService, type RelevanceScoreResult } from '../file-services/file-relevance-service'
 import { createFileSuggestionStrategyService } from '../file-services/file-suggestion-strategy-service'
 import { createPromptSuggestionStrategyService } from '../prompt-services/prompt-suggestion-strategy-service'
+import { createContentFilterService } from './content-filter-service'
 import { getProjectFiles } from '../project-service'
 import { createFileSearchService } from '../file-services/file-search-service'
 import { getTicketById } from '../ticket-service'
@@ -53,6 +54,7 @@ export function createSuggestionsService(_deps: SuggestionsServiceDeps = {}) {
   const relevanceService = createFileRelevanceService()
   const strategyService = createFileSuggestionStrategyService()
   const promptStrategyService = createPromptSuggestionStrategyService()
+  const contentFilterService = createContentFilterService()
 
   async function suggestFilesForProject(
     projectId: number,
@@ -74,12 +76,32 @@ export function createSuggestionsService(_deps: SuggestionsServiceDeps = {}) {
     const allFiles = (await getProjectFiles(projectId)) || []
     const byId = new Map(allFiles.map((f: any) => [String(f.id), f]))
 
-    // 1) Relevance scoring (uses content + path and metadata)
+    // 1) Content-based filtering with grep (NEW - prioritizes actual content matches)
+    let contentFilteredIds = new Set<string>()
+    if (strategy !== 'fast') {
+      try {
+        const contentResults = await contentFilterService.filterByContent(projectId, userInput || '', {
+          maxFiles: Math.max(maxResults * 8, 80),
+          useAI: strategy === 'thorough',
+          aiModel: strategy === 'thorough' ? 'high' : 'medium',
+          userContext: options.userContext
+        })
+        contentFilteredIds = new Set(contentResults.results.map((r) => r.fileId))
+        trace.contentFiltered = contentFilteredIds.size
+        trace.contentGrepTime = contentResults.metadata.grepTime
+        trace.contentAiTime = contentResults.metadata.aiRankingTime
+      } catch (error) {
+        // Continue without content filtering if it fails
+        trace.contentFilterError = 1
+      }
+    }
+
+    // 2) Relevance scoring (uses content + path and metadata)
     const relevanceScores = await relevanceService.scoreFilesForText(userInput || '', projectId)
     trace.relevanceCandidates = relevanceScores.length
     const relMap = new Map(relevanceScores.map((score) => [String(score.fileId), score]))
 
-    // 2) Path-oriented fuzzy search to catch obvious route/feature files
+    // 3) Path-oriented fuzzy search to catch obvious route/feature files
     const search = createFileSearchService()
     const tokens = extractKeywords(userInput || '')
     const fuzzyQuery = buildFuzzyQuery(tokens)
@@ -96,7 +118,7 @@ export function createSuggestionsService(_deps: SuggestionsServiceDeps = {}) {
       } catch {}
     }
 
-    // 3) Add explicit phrase variants that often matter in code (e.g., suggest-files)
+    // 4) Add explicit phrase variants that often matter in code (e.g., suggest-files)
     const variantQueries = buildVariantQueries(tokens)
     for (const q of variantQueries) {
       try {
@@ -113,8 +135,10 @@ export function createSuggestionsService(_deps: SuggestionsServiceDeps = {}) {
 
     trace.fuzzyMatches = fuzzyResults.length
 
-    // 4) Union candidates from relevance and fuzzy
+    // 5) Union candidates from content filtering, relevance, and fuzzy
+    // PRIORITY: Content-filtered files get highest weight
     const candidateIds = new Set<string>([
+      ...Array.from(contentFilteredIds), // Content matches are highest priority
       ...relevanceScores.slice(0, Math.max(200, maxResults * 10)).map((s) => String(s.fileId)),
       ...fuzzyResults.map((f) => f.fileId)
     ])
@@ -127,7 +151,8 @@ export function createSuggestionsService(_deps: SuggestionsServiceDeps = {}) {
       if (f.score > prev) fuzzyMap.set(f.fileId, f.score)
     }
 
-    // 5) Re-rank with simple, understandable heuristics
+    // 6) Re-rank with simple, understandable heuristics
+    // NEW: Give strong boost to content-filtered files
     const queryHints = new Set(tokens)
     const preparedComposite = Array.from(candidateIds)
       .map<CompositeScore | null>((id) => {
@@ -147,8 +172,11 @@ export function createSuggestionsService(_deps: SuggestionsServiceDeps = {}) {
         const codeBoost = codeLocationBoost(file.path || '', tokens)
         const domainBoost = domainSpecificBoost(file.path || '', tokens)
 
+        // IMPORTANT: Strong boost for content-filtered files (actual grep matches)
+        const contentBoost = contentFilteredIds.has(id) ? 0.35 : 0
+
         const blended = clamp01(
-          0.55 * base.totalScore + 0.15 * fuzzy + 0.2 * pathBoost + 0.15 * codeBoost + domainBoost - 1.1 * penalty
+          0.4 * base.totalScore + 0.1 * fuzzy + 0.15 * pathBoost + 0.1 * codeBoost + domainBoost + contentBoost - 1.1 * penalty
         )
 
         return {

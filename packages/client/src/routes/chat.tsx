@@ -86,6 +86,8 @@ import {
 } from '@promptliano/ui'
 import type { PromptInputMessage } from '@promptliano/ui'
 import { ChatCard } from '@/components/chat/chat-card'
+import { MessageHistorySlider } from '@/components/chat/message-history-slider'
+import { MessageHistoryPopover } from '@/components/chat/message-history-popover'
 import { useCopyClipboard } from '@/hooks/utility-hooks/use-copy-clipboard'
 import type { APIProviders, AiSdkOptions } from '@promptliano/database'
 import { useDebounceCallback } from '@/hooks/utility-hooks/use-debounce'
@@ -476,22 +478,33 @@ const MessageWrapper: React.FC<{
   children: React.ReactNode
   isUser: boolean
   excluded: boolean
+  highlighted?: boolean
   contentClassName?: string
-}> = ({ children, isUser, excluded, contentClassName }) => (
-  <Message from={isUser ? 'user' : 'assistant'} className={cn('w-full', excluded && 'opacity-60')}>
-    <div className='flex-1 max-w-full'>
-      <MessageContent
-        variant='flat'
-        className={cn(
-          'w-full space-y-3 rounded-lg border border-border/50 bg-background/80 p-4 text-sm shadow-sm backdrop-blur',
-          contentClassName
-        )}
-      >
-        {children}
-      </MessageContent>
-    </div>
-  </Message>
-)
+}> = ({ children, isUser, excluded, highlighted = false, contentClassName }) => {
+  // Debug logging
+  if (highlighted) {
+    console.log('[MessageWrapper] Highlighting message:', { isUser, excluded, highlighted })
+  }
+
+  return (
+    <Message from={isUser ? 'user' : 'assistant'} className={cn('w-full', excluded && 'opacity-60')}>
+      <div className='flex-1 max-w-full'>
+        <MessageContent
+          variant='flat'
+          className={cn(
+            'w-full space-y-3 rounded-lg border p-4 text-sm shadow-sm backdrop-blur transition-all duration-200',
+            highlighted
+              ? 'border-primary/50 bg-primary/5 ring-2 ring-primary/20'
+              : 'border-border/50 bg-background/80',
+            contentClassName
+          )}
+        >
+          {children}
+        </MessageContent>
+      </div>
+    </Message>
+  )
+}
 
 // Extract MessageHeader outside to prevent recreation on every render
 const MessageHeader: React.FC<{
@@ -586,13 +599,14 @@ const ChatMessageItem = React.memo(
     msg: Message
     excluded: boolean
     rawView: boolean
+    highlighted?: boolean
     onCopyMessage: (content: string) => void
     onForkMessage: (messageId: number) => void
     onDeleteMessage: (messageId: number) => void
     onToggleExclude: (messageId: number) => void
     onToggleRawView: (messageId: number) => void
   }) => {
-    const { msg, excluded, rawView, onCopyMessage, onForkMessage, onDeleteMessage, onToggleExclude, onToggleRawView } =
+    const { msg, excluded, rawView, highlighted = false, onCopyMessage, onForkMessage, onDeleteMessage, onToggleExclude, onToggleRawView } =
       props
 
     const { copyToClipboard } = useCopyClipboard()
@@ -1046,7 +1060,7 @@ const ChatMessageItem = React.memo(
 
     if (rawView) {
       return (
-        <MessageWrapper isUser={isUser} excluded={excluded}>
+        <MessageWrapper isUser={isUser} excluded={excluded} highlighted={highlighted}>
           <MessageHeader
             isUser={isUser}
             msgId={msg.id}
@@ -1120,7 +1134,7 @@ const ChatMessageItem = React.memo(
     ])
 
     return (
-      <MessageWrapper isUser={isUser} excluded={excluded}>
+      <MessageWrapper isUser={isUser} excluded={excluded} highlighted={highlighted}>
         <MessageHeader
           isUser={isUser}
           msgId={msg.id}
@@ -1177,6 +1191,8 @@ interface ChatMessagesProps {
   isLoading: boolean
   excludedMessageIds?: number[]
   onToggleExclude: (messageId: number) => void
+  highlightIncludedMessages?: boolean
+  maxMessagesToInclude?: number
 }
 
 export function ChatMessages({
@@ -1184,7 +1200,9 @@ export function ChatMessages({
   messages,
   isLoading,
   excludedMessageIds = [],
-  onToggleExclude
+  onToggleExclude,
+  highlightIncludedMessages = false,
+  maxMessagesToInclude = 0
 }: ChatMessagesProps) {
   const { copyToClipboard } = useCopyClipboard()
   const excludedSet = useMemo(() => new Set<number>(excludedMessageIds), [excludedMessageIds])
@@ -1251,6 +1269,30 @@ export function ChatMessages({
     [onToggleExclude]
   )
 
+  // Calculate which messages are included based on maxMessagesToInclude
+  // MUST be at top level, not inside conditionals (Rules of Hooks)
+  const includedMessageIds = useMemo(() => {
+    if (!highlightIncludedMessages || maxMessagesToInclude <= 0) return new Set<string | number>()
+
+    // Get the last N messages (excluding system prompts for highlighting purposes)
+    const nonSystemMessages = messages.filter(m => m.role !== 'system')
+    const includedMessages = nonSystemMessages.slice(-maxMessagesToInclude)
+    // Use the ID as-is (could be string or number)
+    const ids = new Set(includedMessages.map(m => m.id).filter(id => id != null))
+
+    // Debug logging
+    console.log('[MessageHighlight] Debug:', {
+      highlightIncludedMessages,
+      maxMessagesToInclude,
+      totalMessages: messages.length,
+      nonSystemCount: nonSystemMessages.length,
+      includedCount: includedMessages.length,
+      includedIds: Array.from(ids)
+    })
+
+    return ids
+  }, [highlightIncludedMessages, maxMessagesToInclude, messages])
+
   if (!chatId && !isLoading) {
     return (
       <div className='flex-1 flex items-center justify-center p-4'>
@@ -1281,19 +1323,41 @@ export function ChatMessages({
       />
     )
   } else {
-    conversationBody = messages.map((msg) => (
-      <ChatMessageItem
-        key={msg.id || `temp-${Math.random()}`}
-        msg={msg}
-        excluded={excludedSet.has(Number(msg.id))}
-        rawView={rawMessageIds.has(Number(msg.id))}
-        onCopyMessage={handleCopyMessage}
-        onForkMessage={handleForkFromMessage}
-        onDeleteMessage={handleDeleteMessage}
-        onToggleExclude={handleToggleExclude}
-        onToggleRawView={handleToggleRawView}
-      />
-    ))
+    conversationBody = messages.map((msg, idx) => {
+      // Use the ID as-is (string or number) for checking inclusion
+      const isIncluded = includedMessageIds.has(msg.id) || msg.role === 'system'
+      const willHighlight = highlightIncludedMessages && isIncluded
+
+      // For excluded/rawView sets, still need numeric ID
+      const messageIdNum = Number(msg.id)
+
+      // Debug first few messages
+      if (idx < 3) {
+        console.log(`[MessageHighlight] Message ${idx}:`, {
+          id: msg.id,
+          role: msg.role,
+          isIncluded,
+          highlightIncludedMessages,
+          willHighlight,
+          inSet: includedMessageIds.has(msg.id)
+        })
+      }
+
+      return (
+        <ChatMessageItem
+          key={msg.id || `temp-${Math.random()}`}
+          msg={msg}
+          excluded={excludedSet.has(messageIdNum)}
+          rawView={rawMessageIds.has(messageIdNum)}
+          highlighted={willHighlight}
+          onCopyMessage={handleCopyMessage}
+          onForkMessage={handleForkFromMessage}
+          onDeleteMessage={handleDeleteMessage}
+          onToggleExclude={handleToggleExclude}
+          onToggleRawView={handleToggleRawView}
+        />
+      )
+    })
   }
 
   return (
@@ -1659,6 +1723,8 @@ function ChatPage() {
   const [isSystemPromptDialogOpen, setSystemPromptDialogOpen] = useState(false)
   const [systemPromptEditValue, setSystemPromptEditValue] = useState(DEFAULT_SYSTEM_PROMPT)
   const [isInputCollapsed, setInputCollapsed] = useState(false)
+  const [maxMessagesToInclude, setMaxMessagesToInclude] = useState(50)
+  const [isMessageHistoryPopoverOpen, setIsMessageHistoryPopoverOpen] = useState(false)
 
   useEffect(() => {
     if (!activeChatId) {
@@ -1742,6 +1808,13 @@ function ChatPage() {
     systemMessage: systemPrompt,
     enableChatAutoNaming: !!enableChatAutoNaming
   })
+
+  // Auto-adjust maxMessagesToInclude when messages.length changes
+  useEffect(() => {
+    if (messages.length > 0 && maxMessagesToInclude > messages.length) {
+      setMaxMessagesToInclude(messages.length)
+    }
+  }, [messages.length, maxMessagesToInclude])
 
   const isSystemPromptCustomized = useMemo(() => {
     if (!activeChatId) return false
@@ -1842,11 +1915,14 @@ function ChatPage() {
 
       clearError()
 
-      void sendMessage(text, { ...modelSettings }).catch((err) => {
+      void sendMessage(text, {
+        ...modelSettings,
+        maxMessagesToInclude
+      }).catch((err) => {
         console.error('Error sending message:', err)
       })
     },
-    [activeChatId, clearError, isAiLoading, modelSettings, sendMessage]
+    [activeChatId, clearError, isAiLoading, modelSettings, sendMessage, maxMessagesToInclude]
   )
 
   const didRestoreDraftRef = useRef(false)
@@ -1956,6 +2032,8 @@ function ChatPage() {
                 isLoading={isAiLoading}
                 excludedMessageIds={excludedMessageIds}
                 onToggleExclude={handleToggleExclude}
+                highlightIncludedMessages={isMessageHistoryPopoverOpen}
+                maxMessagesToInclude={maxMessagesToInclude}
               />
             </div>
 
@@ -2016,38 +2094,53 @@ function ChatPage() {
                 </div>
 
                 <div className='mx-auto w-full max-w-[72rem] px-4 pb-1.5'>
-                  <div
-                    role='button'
-                    tabIndex={0}
-                    onClick={handleOpenSystemPromptDialog}
-                    onKeyDown={(event) => {
-                      if (event.key === 'Enter' || event.key === ' ') {
-                        event.preventDefault()
-                        handleOpenSystemPromptDialog()
-                      }
-                    }}
-                    className='group flex items-center gap-2 rounded-lg border border-border/40 bg-background/60 px-2 py-0.5 text-[11px] shadow-sm transition-all duration-150 hover:border-border focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-1 cursor-pointer'
-                  >
-                    <div className='flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground'>
-                      <span>System Prompt</span>
-                      {isSystemPromptCustomized && <Badge variant='outline'>Custom</Badge>}
-                    </div>
-                    <span className='flex-1 truncate text-xs text-muted-foreground/90 max-w-0 opacity-0 transition-all duration-150 ease-out group-hover:max-w-[420px] group-hover:opacity-100 group-focus-within:max-w-[420px] group-focus-within:opacity-100'>
-                      {systemPromptDraft}
-                    </span>
-                    <Button
-                      type='button'
-                      size='icon'
-                      variant='ghost'
-                      aria-label='Edit system prompt'
-                      onClick={(event) => {
-                        event.stopPropagation()
-                        handleOpenSystemPromptDialog()
+                  <div className='flex items-stretch gap-2'>
+                    {/* System Prompt - Left Side */}
+                    <div
+                      role='button'
+                      tabIndex={0}
+                      onClick={handleOpenSystemPromptDialog}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault()
+                          handleOpenSystemPromptDialog()
+                        }
                       }}
-                      className='h-5 w-5 text-muted-foreground opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100'
+                      className='group flex flex-1 items-center gap-2 rounded-lg border border-border/40 bg-background/60 px-2 py-0.5 text-[11px] shadow-sm transition-all duration-150 hover:border-border focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-1 cursor-pointer'
                     >
-                      <Edit2 className='h-4 w-4' />
-                    </Button>
+                      <div className='flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground'>
+                        <span>System Prompt</span>
+                        {isSystemPromptCustomized && <Badge variant='outline'>Custom</Badge>}
+                      </div>
+                      <span className='flex-1 truncate text-xs text-muted-foreground/90 max-w-0 opacity-0 transition-all duration-150 ease-out group-hover:max-w-[420px] group-hover:opacity-100 group-focus-within:max-w-[420px] group-focus-within:opacity-100'>
+                        {systemPromptDraft}
+                      </span>
+                      <Button
+                        type='button'
+                        size='icon'
+                        variant='ghost'
+                        aria-label='Edit system prompt'
+                        onClick={(event) => {
+                          event.stopPropagation()
+                          handleOpenSystemPromptDialog()
+                        }}
+                        className='h-5 w-5 text-muted-foreground opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100'
+                      >
+                        <Edit2 className='h-4 w-4' />
+                      </Button>
+                    </div>
+
+                    {/* Message History Popover - Right Side */}
+                    {messages.length > 0 && (
+                      <MessageHistoryPopover
+                        messages={messages}
+                        currentValue={maxMessagesToInclude}
+                        onChange={setMaxMessagesToInclude}
+                        newInputText={input ?? ''}
+                        onOpenChange={setIsMessageHistoryPopoverOpen}
+                        className='rounded-lg border border-border/40 bg-background/60 shadow-sm'
+                      />
+                    )}
                   </div>
                 </div>
 
@@ -2091,34 +2184,36 @@ function ChatPage() {
                   </DialogContent>
                 </Dialog>
 
-                <PromptInput
-                  onSubmit={handlePromptSubmit}
-                  className='mx-auto w-full max-w-[72rem] divide-y-0 border-0 bg-transparent px-4 pb-3 shadow-none'
-                >
-                  <PromptInputBody className='rounded-xl border border-border/50 bg-background/70 shadow-sm backdrop-blur'>
-                    <div className='flex items-end gap-3 px-3 py-3'>
-                      <PromptInputTextarea
-                        value={input ?? ''}
-                        onChange={(event) => handleChatInputChange(event.target.value)}
-                        onKeyDown={(event) => {
-                          if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
-                            event.preventDefault()
-                            event.currentTarget.form?.requestSubmit()
-                          }
-                        }}
-                        placeholder='Type your message...'
-                        disabled={!activeChatId}
-                        className='min-h-[60px] flex-1 resize-none rounded-lg bg-background/60 text-sm shadow-inner'
-                      />
-                      <PromptInputSubmit
-                        status={isAiLoading ? 'submitted' : undefined}
-                        disabled={!input?.trim() || !activeChatId}
-                        variant='default'
-                        className='h-11 w-11 rounded-full'
-                      />
-                    </div>
-                  </PromptInputBody>
-                </PromptInput>
+                <div className='mx-auto w-full max-w-[72rem] space-y-3 px-4 pb-3'>
+                  <PromptInput
+                    onSubmit={handlePromptSubmit}
+                    className='divide-y-0 border-0 bg-transparent shadow-none'
+                  >
+                    <PromptInputBody className='rounded-xl border border-border/50 bg-background/70 shadow-sm backdrop-blur'>
+                      <div className='flex items-end gap-3 px-3 py-3'>
+                        <PromptInputTextarea
+                          value={input ?? ''}
+                          onChange={(event) => handleChatInputChange(event.target.value)}
+                          onKeyDown={(event) => {
+                            if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
+                              event.preventDefault()
+                              event.currentTarget.form?.requestSubmit()
+                            }
+                          }}
+                          placeholder='Type your message...'
+                          disabled={!activeChatId}
+                          className='min-h-[60px] flex-1 resize-none rounded-lg bg-background/60 text-sm shadow-inner'
+                        />
+                        <PromptInputSubmit
+                          status={isAiLoading ? 'submitted' : undefined}
+                          disabled={!input?.trim() || !activeChatId}
+                          variant='default'
+                          className='h-11 w-11 rounded-full'
+                        />
+                      </div>
+                    </PromptInputBody>
+                  </PromptInput>
+                </div>
 
                 {parsedError && (
                   <div className='mx-auto mb-3 w-full max-w-[72rem] px-4'>

@@ -21,41 +21,30 @@ const LOG_COLORS = {
   reset: '\x1b[0m'
 }
 
-class Logger {
-  private context?: string
-  private currentLevel: number
-  private maxLevel?: LogLevel
+export interface Logger {
+  error(message: string, error?: any): void
+  warn(message: string, data?: any): void
+  info(message: string, data?: any): void
+  debug(message: string, data?: any): void
+  verbose(message: string, data?: any): void
+  setMaxLevel(level: LogLevel): void
+  child(context: string): Logger
+}
 
-  constructor(context?: string, options: LoggerOptions = {}) {
-    this.context = context
-    this.maxLevel = options.maxLevel
+export const createLogger = (context?: string, options: LoggerOptions = {}): Logger => {
+  // Closure-based state (no class overhead)
+  let maxLevel = options.maxLevel
 
-    const envLevel = (process.env.LOG_LEVEL || (process.env.NODE_ENV === 'production' ? 'info' : 'debug')) as LogLevel
-    this.currentLevel = LOG_LEVELS[envLevel] ?? LOG_LEVELS.info
+  const envLevel = (process.env.LOG_LEVEL || (process.env.NODE_ENV === 'production' ? 'info' : 'debug')) as LogLevel
+  const baseLevel = LOG_LEVELS[envLevel] ?? LOG_LEVELS.info
 
-    this.applyMaxLevel()
-  }
+  let currentLevel = maxLevel ? Math.min(baseLevel, LOG_LEVELS[maxLevel]) : baseLevel
 
-  private applyMaxLevel(): void {
-    if (!this.maxLevel) {
-      return
-    }
+  const shouldLog = (level: LogLevel): boolean => LOG_LEVELS[level] <= currentLevel
 
-    const cap = LOG_LEVELS[this.maxLevel]
-    if (cap === undefined) {
-      return
-    }
-
-    this.currentLevel = Math.min(this.currentLevel, cap)
-  }
-
-  private shouldLog(level: LogLevel): boolean {
-    return LOG_LEVELS[level] <= this.currentLevel
-  }
-
-  private formatMessage(level: LogLevel, message: string, data?: any): string {
+  const formatMessage = (level: LogLevel, message: string, data?: any): string => {
     const timestamp = new Date().toISOString()
-    const prefix = this.context ? `[${this.context}]` : ''
+    const prefix = context ? `[${context}]` : ''
     const dataStr = data ? ` ${JSON.stringify(data)}` : ''
 
     if (process.env.NODE_ENV === 'production') {
@@ -66,44 +55,44 @@ class Logger {
     return `${color}${timestamp} ${level.toUpperCase()} ${prefix} ${message}${dataStr}${LOG_COLORS.reset}`
   }
 
-  error(message: string, error?: any): void {
-    if (!this.shouldLog('error')) return
-    const errorData = error instanceof Error ? { message: error.message, stack: error.stack } : error
-    console.error(this.formatMessage('error', message, errorData))
-  }
+  return {
+    error(message: string, error?: any): void {
+      if (!shouldLog('error')) return
+      const errorData = error instanceof Error ? { message: error.message, stack: error.stack } : error
+      console.error(formatMessage('error', message, errorData))
+    },
 
-  warn(message: string, data?: any): void {
-    if (!this.shouldLog('warn')) return
-    console.warn(this.formatMessage('warn', message, data))
-  }
+    warn(message: string, data?: any): void {
+      if (!shouldLog('warn')) return
+      console.warn(formatMessage('warn', message, data))
+    },
 
-  info(message: string, data?: any): void {
-    if (!this.shouldLog('info')) return
-    console.log(this.formatMessage('info', message, data))
-  }
+    info(message: string, data?: any): void {
+      if (!shouldLog('info')) return
+      console.log(formatMessage('info', message, data))
+    },
 
-  debug(message: string, data?: any): void {
-    if (!this.shouldLog('debug')) return
-    console.log(this.formatMessage('debug', message, data))
-  }
+    debug(message: string, data?: any): void {
+      if (!shouldLog('debug')) return
+      console.log(formatMessage('debug', message, data))
+    },
 
-  verbose(message: string, data?: any): void {
-    if (!this.shouldLog('verbose')) return
-    console.log(this.formatMessage('verbose', message, data))
-  }
+    verbose(message: string, data?: any): void {
+      if (!shouldLog('verbose')) return
+      console.log(formatMessage('verbose', message, data))
+    },
 
-  setMaxLevel(level: LogLevel): void {
-    this.maxLevel = level
-    this.applyMaxLevel()
-  }
+    setMaxLevel(level: LogLevel): void {
+      maxLevel = level
+      currentLevel = maxLevel ? Math.min(baseLevel, LOG_LEVELS[maxLevel]) : baseLevel
+    },
 
-  child(context: string): Logger {
-    const childContext = this.context ? `${this.context}:${context}` : context
-    return new Logger(childContext, { maxLevel: this.maxLevel })
+    child(childContext: string): Logger {
+      const newContext = context ? `${context}:${childContext}` : childContext
+      return createLogger(newContext, { maxLevel })
+    }
   }
 }
-
-export const createLogger = (context?: string, options?: LoggerOptions) => new Logger(context, options)
 
 // Default logger instance
 export const logger = createLogger()

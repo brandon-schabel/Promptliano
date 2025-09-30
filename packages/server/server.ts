@@ -121,6 +121,14 @@ export async function instantiateServer({
     // Log database location for visibility
     const dbPath = getDatabasePath()
     logger.info(`Database location: ${dbPath === ':memory:' ? 'in-memory' : dbPath}`)
+
+    // Log OpenRouter configuration for debugging
+    const openrouterSiteUrl = process.env.OPENROUTER_SITE_URL || 'NOT SET (will use default)'
+    const openrouterAppTitle = process.env.OPENROUTER_APP_TITLE || 'NOT SET (will use default)'
+    logger.info('OpenRouter Configuration:', {
+      siteUrl: openrouterSiteUrl,
+      appTitle: openrouterAppTitle
+    })
   } catch (error) {
     logger.error('Database migration failed during server startup', error)
   }

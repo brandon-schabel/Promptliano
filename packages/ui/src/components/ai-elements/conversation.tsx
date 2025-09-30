@@ -1,5 +1,6 @@
 "use client";
 
+import * as React from "react";
 import { Button } from "../core/button";
 import { cn } from "../../utils";
 import { ArrowDownIcon } from "lucide-react";
@@ -72,26 +73,61 @@ export const ConversationScrollButton = ({
   ...props
 }: ConversationScrollButtonProps) => {
   const { isAtBottom, scrollToBottom } = useStickToBottomContext();
+  const [isVisible, setIsVisible] = React.useState(false);
+  const lastScrollTopRef = React.useRef(0);
+  const buttonRef = React.useRef<HTMLButtonElement>(null);
+
+  // Track scroll direction
+  React.useEffect(() => {
+    // Find the scroll container (the Conversation component with overflow)
+    const findScrollContainer = (element: HTMLElement | null): HTMLElement | null => {
+      if (!element) return null;
+      const style = window.getComputedStyle(element);
+      if (style.overflowY === 'auto' || style.overflowY === 'scroll') {
+        return element;
+      }
+      return findScrollContainer(element.parentElement);
+    };
+
+    const scrollContainer = buttonRef.current ? findScrollContainer(buttonRef.current.parentElement) : null;
+    if (!scrollContainer) return;
+
+    const handleScroll = () => {
+      const currentScrollTop = scrollContainer.scrollTop;
+      const isScrollingDown = currentScrollTop > lastScrollTopRef.current;
+
+      // Show button only when scrolling down and not at bottom
+      setIsVisible(isScrollingDown && !isAtBottom);
+      lastScrollTopRef.current = currentScrollTop;
+    };
+
+    scrollContainer.addEventListener('scroll', handleScroll, { passive: true });
+    return () => scrollContainer.removeEventListener('scroll', handleScroll);
+  }, [isAtBottom]);
 
   const handleScrollToBottom = useCallback(() => {
     scrollToBottom();
+    setIsVisible(false);
   }, [scrollToBottom]);
 
+  if (isAtBottom || !isVisible) {
+    return null;
+  }
+
   return (
-    !isAtBottom && (
-      <Button
-        className={cn(
-          "absolute bottom-4 left-[50%] translate-x-[-50%] rounded-full",
-          className
-        )}
-        onClick={handleScrollToBottom}
-        size="icon"
-        type="button"
-        variant="outline"
-        {...props}
-      >
-        <ArrowDownIcon className="size-4" />
-      </Button>
-    )
+    <Button
+      ref={buttonRef}
+      className={cn(
+        "absolute bottom-4 left-[50%] translate-x-[-50%] rounded-full transition-opacity duration-200",
+        className
+      )}
+      onClick={handleScrollToBottom}
+      size="icon"
+      type="button"
+      variant="outline"
+      {...props}
+    >
+      <ArrowDownIcon className="size-4" />
+    </Button>
   );
 };

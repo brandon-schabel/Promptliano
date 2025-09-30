@@ -247,4 +247,180 @@ export class ChatPage extends BasePage {
     }
     return null
   }
+
+  // Message History Slider - New Methods for Testing
+  get messageHistorySlider() {
+    return this.page.locator('[data-testid="message-history-slider"], input[type="range"]')
+  }
+
+  get sliderLabel() {
+    return this.page.locator('text=/\\d+ of \\d+ messages/')
+  }
+
+  get historyTokensDisplay() {
+    return this.page.locator('[data-testid="history-tokens"]')
+  }
+
+  get inputTokensDisplay() {
+    return this.page.locator('[data-testid="input-tokens"]')
+  }
+
+  get totalTokensDisplay() {
+    return this.page.locator('[data-testid="total-tokens"]')
+  }
+
+  get contextWarning() {
+    return this.page.locator('[data-testid="context-warning"]').or(
+      this.page.getByText(/large context|increase.*cost/i)
+    )
+  }
+
+  async isSliderVisible(): Promise<boolean> {
+    try {
+      await this.messageHistorySlider.waitFor({ state: 'visible', timeout: 2000 })
+      return true
+    } catch {
+      return false
+    }
+  }
+
+  async getSliderValue(): Promise<number> {
+    const value = await this.messageHistorySlider.inputValue()
+    return parseInt(value, 10)
+  }
+
+  async setSliderValue(value: number) {
+    await this.messageHistorySlider.fill(value.toString())
+    await this.page.waitForTimeout(500) // Wait for token calculation
+  }
+
+  async getSliderMin(): Promise<number> {
+    const min = await this.messageHistorySlider.getAttribute('min')
+    return parseInt(min || '1', 10)
+  }
+
+  async getSliderMax(): Promise<number> {
+    const max = await this.messageHistorySlider.getAttribute('max')
+    return parseInt(max || '1', 10)
+  }
+
+  async getHistoryTokensCount(): Promise<number> {
+    const text = await this.historyTokensDisplay.textContent()
+    const match = text?.match(/\d+/)
+    return match ? parseInt(match[0], 10) : 0
+  }
+
+  async getInputTokensCount(): Promise<number> {
+    const text = await this.inputTokensDisplay.textContent()
+    const match = text?.match(/\d+/)
+    return match ? parseInt(match[0], 10) : 0
+  }
+
+  async getTotalTokensCount(): Promise<number> {
+    const text = await this.totalTokensDisplay.textContent()
+    const match = text?.match(/\d+/)
+    return match ? parseInt(match[0], 10) : 0
+  }
+
+  async isContextWarningVisible(): Promise<boolean> {
+    return await this.contextWarning.isVisible().catch(() => false)
+  }
+
+  async typeInInput(text: string) {
+    await this.messageInput.fill(text)
+    await this.page.waitForTimeout(500) // Wait for debounced token calculation
+  }
+
+  async getMessageCount(): Promise<number> {
+    return await this.messages.count()
+  }
+
+  async verifyTokenCountsSum() {
+    const history = await this.getHistoryTokensCount()
+    const input = await this.getInputTokensCount()
+    const total = await this.getTotalTokensCount()
+    return total === history + input
+  }
+
+  // Message History Popover - New Methods for Popover Testing
+  get messageHistoryPopoverTrigger() {
+    return this.page.locator('[data-testid="message-history-popover-trigger"]')
+  }
+
+  get messageHistoryPopover() {
+    return this.page.locator('[data-testid="message-history-popover"]')
+  }
+
+  get messageHistoryProgressBar() {
+    return this.page.locator('[data-testid="message-history-progress-bar"]')
+  }
+
+  get messageHistoryPreviewText() {
+    return this.page.locator('[data-testid="message-history-preview-text"]')
+  }
+
+  get messageHistorySliderInPopover() {
+    return this.messageHistoryPopover.locator('input[type="range"]')
+  }
+
+  get messageHistoryWarningBanner() {
+    return this.page.locator('[data-testid="context-warning"]').or(
+      this.page.getByText(/large context|increase.*cost/i)
+    )
+  }
+
+  async openMessageHistoryPopover(): Promise<void> {
+    await this.messageHistoryPopoverTrigger.click()
+    await this.page.waitForTimeout(300) // Wait for popover animation
+    await expect(this.messageHistoryPopover).toBeVisible()
+  }
+
+  async closeMessageHistoryPopover(): Promise<void> {
+    // Click outside the popover to close it
+    await this.page.locator('body').click({ position: { x: 0, y: 0 } })
+    await this.page.waitForTimeout(300) // Wait for popover animation
+  }
+
+  async getProgressBarPercentage(): Promise<number> {
+    const style = await this.messageHistoryProgressBar.getAttribute('style')
+    if (!style) return 0
+
+    // Extract percentage from "width: XX%" style
+    const match = style.match(/width:\s*(\d+)%/)
+    return match ? parseInt(match[1], 10) : 0
+  }
+
+  async getMessageCountText(): Promise<string> {
+    const text = await this.messageHistoryPreviewText.textContent()
+    return text || ''
+  }
+
+  async getTokenCountFromPreview(): Promise<number> {
+    const text = await this.messageHistoryPreviewText.textContent()
+    const match = text?.match(/(\d+)\s+tokens/)
+    return match ? parseInt(match[1], 10) : 0
+  }
+
+  async adjustSliderInPopover(value: number): Promise<void> {
+    await this.messageHistorySliderInPopover.fill(value.toString())
+    await this.page.waitForTimeout(500) // Wait for token calculation
+  }
+
+  async isPopoverVisible(): Promise<boolean> {
+    try {
+      await this.messageHistoryPopover.waitFor({ state: 'visible', timeout: 2000 })
+      return true
+    } catch {
+      return false
+    }
+  }
+
+  async isPopoverTriggerVisible(): Promise<boolean> {
+    try {
+      await this.messageHistoryPopoverTrigger.waitFor({ state: 'visible', timeout: 2000 })
+      return true
+    } catch {
+      return false
+    }
+  }
 }
