@@ -127,6 +127,25 @@ export function mapProviderErrorToApiError(error: any, provider: string, operati
     )
   }
 
+  // Tool schema validation errors
+  if (
+    details.message?.includes('Tool call validation failed') ||
+    (details.message?.includes('parameters') && details.message?.includes('did not match schema')) ||
+    details.message?.includes('additionalProperties')
+  ) {
+    return new ApiError(
+      400,
+      `Tool schema validation failed: ${details.message}. This may indicate a configuration issue with the MCP tool schema.`,
+      'TOOL_SCHEMA_VALIDATION_ERROR',
+      {
+        provider,
+        retryable: false, // Schema errors are not retryable without fixing the schema
+        originalError: details.message,
+        metadata: details.metadata
+      }
+    )
+  }
+
   if ((typeof details.code === 'number' && details.code >= 500) || details.retryable) {
     return new ApiError(503, `${provider} service temporarily unavailable. Please try again.`, 'PROVIDER_UNAVAILABLE', {
       provider,

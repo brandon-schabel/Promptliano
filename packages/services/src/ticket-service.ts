@@ -41,7 +41,7 @@ import {
 type CreateTicketBody = CreateTicket
 type UpdateTicketBody = UpdateTicket
 import { z } from 'zod'
-import { createFileSuggestionStrategyService } from './file-services/file-suggestion-strategy-service'
+import { suggestFilesForProject } from './suggestions/suggestions-service'
 import { agentFileDetectionService } from './file-services/agent-file-detection-service'
 import { fileService } from './file-service'
 import { getProjectById } from './project-service'
@@ -53,7 +53,6 @@ type Ticket = z.infer<typeof TicketSchema>
 type TicketTask = z.infer<typeof TaskSchema>
 
 const MAX_GUIDELINE_SNIPPET_CHARS = 2000
-const fileSuggestionServiceSingleton = createFileSuggestionStrategyService()
 const taskGenerationLogger = createServiceLogger('TicketTaskGeneration')
 
 interface GeneratedTaskForSuggestion {
@@ -73,23 +72,30 @@ async function suggestFilesForGeneratedTasks({
   guidelinesSnippet?: string | null
 }) {
   try {
-    const suggestionResponse = (await fileSuggestionServiceSingleton.suggestFiles(
+    // Build user input from ticket and tasks context
+    const taskTitles = tasks.map((t) => t.title || '').filter(Boolean).join(', ')
+    const userInput = `${ticket.title}\n${ticket.overview || ''}\n${taskTitles}`
+    const maxResults = tasks.length > 0 ? Math.min(tasks.length, 5) : 5
+
+    const suggestionResponse = await suggestFilesForProject(
+      ticket.projectId,
+      userInput,
       {
-        ticketId: ticket.id,
-        title: ticket.title,
-        overview: ticket.overview,
-        projectId: ticket.projectId,
-        generatedTasks: tasks,
-        agentGuidelines: guidelinesSnippet
-      } as any,
-      'balanced',
-      tasks.length > 0 ? Math.min(tasks.length, 5) : 5
-    )) as any
+        maxResults,
+        strategy: 'balanced',
+        userContext: guidelinesSnippet || undefined
+      }
+    )
 
     if (Array.isArray(suggestionResponse?.suggestions)) {
+      // New service returns flat array of file IDs - distribute them across tasks
+      const allFileIds = suggestionResponse.suggestions
+      const filesPerTask = Math.ceil(allFileIds.length / Math.max(tasks.length, 1))
+
       return tasks.map((_, index) => {
-        const entry: any = suggestionResponse.suggestions[index]
-        const ids = Array.isArray(entry?.ids) ? entry.ids : []
+        const startIdx = index * filesPerTask
+        const endIdx = startIdx + filesPerTask
+        const ids = allFileIds.slice(startIdx, endIdx)
         return { ids }
       })
     }
@@ -1144,8 +1150,18 @@ export const suggestFilesForTicket = async (ticketId: number) => {
     if (!rawTicket) return []
     const ticket = transformTicket(rawTicket)
 
-    // Use balanced strategy by default
-    const resp = await fileSuggestionServiceSingleton.suggestFiles(ticket as any, 'balanced', 10)
+    // Build user input from ticket context
+    const userInput = `${ticket.title}\n${ticket.overview || ''}`
+
+    // Use new suggestion service with balanced strategy
+    const resp = await suggestFilesForProject(
+      ticket.projectId,
+      userInput,
+      {
+        maxResults: 10,
+        strategy: 'balanced'
+      }
+    )
     return Array.isArray(resp?.suggestions) ? resp.suggestions : []
   } catch (e) {
     return []

@@ -29,7 +29,7 @@ import type { Prompt } from '@promptliano/database'
 export const promptManagerTool: MCPToolDefinition = {
   name: 'prompt_manager',
   description:
-    'Manage prompts and prompt-project associations. Actions: list, get, create, update, delete, list_by_project, add_to_project, remove_from_project, suggest_prompts',
+    'Manage prompts and prompt-project associations. Actions: list, get, create, update, delete, list_by_project, add_to_project, remove_from_project',
   inputSchema: {
     type: 'object',
     properties: {
@@ -44,19 +44,19 @@ export const promptManagerTool: MCPToolDefinition = {
           'delete',
           'list_by_project',
           'add_to_project',
-          'remove_from_project',
-          'suggest_prompts'
+          'remove_from_project'
         ]
       },
       projectId: {
         type: 'number',
         description:
-          'The project ID (required for: list_by_project, add_to_project, remove_from_project, suggest_prompts). Tip: use project_manager(list) to fetch a valid ID.'
+          'The project ID (required for: list_by_project, add_to_project, remove_from_project). Tip: use project_manager(list) to fetch a valid ID.'
       },
       data: {
         type: 'object',
         description:
-          'Action-specific data. For get/update/delete: { promptId: 123 }. For create: { name: "My Prompt", content: "Prompt text" }. For add_to_project: { promptId: 123 }. For suggest_prompts: { userInput: "help me with authentication", limit: 5 (optional) }'
+          'Action-specific data. For get/update/delete: { promptId: 123 }. For create: { name: "My Prompt", content: "Prompt text" }. For add_to_project: { promptId: 123 }',
+        additionalProperties: true
       }
     },
     required: ['action']
@@ -191,80 +191,6 @@ export const promptManagerTool: MCPToolDefinition = {
             return {
               content: [
                 { type: 'text', text: `Prompt ${promptId} successfully removed from project ${validProjectId}` }
-              ]
-            }
-          }
-
-          case PromptManagerAction.SUGGEST_PROMPTS: {
-            const validProjectId = validateRequiredParam(projectId, 'projectId', 'number', '<PROJECT_ID>')
-
-            // Enhanced validation for userInput
-            if (!data || !data.userInput) {
-              throw new Error(
-                'userInput is required in data field. Example: { "userInput": "help me with authentication" }'
-              )
-            }
-
-            const userInput = validateDataField<string>(data, 'userInput', 'string', '"help me with authentication"')
-
-            // Additional check for empty/whitespace input
-            if (!userInput || userInput.trim().length === 0) {
-              throw new Error('userInput cannot be empty. Please provide a meaningful query.')
-            }
-
-            const limit = (data?.limit as number) || 5
-
-            // First try to get project-specific prompts
-            const suggestedPrompts = await suggestPrompts(validProjectId, userInput)
-
-            // If no project-specific prompts found, check if there are any prompts at all
-            if (suggestedPrompts.length === 0) {
-              const projectPrompts = await listPromptsByProject(validProjectId)
-              const allPrompts = await listAllPrompts()
-
-              if (projectPrompts.length === 0 && allPrompts.length > 0) {
-                // No prompts associated with this project, but prompts exist
-                return {
-                  content: [
-                    {
-                      type: 'text',
-                      text:
-                        `No prompts are currently associated with project ${validProjectId}.\n\n` +
-                        `There are ${allPrompts.length} prompts available in the system.\n` +
-                        `To use them with this project, first add them using the 'add_to_project' action.\n\n` +
-                        `Example: { "action": "add_to_project", "projectId": ${validProjectId}, "data": { "promptId": <id> } }`
-                    }
-                  ]
-                }
-              } else if (allPrompts.length === 0) {
-                // No prompts exist at all
-                return {
-                  content: [
-                    {
-                      type: 'text',
-                      text:
-                        'No prompts exist in the system yet.\n\n' +
-                        'Create prompts using the "create" action:\n' +
-                        `Example: { "action": "create", "data": { "name": "My Prompt", "content": "Prompt content here" } }`
-                    }
-                  ]
-                }
-              }
-            }
-
-            const promptList = suggestedPrompts
-              .map((suggestion: string, index: number) => `${index + 1}: ${suggestion}`)
-              .join('\n\n')
-
-            return {
-              content: [
-                {
-                  type: 'text',
-                  text:
-                    suggestedPrompts.length > 0
-                      ? `Suggested prompts for "${userInput}":\n\n${promptList}`
-                      : `No prompts found matching your input "${userInput}" in project ${validProjectId}`
-                }
               ]
             }
           }

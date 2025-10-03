@@ -648,11 +648,17 @@ export async function streamChatSession(params: StreamChatSessionParams): Promis
       const mapped = mapProviderErrorToApiError(error, resolvedProvider, 'streamChat')
       finishState.finishReason = 'error'
 
+      // Provide more helpful error messages for schema validation errors
+      let errorMessage = mapped.message
+      if (mapped.code === 'TOOL_SCHEMA_VALIDATION_ERROR') {
+        errorMessage = `The AI attempted to use a tool with parameters that don't match the tool's schema. This has been fixed in the latest version. Error details: ${mapped.message}`
+      }
+
       if (persistMessages) {
         chatService
           .addMessage(chatId, {
             role: 'assistant',
-            content: mapped.message,
+            content: errorMessage,
             metadata: {
               error: mapped
             }

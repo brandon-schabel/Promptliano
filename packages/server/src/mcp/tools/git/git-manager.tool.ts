@@ -131,7 +131,8 @@ export const gitManagerTool: MCPToolDefinition = {
       data: {
         type: 'object',
         description:
-          'Action-specific data. For log_enhanced: { branch?: "main", author?: "john", search?: "fix", page?: 1, perPage?: 20, since?: "2024-01-01", until?: "2024-12-31", includeStats?: true, includeFileDetails?: true }. For commit_detail: { hash: "abc123", includeFileContents?: true }. For worktree_add: { path: "../feature-branch", branch?: "existing-branch", newBranch?: "new-branch", commitish?: "HEAD~3", detach?: true }. For worktree_remove: { path: "../feature-branch", force?: true }. For worktree_lock: { path: "../feature-branch", reason?: "work in progress" }. For worktree_unlock: { path: "../feature-branch" }. For worktree_prune: { dryRun?: true }. For other actions, see git service documentation.'
+          'Action-specific data. For log_enhanced: { branch?: "main", author?: "john", search?: "fix", page?: 1, perPage?: 20, since?: "2024-01-01", until?: "2024-12-31", includeStats?: true, includeFileDetails?: true }. For commit_detail: { hash: "abc123", includeFileContents?: true }. For worktree_add: { path: "../feature-branch", branch?: "existing-branch", newBranch?: "new-branch", commitish?: "HEAD~3", detach?: true }. For worktree_remove: { path: "../feature-branch", force?: true }. For worktree_lock: { path: "../feature-branch", reason?: "work in progress" }. For worktree_unlock: { path: "../feature-branch" }. For worktree_prune: { dryRun?: true }. For other actions, see git service documentation.',
+        additionalProperties: true
       }
     },
     required: ['action', 'projectId']

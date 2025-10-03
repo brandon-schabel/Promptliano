@@ -158,34 +158,39 @@ const Sidebar = React.forwardRef<
     )
   }
 
-  if (isMobile) {
-    return (
-      <Sheet open={openMobile} onOpenChange={setOpenMobile} {...props}>
-        <SheetContent
-          data-sidebar='sidebar'
-          data-mobile='true'
-          className='w-[--sidebar-width] bg-sidebar p-0 text-sidebar-foreground [&>button]:hidden'
-          style={
-            {
-              '--sidebar-width': SIDEBAR_WIDTH_MOBILE
-            } as React.CSSProperties
-          }
-          side={side}
-        >
-          <SheetHeader className='sr-only'>
-            <SheetTitle>Sidebar</SheetTitle>
-            <SheetDescription>Displays the mobile sidebar.</SheetDescription>
-          </SheetHeader>
-          <div className='flex h-full w-full flex-col'>{children}</div>
-        </SheetContent>
-      </Sheet>
-    )
-  }
-
   return (
+    <>
+      {/* Mobile Sheet - only visible on mobile */}
+      <div className='md:hidden'>
+        <Sheet open={openMobile} onOpenChange={setOpenMobile} {...props}>
+          <SheetContent
+            data-sidebar='sidebar'
+            data-mobile='true'
+            className='w-[--sidebar-width] bg-sidebar p-0 text-sidebar-foreground [&>button]:hidden'
+            style={
+              {
+                '--sidebar-width': SIDEBAR_WIDTH_MOBILE
+              } as React.CSSProperties
+            }
+            side={side}
+          >
+            <SheetHeader className='sr-only'>
+              <SheetTitle>Sidebar</SheetTitle>
+              <SheetDescription>Displays the mobile sidebar.</SheetDescription>
+            </SheetHeader>
+            <div className='flex h-full w-full flex-col'>{children}</div>
+          </SheetContent>
+        </Sheet>
+      </div>
+
+      {/* Desktop Sidebar - animates out on mobile, visible on desktop */}
     <div
       ref={ref}
-      className='group peer hidden text-sidebar-foreground md:block'
+      className={cn(
+        'group peer text-sidebar-foreground transition-all duration-300 ease-in-out',
+        'max-md:w-0 max-md:opacity-0 max-md:pointer-events-none max-md:invisible max-md:overflow-hidden',
+        'md:opacity-100 md:visible'
+      )}
       data-state={state}
       data-collapsible={state === 'collapsed' ? collapsible : ''}
       data-variant={variant}
@@ -194,7 +199,8 @@ const Sidebar = React.forwardRef<
       {/* This is what handles the sidebar gap on desktop */}
       <div
         className={cn(
-          'relative w-[--sidebar-width] bg-transparent transition-[width] duration-200 ease-linear',
+          'relative w-[--sidebar-width] bg-transparent transition-[width,opacity] duration-300 ease-in-out',
+          'max-md:w-0', // Mobile: no space reservation
           'group-data-[collapsible=offcanvas]:w-0',
           'group-data-[side=right]:rotate-180',
           variant === 'floating' || variant === 'inset'
@@ -210,10 +216,12 @@ const Sidebar = React.forwardRef<
           }
         }}
         className={cn(
-          'fixed inset-y-0 z-10 hidden h-svh w-[--sidebar-width] transition-[left,right,width] duration-200 ease-linear md:flex',
+          'fixed inset-y-0 z-10 flex h-svh w-[--sidebar-width] transition-all duration-300 ease-in-out',
+          'max-md:opacity-0 max-md:pointer-events-none',
           side === 'left'
-            ? 'left-0 group-data-[collapsible=offcanvas]:left-[calc(var(--sidebar-width)*-1)]'
-            : 'right-0 group-data-[collapsible=offcanvas]:right-[calc(var(--sidebar-width)*-1)]',
+            ? 'left-0 group-data-[collapsible=offcanvas]:left-[calc(var(--sidebar-width)*-1)] max-md:-translate-x-full'
+            : 'right-0 group-data-[collapsible=offcanvas]:right-[calc(var(--sidebar-width)*-1)] max-md:translate-x-full',
+          'md:opacity-100 md:translate-x-0',
           variant === 'floating' || variant === 'inset'
             ? 'p-2 group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)_+_theme(spacing.4)_+2px)]'
             : 'group-data-[collapsible=icon]:w-[--sidebar-width-icon] group-data-[side=left]:border-r group-data-[side=right]:border-l',
@@ -251,6 +259,7 @@ const Sidebar = React.forwardRef<
         )}
       </div>
     </div>
+    </>
   )
 })
 Sidebar.displayName = 'Sidebar'

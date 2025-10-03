@@ -3,7 +3,6 @@ import React from 'react'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { zodValidator } from '@tanstack/zod-adapter'
 import { chatSearchSchema } from '@/lib/search-schemas'
-import { persistListParams } from '@/lib/router/search-middleware'
 import {
   MessageSquareIcon,
   PlusIcon,
@@ -11,7 +10,6 @@ import {
   X,
   Edit2,
   Trash2,
-  Settings2Icon,
   Copy,
   GitFork,
   Trash,
@@ -44,11 +42,6 @@ import { cn } from '@/lib/utils'
 import {
   ScrollArea,
   Badge,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
   Card,
   Button,
   Popover,
@@ -58,7 +51,6 @@ import {
   Input,
   Label,
   Textarea,
-  Slider,
   Dialog,
   DialogContent,
   DialogHeader,
@@ -82,30 +74,23 @@ import {
   ToolHeader,
   ToolContent,
   ToolInput,
-  ToolOutput
+  ToolOutput,
+  useSidebar
 } from '@promptliano/ui'
 import type { PromptInputMessage } from '@promptliano/ui'
 import { ChatCard } from '@/components/chat/chat-card'
-import { MessageHistorySlider } from '@/components/chat/message-history-slider'
 import { MessageHistoryPopover } from '@/components/chat/message-history-popover'
 import { useCopyClipboard } from '@/hooks/utility-hooks/use-copy-clipboard'
 import type { APIProviders, AiSdkOptions } from '@promptliano/database'
 import { useDebounceCallback } from '@/hooks/utility-hooks/use-debounce'
-import { PROVIDER_SELECT_OPTIONS } from '@/constants/providers-constants'
 import { useLocalStorage } from '@/hooks/utility-hooks/use-local-storage'
-import { useProjectTabField, useAppSettings, useActiveProjectTab } from '@/hooks/use-kv-local-storage'
-import { PromptlianoCombobox } from '@/components/promptliano/promptliano-combobox'
-import { ErrorBoundary } from '@/components/error-boundary/error-boundary'
+import { useAppSettings, useActiveProjectTab } from '@/hooks/use-kv-local-storage'
 import { useGetModels } from '@/hooks/generated'
-import {
-  ProviderModelSelector,
-  ModelSettingsPopover as ReusableModelSettingsPopover,
-  PresetSelector,
-  type ModelPreset
-} from '@/components/model-selection'
+import { ModelSettingsPopover as ReusableModelSettingsPopover, PresetSelector } from '@/components/model-selection'
 import { AIErrorDisplay } from '@/components/errors'
 import { useModelConfigPresets } from '@/hooks/use-model-presets'
 import type { ToolUIPart } from 'ai'
+import { MCPIndicator } from '@/components/chat/mcp-indicator'
 
 export function ModelSettingsPopover() {
   const {
@@ -255,7 +240,21 @@ const truncateForPreview = (text: string, max = 160): string => {
 
 const DEFAULT_LMSTUDIO_URL = 'http://localhost:1234'
 const CHAT_INPUT_STORAGE_KEY = 'CHAT_INPUT_VALUE'
-const DEFAULT_SYSTEM_PROMPT = 'You are a helpful assistant that can answer questions and help with tasks.'
+// const DEFAULT_SYSTEM_PROMPT = 'You are a helpful assistant that can answer questions and help with tasks.'
+const DEFAULT_SYSTEM_PROMPT = `You\'re Liano a specialized AI Software Engineering Assistant. 
+
+## Promptliano MCP Server - Built In
+- To get a quick understanding of the project use the Project Manager overview tool.
+- Flow Manager - Tickets, Tasks, and Queues for planning and carrying out tasks. For example you can create serveral  tickets with tasks, and then assign them to a queue.
+- Use suggest files to help you find relevant files using plain text - uses AI to provide great contextually aware file suggestions.
+- If user ask you to work on a Queue work through the tickets and tasks in the priority order, marking items as completed as you go.
+- For git status, git diff, git file history use the Git tool.
+- Use the Prompt Manager to retrieve prompts, save prompts for future use, create new prompts, and delete prompts.
+- When a user asks you architectural questions about the project utilize mermaid diagrams to visually explain the architecture. Make sure you have all context you need from project_manager tool before creating the diagram.
+
+## Chrome Dev Tools MCP - Built In
+- Use the Chrome Dev Tools MCP to interact with the browser.
+`
 const SYSTEM_PROMPT_STORAGE_KEY = 'chat-system-prompts'
 
 const cleanToolName = (value?: string | null): string | undefined => {
@@ -391,9 +390,9 @@ const ToolCallSection: React.FC<{
       : call.isStreaming
         ? 'input-streaming'
         : 'input-available'
-  const toolType = (call.toolName
-    ? (`tool-${call.toolName.toLowerCase().replace(/\s+/g, '-')}` as const)
-    : ('tool-call' as const)) as ToolUIPart['type']
+  const toolType = (
+    call.toolName ? (`tool-${call.toolName.toLowerCase().replace(/\s+/g, '-')}` as const) : ('tool-call' as const)
+  ) as ToolUIPart['type']
   const previewText = call.previewText || buildToolPreview(call)
   const inputValue = call.rawArgs ?? call.argsSummary ?? undefined
   const outputValue = hasError ? undefined : (call.rawOutput ?? call.outputSummary ?? call.previewText ?? undefined)
@@ -493,9 +492,7 @@ const MessageWrapper: React.FC<{
           variant='flat'
           className={cn(
             'w-full space-y-3 rounded-lg border p-4 text-sm shadow-sm backdrop-blur transition-all duration-200',
-            highlighted
-              ? 'border-primary/50 bg-primary/5 ring-2 ring-primary/20'
-              : 'border-border/50 bg-background/80',
+            highlighted ? 'border-primary/50 bg-primary/5 ring-2 ring-primary/20' : 'border-border/50 bg-background/80',
             contentClassName
           )}
         >
@@ -606,8 +603,17 @@ const ChatMessageItem = React.memo(
     onToggleExclude: (messageId: number) => void
     onToggleRawView: (messageId: number) => void
   }) => {
-    const { msg, excluded, rawView, highlighted = false, onCopyMessage, onForkMessage, onDeleteMessage, onToggleExclude, onToggleRawView } =
-      props
+    const {
+      msg,
+      excluded,
+      rawView,
+      highlighted = false,
+      onCopyMessage,
+      onForkMessage,
+      onDeleteMessage,
+      onToggleExclude,
+      onToggleRawView
+    } = props
 
     const { copyToClipboard } = useCopyClipboard()
     const [popoverOpen, setPopoverOpen] = useState(false)
@@ -1275,10 +1281,10 @@ export function ChatMessages({
     if (!highlightIncludedMessages || maxMessagesToInclude <= 0) return new Set<string | number>()
 
     // Get the last N messages (excluding system prompts for highlighting purposes)
-    const nonSystemMessages = messages.filter(m => m.role !== 'system')
+    const nonSystemMessages = messages.filter((m) => m.role !== 'system')
     const includedMessages = nonSystemMessages.slice(-maxMessagesToInclude)
     // Use the ID as-is (could be string or number)
-    const ids = new Set(includedMessages.map(m => m.id).filter(id => id != null))
+    const ids = new Set(includedMessages.map((m) => m.id).filter((id) => id != null))
 
     // Debug logging
     console.log('[MessageHighlight] Debug:', {
@@ -1607,7 +1613,8 @@ export function ChatSidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () 
   )
 }
 
-export function ChatHeader({ onToggleSidebar }: { onToggleSidebar: () => void }) {
+export function ChatHeader({ onToggleSidebar, provider }: { onToggleSidebar: () => void; provider: string }) {
+  const { state, isMobile } = useSidebar()
   const navigate = useNavigate()
   const search = Route.useSearch()
   const activeChatId = search.chatId ?? null
@@ -1627,7 +1634,13 @@ export function ChatHeader({ onToggleSidebar }: { onToggleSidebar: () => void })
   const activeChat = useMemo(() => chatsData?.find((c: Chat) => c.id === activeChatId), [chatsData, activeChatId])
 
   return (
-    <div className='flex items-center justify-between gap-x-4 bg-background px-4 py-2 border-b h-14 w-full max-w-7xl xl:rounded-b xl:border-x'>
+    <div
+      className={cn(
+        'flex items-center justify-between gap-x-4 bg-background py-2 border-b h-14 w-full max-w-7xl xl:rounded-b xl:border-x',
+        'pl-16 pr-4', // Mobile: extra left padding to clear floating SidebarTrigger
+        'md:px-4' // Desktop: normal padding (sidebar is in layout flow, not floating)
+      )}
+    >
       {/* Left: Sidebar Toggle Button */}
       <div className='flex-shrink-0'>
         <Button
@@ -1666,6 +1679,7 @@ export function ChatHeader({ onToggleSidebar }: { onToggleSidebar: () => void })
               compact
             />
             <ModelSettingsPopover />
+            <MCPIndicator provider={provider} />
           </>
         )}
       </div>
@@ -2021,7 +2035,7 @@ function ChatPage() {
       <ChatSidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
 
       <div className='flex-1 flex flex-col min-w-0 h-full items-center w-full'>
-        {!isInputCollapsed && <ChatHeader onToggleSidebar={toggleSidebar} />}
+        {!isInputCollapsed && <ChatHeader onToggleSidebar={toggleSidebar} provider={provider} />}
 
         {hasActiveChat && model ? (
           <>
@@ -2185,10 +2199,7 @@ function ChatPage() {
                 </Dialog>
 
                 <div className='mx-auto w-full max-w-[72rem] space-y-3 px-4 pb-3'>
-                  <PromptInput
-                    onSubmit={handlePromptSubmit}
-                    className='divide-y-0 border-0 bg-transparent shadow-none'
-                  >
+                  <PromptInput onSubmit={handlePromptSubmit} className='divide-y-0 border-0 bg-transparent shadow-none'>
                     <PromptInputBody className='rounded-xl border border-border/50 bg-background/70 shadow-sm backdrop-blur'>
                       <div className='flex items-end gap-3 px-3 py-3'>
                         <PromptInputTextarea

@@ -34,7 +34,8 @@ import {
   syncProjectFolder,
   watchersManager,
   getProjectFiles,
-  updateFileContent
+  updateFileContent,
+  suggestFilesForProject
 } from '@promptliano/services'
 import { createFileSearchService, createSuggestionsService } from '@promptliano/services'
 // Note: projectServiceV2 is now exported from @promptliano/services
@@ -704,78 +705,48 @@ export const projectRoutes = new OpenAPIHono()
     const prompt = body.userInput ?? body.prompt ?? ''
     const strategy = body.strategy ?? 'balanced'
     const includeScores = body.includeScores ?? true
+    const includeReasons = body.includeReasons ?? false // NEW: default false
     const userContext = body.userContext
+
+    // V2 new options
+    const lineCount = body.lineCount ?? 50
+    const directories = body.directories
+    const skipDirectorySelection = body.skipDirectorySelection ?? false
 
     const start = Date.now()
     await projectService.getById(projectId)
 
-    // Unified Suggestions Service
-    const sugg = createSuggestionsService()
-    const result = await sugg.suggestFilesForProject(projectId, String(prompt || ''), {
+    // Use Simplified AI-Based Suggestions Service (static import)
+    const result = await suggestFilesForProject(projectId, String(prompt || ''), {
       strategy: strategy as any,
       maxResults: limit,
       includeScores,
-      userContext
+      includeReasons, // NEW: pass includeReasons to service
+      userContext,
+      lineCount,
+      directories,
+      skipDirectorySelection
     })
 
-    const files = await getProjectFiles(projectId)
-    const byId = new Map((files || []).map((f: any) => [String(f.id), f]))
-
-    // Build relevance map from scores if available
-    const relevanceMap = new Map<string, number>()
-    if (Array.isArray(result.scores)) {
-      for (const s of result.scores as any[]) {
-        relevanceMap.set(String(s.fileId), Number(s.totalScore || 0))
-      }
-    }
-
-    // Optional semantic enrichment
-    let semanticScores = new Map<string, number>()
-    try {
-      const searchService = createFileSearchService()
-      const { results } = await searchService.search(projectId, {
-        query: String(prompt || ''),
-        searchType: 'semantic',
-        scoringMethod: 'relevance',
-        limit: Math.max(limit * 5, 25)
-      })
-      semanticScores = new Map(results.map((r: any) => [String((r.file as any).id), Number(r.score || 0)]))
-    } catch {}
-
-    const scoreDetails = new Map(
-      Array.isArray(result.scores) ? (result.scores as any[]).map((s) => [String(s.fileId), s]) : []
-    )
-    const aiSelectionMap = new Map(
-      Array.isArray(result.metadata.aiSelections)
-        ? result.metadata.aiSelections.map((selection) => [String(selection.id), selection])
-        : []
-    )
-
-    const suggestedFiles = (result.suggestions || []).map((id: string) => {
-      const fileId = String(id)
-      const file = byId.get(fileId)
-      const blendedScore = relevanceMap.get(fileId)
-      const semanticScore = semanticScores.get(fileId)
-      const detail: any = scoreDetails.get(fileId)
-      const selection = aiSelectionMap.get(fileId)
-      const relevance =
-        typeof blendedScore === 'number' ? Math.max(0, Math.min(1, blendedScore)) : (semanticScore ?? 0.9)
-      const aiReasons = Array.isArray(detail?.aiReasons) ? detail.aiReasons : selection?.reasons
-      const joinedReasons = aiReasons && aiReasons.length > 0 ? aiReasons.join(', ') : undefined
-      const reason = joinedReasons ? `AI reranker: ${joinedReasons}` : 'Relevance scoring match'
-      const aiConfidenceCandidate =
-        typeof detail?.aiConfidence === 'number' ? detail.aiConfidence : selection?.confidence
-      const aiConfidence =
-        typeof aiConfidenceCandidate === 'number' ? Math.max(0, Math.min(1, aiConfidenceCandidate)) : undefined
-      return {
-        path: file?.path || fileId,
-        relevance,
-        reason,
-        fileType: (file?.extension as string) || '',
-        aiConfidence,
-        aiReasons: aiReasons && aiReasons.length > 0 ? [...aiReasons] : undefined
-      }
-    })
+    // V2 response mapping - much simpler!
+    // Convert V2 suggestedFiles to response format with backward compat
+    const suggestedFiles = result.suggestedFiles.map((file) => ({
+      path: file.path,
+      relevance: file.relevance,
+      // Only include reasons if they were requested (saves tokens)
+      ...(includeReasons && file.reasons.length > 0
+        ? {
+            reason: file.reasons.join(', '), // V1 compat: join reasons
+            reasons: file.reasons, // V2 format
+            aiReasons: file.reasons // V1 compat
+          }
+        : {}),
+      fileType: file.fileType,
+      aiConfidence: file.confidence, // V1 compat
+      confidence: file.confidence, // V2 format
+      lineCount: file.lineCount,
+      totalLines: file.totalLines
+    }))
 
     const payload: z.infer<typeof ProjectSuggestFilesResponseSchema> = {
       success: true,
@@ -787,7 +758,15 @@ export const projectRoutes = new OpenAPIHono()
         tokensSaved: result.metadata.tokensSaved,
         processingTime: Date.now() - start,
         recommendedFileIds: result.suggestions?.map(String),
-        aiSelections: result.metadata.aiSelections ?? []
+        // V2 new metadata
+        selectedDirectories: result.metadata.selectedDirectories,
+        totalDirectories: result.metadata.totalDirectories,
+        filesFromDirectories: result.metadata.filesFromDirectories,
+        lineCountPerFile: result.metadata.lineCountPerFile,
+        aiModel: result.metadata.aiModel,
+        directorySelectionTime: result.metadata.directorySelectionTime,
+        fileFetchTime: result.metadata.fileFetchTime,
+        suggestionTime: result.metadata.suggestionTime
       }
     }
 

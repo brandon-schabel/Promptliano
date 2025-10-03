@@ -386,6 +386,17 @@
                     },
                     "fileType": {
                       "type": "string"
+                    },
+                    "aiConfidence": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 1
+                    },
+                    "aiReasons": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
                     }
                   },
                   "required": [
@@ -399,13 +410,64 @@
               "totalFiles": {
                 "type": "number"
               },
+              "analyzedFiles": {
+                "type": "number"
+              },
+              "strategy": {
+                "type": "string",
+                "enum": [
+                  "fast",
+                  "balanced",
+                  "thorough"
+                ],
+                "description": "Preset strategy controlling scoring, AI usage, and performance"
+              },
+              "tokensSaved": {
+                "type": "number",
+                "minimum": 0
+              },
               "processingTime": {
                 "type": "number"
+              },
+              "recommendedFileIds": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "aiSelections": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "confidence": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 1
+                    },
+                    "reasons": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "confidence",
+                    "reasons"
+                  ]
+                }
               }
             },
             "required": [
               "suggestedFiles",
               "totalFiles",
+              "analyzedFiles",
+              "strategy",
               "processingTime"
             ]
           }
@@ -414,6 +476,52 @@
           "success",
           "data"
         ]
+      },
+      "SuggestFilesRequestBody": {
+        "type": "object",
+        "properties": {
+          "userInput": {
+            "type": "string",
+            "minLength": 1,
+            "example": "Implement authentication using JWT"
+          },
+          "prompt": {
+            "type": "string",
+            "minLength": 1,
+            "example": "Implement authentication using JWT",
+            "description": "Alias for userInput maintained for backward compatibility"
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 50,
+            "default": 25,
+            "example": 25,
+            "description": "Maximum number of files to return"
+          },
+          "strategy": {
+            "type": "string",
+            "enum": [
+              "fast",
+              "balanced",
+              "thorough"
+            ],
+            "default": "balanced",
+            "description": "Preset strategy controlling scoring, AI usage, and performance"
+          },
+          "includeScores": {
+            "type": "boolean",
+            "default": true,
+            "example": true,
+            "description": "Return per-file relevance scores when available"
+          },
+          "userContext": {
+            "type": "string",
+            "minLength": 1,
+            "example": "Focus on MCP transport tools and remove unused prompts",
+            "description": "Additional context used to bias relevance scoring"
+          }
+        }
       },
       "Ticket": {
         "type": "object",
@@ -1701,66 +1809,6 @@
           "data"
         ]
       },
-      "AiChatStreamRequest": {
-        "type": "object",
-        "properties": {
-          "chatId": {
-            "type": "integer",
-            "exclusiveMinimum": 0
-          },
-          "userMessage": {
-            "type": "string",
-            "minLength": 1
-          },
-          "systemMessage": {
-            "type": "string"
-          },
-          "tempId": {
-            "type": "string"
-          },
-          "enableChatAutoNaming": {
-            "type": "boolean",
-            "default": false
-          },
-          "options": {
-            "type": "object",
-            "properties": {
-              "provider": {
-                "type": "string"
-              },
-              "model": {
-                "type": "string"
-              },
-              "temperature": {
-                "type": "number",
-                "minimum": 0,
-                "maximum": 2
-              },
-              "maxTokens": {
-                "type": "integer",
-                "exclusiveMinimum": 0
-              },
-              "topP": {
-                "type": "number",
-                "minimum": 0,
-                "maximum": 1
-              },
-              "stream": {
-                "type": "boolean",
-                "default": true
-              }
-            },
-            "required": [
-              "provider",
-              "model"
-            ]
-          }
-        },
-        "required": [
-          "chatId",
-          "userMessage"
-        ]
-      },
       "ForkChatBody": {
         "type": "object",
         "properties": {
@@ -1930,6 +1978,118 @@
                   "$ref": "#/components/schemas/Prompt"
                 },
                 "description": "Array of suggested prompts ordered by relevance (most relevant first)"
+              },
+              "debug": {
+                "type": "object",
+                "properties": {
+                  "scores": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "promptId": {
+                          "type": "string"
+                        },
+                        "totalScore": {
+                          "type": "number"
+                        },
+                        "titleScore": {
+                          "type": "number"
+                        },
+                        "contentScore": {
+                          "type": "number"
+                        },
+                        "tagScore": {
+                          "type": "number"
+                        },
+                        "recencyScore": {
+                          "type": "number"
+                        },
+                        "usageScore": {
+                          "type": "number"
+                        },
+                        "aiConfidence": {
+                          "type": "number",
+                          "minimum": 0,
+                          "maximum": 1
+                        },
+                        "aiReasons": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "required": [
+                        "promptId",
+                        "totalScore",
+                        "titleScore",
+                        "contentScore",
+                        "tagScore",
+                        "recencyScore"
+                      ]
+                    }
+                  },
+                  "metadata": {
+                    "type": "object",
+                    "properties": {
+                      "totalPrompts": {
+                        "type": "number"
+                      },
+                      "analyzedPrompts": {
+                        "type": "number"
+                      },
+                      "strategy": {
+                        "type": "string",
+                        "enum": [
+                          "fast",
+                          "balanced",
+                          "thorough"
+                        ]
+                      },
+                      "processingTime": {
+                        "type": "number"
+                      },
+                      "tokensSaved": {
+                        "type": "number"
+                      },
+                      "aiSelections": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "confidence": {
+                              "type": "number",
+                              "minimum": 0,
+                              "maximum": 1
+                            },
+                            "reasons": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "confidence",
+                            "reasons"
+                          ]
+                        }
+                      }
+                    },
+                    "required": [
+                      "totalPrompts",
+                      "analyzedPrompts",
+                      "strategy",
+                      "processingTime",
+                      "tokensSaved"
+                    ]
+                  }
+                }
               }
             },
             "required": [
@@ -1958,6 +2118,26 @@
             "default": 5,
             "example": 5,
             "description": "Maximum number of prompts to suggest (default: 5, max: 10)"
+          },
+          "strategy": {
+            "type": "string",
+            "enum": [
+              "fast",
+              "balanced",
+              "thorough"
+            ],
+            "example": "balanced",
+            "description": "Suggestion strategy controlling AI rerank and candidate breadth"
+          },
+          "includeScores": {
+            "type": "boolean",
+            "example": false,
+            "description": "When true, include debug scores (server may ignore)"
+          },
+          "userContext": {
+            "type": "string",
+            "example": "working on routes/services layer",
+            "description": "Optional extra context to improve relevance"
           }
         },
         "required": [
@@ -3466,58 +3646,145 @@
           "apiKey"
         ]
       },
-      "AiSdkChatRequest": {
+      "ChatMcpSessionResponse": {
         "type": "object",
         "properties": {
-          "id": {
-            "type": "string",
-            "description": "Chat/session identifier (maps to chatId)"
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
           },
-          "messages": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "role": {
-                  "type": "string",
-                  "enum": [
-                    "user",
-                    "assistant",
-                    "system"
-                  ]
-                },
-                "content": {
-                  "type": "string"
-                }
+          "data": {
+            "type": "object",
+            "properties": {
+              "serverId": {
+                "type": "number"
               },
-              "required": [
-                "role",
-                "content"
-              ]
+              "tools": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "description": {
+                      "type": "string"
+                    },
+                    "parameters": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "name": {
+                            "type": "string"
+                          },
+                          "type": {
+                            "type": "string"
+                          },
+                          "description": {
+                            "type": "string"
+                          },
+                          "required": {
+                            "type": "boolean"
+                          },
+                          "enum": {
+                            "type": "array",
+                            "items": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "number"
+                                }
+                              ]
+                            }
+                          },
+                          "default": {}
+                        },
+                        "required": [
+                          "name"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name"
+                  ]
+                }
+              }
             },
-            "minItems": 1
-          },
-          "provider": {
-            "type": "string",
-            "default": "openai"
-          },
-          "model": {
-            "type": "string"
-          },
-          "temperature": {
-            "type": "number"
-          },
-          "maxTokens": {
-            "type": "integer"
-          },
-          "topP": {
-            "type": "number"
+            "required": [
+              "serverId",
+              "tools"
+            ]
           }
         },
         "required": [
-          "messages",
-          "model"
+          "success",
+          "data"
         ]
+      },
+      "ChatMcpToolInvokeResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "type": "object",
+            "properties": {
+              "toolId": {
+                "type": "string"
+              },
+              "content": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "raw": {}
+            },
+            "required": [
+              "toolId",
+              "content"
+            ]
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ]
+      },
+      "ChatMcpToolInvokeRequest": {
+        "type": "object",
+        "properties": {
+          "toolId": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string",
+            "minLength": 1
+          },
+          "arguments": {
+            "type": "object",
+            "additionalProperties": {}
+          },
+          "limit": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 50
+          }
+        }
       },
       "ProvidersListResponse": {
         "type": "object",
@@ -3544,6 +3811,12 @@
                 },
                 "baseUrl": {
                   "type": "string"
+                },
+                "configured": {
+                  "type": "boolean"
+                },
+                "requiresConfiguration": {
+                  "type": "boolean"
                 }
               },
               "required": [
@@ -5647,13 +5920,13 @@
             "type": "integer",
             "format": "int64",
             "description": "Unix timestamp in milliseconds, between 1970 and 2050. Input can be string, number, or Date.",
-            "example": 1757819441667
+            "example": 1759279306739
           },
           "updated": {
             "type": "integer",
             "format": "int64",
             "description": "Unix timestamp in milliseconds, between 1970 and 2050. Input can be string, number, or Date.",
-            "example": 1757819441667
+            "example": 1759279306739
           }
         },
         "required": [
@@ -5796,13 +6069,13 @@
             "type": "integer",
             "format": "int64",
             "description": "Unix timestamp in milliseconds, between 1970 and 2050. Input can be string, number, or Date.",
-            "example": 1757819441667
+            "example": 1759279306739
           },
           "completedAt": {
             "type": "integer",
             "format": "int64",
             "description": "Unix timestamp in milliseconds, between 1970 and 2050. Input can be string, number, or Date.",
-            "example": 1757819441667
+            "example": 1759279306739
           }
         },
         "required": [
@@ -5902,6 +6175,402 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/MCPResource"
+            }
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ]
+      },
+      "MCPToolExecution": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "toolName": {
+            "type": "string"
+          },
+          "projectId": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "userId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "sessionId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "startedAt": {
+            "type": "integer",
+            "format": "int64",
+            "description": "ID or Timestamp in unix timestamp (milliseconds)",
+            "example": 1716537600000
+          },
+          "completedAt": {
+            "type": "integer",
+            "format": "int64",
+            "description": "ID or Timestamp in unix timestamp (milliseconds)",
+            "example": 1716537600000
+          },
+          "durationMs": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "success",
+              "error",
+              "timeout",
+              "running"
+            ]
+          },
+          "errorMessage": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "errorCode": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "inputParams": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "outputSize": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "metadata": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "toolName",
+          "startedAt",
+          "status"
+        ]
+      },
+      "MCPExecutionListResponse": {
+        "type": "object",
+        "properties": {
+          "executions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MCPToolExecution"
+            }
+          },
+          "total": {
+            "type": "number"
+          },
+          "page": {
+            "type": "number"
+          },
+          "pageSize": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "executions",
+          "total",
+          "page",
+          "pageSize"
+        ]
+      },
+      "MCPExecutionListSuccessResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "$ref": "#/components/schemas/MCPExecutionListResponse"
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ]
+      },
+      "MCPToolSummary": {
+        "type": "object",
+        "properties": {
+          "toolName": {
+            "type": "string"
+          },
+          "totalExecutions": {
+            "type": "number"
+          },
+          "successRate": {
+            "type": "number"
+          },
+          "errorRate": {
+            "type": "number"
+          },
+          "timeoutRate": {
+            "type": "number"
+          },
+          "avgDurationMs": {
+            "type": "number"
+          },
+          "minDurationMs": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "maxDurationMs": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "totalOutputSize": {
+            "type": "number"
+          },
+          "lastExecutedAt": {
+            "type": "integer",
+            "format": "int64",
+            "description": "ID or Timestamp in unix timestamp (milliseconds)",
+            "example": 1716537600000
+          }
+        },
+        "required": [
+          "toolName",
+          "totalExecutions",
+          "successRate",
+          "errorRate",
+          "timeoutRate",
+          "avgDurationMs",
+          "minDurationMs",
+          "maxDurationMs",
+          "totalOutputSize",
+          "lastExecutedAt"
+        ]
+      },
+      "MCPAnalyticsOverview": {
+        "type": "object",
+        "properties": {
+          "totalExecutions": {
+            "type": "number"
+          },
+          "uniqueTools": {
+            "type": "number"
+          },
+          "overallSuccessRate": {
+            "type": "number"
+          },
+          "avgExecutionTime": {
+            "type": "number"
+          },
+          "topTools": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MCPToolSummary"
+            }
+          },
+          "recentErrors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MCPToolExecution"
+            }
+          },
+          "executionTrend": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "timestamp": {
+                  "type": "integer",
+                  "format": "int64",
+                  "description": "ID or Timestamp in unix timestamp (milliseconds)",
+                  "example": 1716537600000
+                },
+                "count": {
+                  "type": "number"
+                },
+                "avgDuration": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "timestamp",
+                "count",
+                "avgDuration"
+              ]
+            }
+          }
+        },
+        "required": [
+          "totalExecutions",
+          "uniqueTools",
+          "overallSuccessRate",
+          "avgExecutionTime",
+          "topTools",
+          "recentErrors",
+          "executionTrend"
+        ]
+      },
+      "MCPAnalyticsOverviewSuccessResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "$ref": "#/components/schemas/MCPAnalyticsOverview"
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ]
+      },
+      "MCPAnalyticsStatisticsSuccessResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MCPToolSummary"
+            }
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ]
+      },
+      "MCPExecutionTimeline": {
+        "type": "object",
+        "properties": {
+          "timestamp": {
+            "type": "integer",
+            "format": "int64",
+            "description": "ID or Timestamp in unix timestamp (milliseconds)",
+            "example": 1716537600000
+          },
+          "toolCounts": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "number"
+            }
+          },
+          "totalCount": {
+            "type": "number"
+          },
+          "avgDuration": {
+            "type": "number"
+          },
+          "successCount": {
+            "type": "number"
+          },
+          "errorCount": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "timestamp",
+          "toolCounts",
+          "totalCount",
+          "avgDuration",
+          "successCount",
+          "errorCount"
+        ]
+      },
+      "MCPExecutionTimelineSuccessResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MCPExecutionTimeline"
+            }
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ]
+      },
+      "MCPErrorPattern": {
+        "type": "object",
+        "properties": {
+          "pattern": {
+            "type": "object",
+            "additionalProperties": {}
+          },
+          "toolName": {
+            "type": "string"
+          },
+          "count": {
+            "type": "number"
+          },
+          "lastSeen": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "pattern",
+          "count",
+          "lastSeen"
+        ]
+      },
+      "MCPErrorPatternsSuccessResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MCPErrorPattern"
             }
           }
         },
@@ -6181,6 +6850,90 @@
           },
           "data": {
             "$ref": "#/components/schemas/ProjectConfigData"
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ]
+      },
+      "ActiveMCPToolsResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "type": "object",
+            "properties": {
+              "mcps": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "type": "string",
+                      "enum": [
+                        "local",
+                        "remote"
+                      ]
+                    },
+                    "enabled": {
+                      "type": "boolean"
+                    },
+                    "toolCount": {
+                      "type": "number"
+                    },
+                    "tools": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "name": {
+                            "type": "string"
+                          },
+                          "description": {
+                            "type": "string"
+                          },
+                          "category": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "name"
+                        ]
+                      }
+                    },
+                    "conditionalOn": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "name",
+                    "type",
+                    "enabled",
+                    "toolCount",
+                    "tools"
+                  ]
+                }
+              },
+              "totalTools": {
+                "type": "number"
+              },
+              "provider": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "mcps",
+              "totalTools"
+            ]
           }
         },
         "required": [
@@ -10791,25 +11544,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "prompt": {
-                    "type": "string",
-                    "minLength": 1,
-                    "description": "The prompt to analyze for file suggestions"
-                  },
-                  "userInput": {
-                    "type": "string",
-                    "minLength": 1,
-                    "description": "Alias for prompt for backward compatibility"
-                  },
-                  "limit": {
-                    "type": "integer",
-                    "exclusiveMinimum": 0,
-                    "default": 10,
-                    "description": "Maximum number of files to suggest"
-                  }
-                }
+                "$ref": "#/components/schemas/SuggestFilesRequestBody"
               }
             }
           }
@@ -13058,79 +13793,6 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/MessageListResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Resource Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/ai/chat/legacy": {
-      "post": {
-        "tags": [
-          "AI"
-        ],
-        "summary": "Chat completion (streaming, chat-associated)",
-        "description": "Continues a chat session identified by chatId, streams response using Vercel AI SDK via UnifiedProviderService.",
-        "requestBody": {
-          "required": true,
-          "description": "Chat ID, user message, provider, model, and options for the streaming AI chat completion.",
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AiChatStreamRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successfully initiated AI response stream.",
-            "content": {
-              "text/event-stream": {
-                "schema": {
-                  "type": "string",
-                  "description": "Stream of response tokens (Vercel AI SDK format)"
                 }
               }
             }
@@ -19736,36 +20398,57 @@
         }
       }
     },
-    "/api/ai/chat": {
-      "post": {
+    "/api/ai/chat/{chatId}/mcp-session": {
+      "get": {
         "tags": [
           "AI"
         ],
-        "summary": "Chat completion (Vercel AI SDK compatible, streaming)",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AiSdkChatRequest"
-              }
-            }
+        "summary": "Get MCP session metadata for a chat",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^\\d+$",
+              "example": "42"
+            },
+            "required": true,
+            "name": "chatId",
+            "in": "path"
           }
-        },
+        ],
         "responses": {
           "200": {
-            "description": "Successfully initiated AI response stream.",
+            "description": "Success",
             "content": {
-              "text/event-stream": {
+              "application/json": {
                 "schema": {
-                  "type": "string",
-                  "description": "Stream of response tokens (Vercel AI SDK format)"
+                  "$ref": "#/components/schemas/ChatMcpSessionResponse"
                 }
               }
             }
           },
           "400": {
-            "description": "Bad request - invalid chat request parameters.",
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
             "content": {
               "application/json": {
                 "schema": {
@@ -19775,12 +20458,217 @@
             }
           },
           "500": {
-            "description": "Internal server error.",
+            "description": "Internal Server Error",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiErrorResponse"
                 }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ai/chat/{chatId}/mcp/tools/run": {
+      "post": {
+        "tags": [
+          "AI"
+        ],
+        "summary": "Invoke the default Promptliano MCP tool for a chat turn",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^\\d+$",
+              "example": "42"
+            },
+            "required": true,
+            "name": "chatId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChatMcpToolInvokeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatMcpToolInvokeResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ai/chat/sdk": {
+      "post": {
+        "tags": [
+          "AI"
+        ],
+        "summary": "Stream chat completions via AI SDK",
+        "requestBody": {
+          "required": true,
+          "description": "Chat request payload for AI SDK streaming",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "provider": {
+                    "type": "string"
+                  },
+                  "model": {
+                    "type": "string"
+                  },
+                  "temperature": {
+                    "type": "number"
+                  },
+                  "maxTokens": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0
+                  },
+                  "topP": {
+                    "type": "number"
+                  },
+                  "frequencyPenalty": {
+                    "type": "number"
+                  },
+                  "presencePenalty": {
+                    "type": "number"
+                  },
+                  "responseFormat": {},
+                  "toolsEnabled": {
+                    "type": "boolean"
+                  },
+                  "toolChoice": {
+                    "type": "string",
+                    "enum": [
+                      "auto",
+                      "none"
+                    ]
+                  },
+                  "maxSteps": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0
+                  },
+                  "forceFinalText": {
+                    "type": "boolean"
+                  },
+                  "parallelToolCalls": {
+                    "type": "boolean"
+                  },
+                  "enableChatAutoNaming": {
+                    "type": "boolean"
+                  },
+                  "messages": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "role": {
+                          "type": "string",
+                          "enum": [
+                            "user",
+                            "assistant",
+                            "system"
+                          ]
+                        },
+                        "content": {},
+                        "parts": {
+                          "type": "array",
+                          "items": {}
+                        },
+                        "createdAt": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "role"
+                      ]
+                    },
+                    "minItems": 1
+                  },
+                  "maxMessagesToInclude": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100
+                  },
+                  "includeSystemPrompt": {
+                    "type": "boolean",
+                    "default": true
+                  }
+                },
+                "required": [
+                  "messages"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "UI message event stream",
+            "content": {
+              "text/event-stream": {
+                "schema": {}
               }
             }
           }
@@ -23718,1111 +24606,143 @@
         }
       }
     },
-    "/api/mcp/builtin-tools": {
-      "get": {
-        "tags": [
-          "MCP",
-          "Tools"
-        ],
-        "summary": "Get list of built-in MCP tools",
-        "responses": {
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        true
-                      ]
-                    },
-                    "data": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "name": {
-                            "type": "string"
-                          },
-                          "description": {
-                            "type": "string"
-                          },
-                          "category": {
-                            "type": "string"
-                          }
-                        },
-                        "required": [
-                          "name",
-                          "description",
-                          "category"
-                        ]
-                      }
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "data"
-                  ]
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Resource Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/mcp/servers/{serverId}/start": {
-      "post": {
-        "tags": [
-          "MCP",
-          "Execution"
-        ],
-        "summary": "Start an MCP server",
-        "parameters": [
-          {
-            "schema": {
-              "type": "string"
-            },
-            "required": true,
-            "name": "serverId",
-            "in": "path"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OperationSuccessResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Resource Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/mcp/servers/{serverId}/stop": {
-      "post": {
-        "tags": [
-          "MCP",
-          "Execution"
-        ],
-        "summary": "Stop an MCP server",
-        "parameters": [
-          {
-            "schema": {
-              "type": "string"
-            },
-            "required": true,
-            "name": "serverId",
-            "in": "path"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OperationSuccessResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Resource Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/mcp/analytics": {
+    "/api/projects/{id}/mcp/analytics/executions": {
       "get": {
         "tags": [
           "MCP",
           "Analytics"
         ],
-        "summary": "Get MCP usage analytics",
+        "summary": "List MCP tool executions for a project",
         "parameters": [
           {
             "schema": {
-              "type": "string"
+              "type": "integer",
+              "format": "int64",
+              "example": 1716537600000,
+              "description": "Entity ID - coerces strings to positive integers for URL parameters"
+            },
+            "required": true,
+            "description": "Entity ID - coerces strings to positive integers for URL parameters",
+            "name": "id",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "Filter executions by tool name"
             },
             "required": false,
+            "description": "Filter executions by tool name",
+            "name": "toolName",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "success",
+                "error",
+                "timeout",
+                "running"
+              ],
+              "description": "Filter by execution status (success, error, timeout)"
+            },
+            "required": false,
+            "description": "Filter by execution status (success, error, timeout)",
+            "name": "status",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "Filter by session identifier"
+            },
+            "required": false,
+            "description": "Filter by session identifier",
+            "name": "sessionId",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^\\d+$",
+              "description": "Unix timestamp (ms) for range start"
+            },
+            "required": false,
+            "description": "Unix timestamp (ms) for range start",
             "name": "startDate",
             "in": "query"
           },
           {
             "schema": {
-              "type": "string"
+              "type": "string",
+              "pattern": "^\\d+$",
+              "description": "Unix timestamp (ms) for range end"
             },
             "required": false,
+            "description": "Unix timestamp (ms) for range end",
             "name": "endDate",
             "in": "query"
           },
           {
             "schema": {
-              "type": "string"
-            },
-            "required": false,
-            "name": "serverId",
-            "in": "query"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        true
-                      ]
-                    },
-                    "data": {
-                      "type": "object",
-                      "properties": {
-                        "period": {
-                          "type": "object",
-                          "properties": {
-                            "start": {
-                              "type": "string"
-                            },
-                            "end": {
-                              "type": "string"
-                            }
-                          },
-                          "required": [
-                            "start",
-                            "end"
-                          ]
-                        },
-                        "servers": {
-                          "type": "array",
-                          "items": {
-                            "type": "object",
-                            "properties": {
-                              "serverId": {
-                                "type": "string"
-                              },
-                              "totalRequests": {
-                                "type": "number"
-                              },
-                              "successRate": {
-                                "type": "number"
-                              },
-                              "avgResponseTime": {
-                                "type": "number"
-                              }
-                            },
-                            "required": [
-                              "serverId",
-                              "totalRequests",
-                              "successRate",
-                              "avgResponseTime"
-                            ]
-                          }
-                        },
-                        "tools": {
-                          "type": "array",
-                          "items": {
-                            "type": "object",
-                            "properties": {
-                              "name": {
-                                "type": "string"
-                              },
-                              "executions": {
-                                "type": "number"
-                              },
-                              "avgDuration": {
-                                "type": "number"
-                              }
-                            },
-                            "required": [
-                              "name",
-                              "executions",
-                              "avgDuration"
-                            ]
-                          }
-                        },
-                        "totalRequests": {
-                          "type": "number"
-                        },
-                        "totalErrors": {
-                          "type": "number"
-                        }
-                      },
-                      "required": [
-                        "period",
-                        "servers",
-                        "tools",
-                        "totalRequests",
-                        "totalErrors"
-                      ]
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "data"
-                  ]
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Resource Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/mcp/servers/{serverId}/stats": {
-      "get": {
-        "tags": [
-          "MCP",
-          "Analytics"
-        ],
-        "summary": "Get statistics for a specific MCP server",
-        "parameters": [
-          {
-            "schema": {
-              "type": "string"
-            },
-            "required": true,
-            "name": "serverId",
-            "in": "path"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        true
-                      ]
-                    },
-                    "data": {
-                      "type": "object",
-                      "properties": {
-                        "serverId": {
-                          "type": "string"
-                        },
-                        "status": {
-                          "type": "string",
-                          "enum": [
-                            "connected",
-                            "disconnected",
-                            "error"
-                          ]
-                        },
-                        "uptime": {
-                          "type": "number"
-                        },
-                        "totalRequests": {
-                          "type": "number"
-                        },
-                        "successRate": {
-                          "type": "number"
-                        },
-                        "avgResponseTime": {
-                          "type": "number"
-                        },
-                        "lastActivity": {
-                          "type": "string"
-                        },
-                        "capabilities": {}
-                      },
-                      "required": [
-                        "serverId",
-                        "status",
-                        "uptime",
-                        "totalRequests",
-                        "successRate",
-                        "avgResponseTime",
-                        "lastActivity"
-                      ]
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "data"
-                  ]
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Resource Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/mcp/tools/stats": {
-      "get": {
-        "tags": [
-          "MCP",
-          "Analytics"
-        ],
-        "summary": "Get tool usage statistics",
-        "parameters": [
-          {
-            "schema": {
               "type": "string",
-              "enum": [
-                "hour",
-                "day",
-                "week",
-                "month"
-              ],
-              "default": "day"
+              "pattern": "^\\d+$",
+              "description": "Maximum number of records (default 100)"
             },
             "required": false,
-            "name": "period",
-            "in": "query"
-          },
-          {
-            "schema": {
-              "type": "integer",
-              "exclusiveMinimum": 0,
-              "default": 10
-            },
-            "required": false,
+            "description": "Maximum number of records (default 100)",
             "name": "limit",
             "in": "query"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        true
-                      ]
-                    },
-                    "data": {
-                      "type": "object",
-                      "properties": {
-                        "period": {
-                          "type": "string"
-                        },
-                        "topTools": {
-                          "type": "array",
-                          "items": {
-                            "type": "object",
-                            "properties": {
-                              "name": {
-                                "type": "string"
-                              },
-                              "count": {
-                                "type": "number"
-                              },
-                              "avgExecutionTime": {
-                                "type": "number"
-                              },
-                              "successRate": {
-                                "type": "number"
-                              }
-                            },
-                            "required": [
-                              "name",
-                              "count",
-                              "avgExecutionTime",
-                              "successRate"
-                            ]
-                          }
-                        },
-                        "totalExecutions": {
-                          "type": "number"
-                        },
-                        "totalErrors": {
-                          "type": "number"
-                        }
-                      },
-                      "required": [
-                        "period",
-                        "topTools",
-                        "totalExecutions",
-                        "totalErrors"
-                      ]
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "data"
-                  ]
-                }
-              }
-            }
           },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^\\d+$",
+              "description": "Pagination offset (default 0)"
+            },
+            "required": false,
+            "description": "Pagination offset (default 0)",
+            "name": "offset",
+            "in": "query"
           },
-          "404": {
-            "description": "Resource Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/mcp/resources/stats": {
-      "get": {
-        "tags": [
-          "MCP",
-          "Analytics"
-        ],
-        "summary": "Get resource access statistics",
-        "parameters": [
           {
             "schema": {
               "type": "string",
               "enum": [
-                "hour",
-                "day",
-                "week",
-                "month"
+                "startedAt",
+                "duration",
+                "toolName"
               ],
-              "default": "day"
+              "description": "Sort executions by field"
             },
             "required": false,
-            "name": "period",
-            "in": "query"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        true
-                      ]
-                    },
-                    "data": {
-                      "type": "object",
-                      "properties": {
-                        "period": {
-                          "type": "string"
-                        },
-                        "topResources": {
-                          "type": "array",
-                          "items": {
-                            "type": "object",
-                            "properties": {
-                              "uri": {
-                                "type": "string"
-                              },
-                              "accessCount": {
-                                "type": "number"
-                              },
-                              "avgResponseTime": {
-                                "type": "number"
-                              }
-                            },
-                            "required": [
-                              "uri",
-                              "accessCount",
-                              "avgResponseTime"
-                            ]
-                          }
-                        },
-                        "totalAccesses": {
-                          "type": "number"
-                        }
-                      },
-                      "required": [
-                        "period",
-                        "topResources",
-                        "totalAccesses"
-                      ]
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "data"
-                  ]
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Resource Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/mcp/analytics/report": {
-      "post": {
-        "tags": [
-          "MCP",
-          "Analytics"
-        ],
-        "summary": "Generate MCP usage report",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "startDate": {
-                    "type": "string"
-                  },
-                  "endDate": {
-                    "type": "string"
-                  },
-                  "format": {
-                    "type": "string",
-                    "enum": [
-                      "json",
-                      "csv",
-                      "pdf"
-                    ],
-                    "default": "json"
-                  },
-                  "includeServerDetails": {
-                    "type": "boolean",
-                    "default": true
-                  },
-                  "includeToolDetails": {
-                    "type": "boolean",
-                    "default": true
-                  }
-                },
-                "required": [
-                  "startDate",
-                  "endDate"
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        true
-                      ]
-                    },
-                    "data": {
-                      "type": "object",
-                      "properties": {
-                        "reportId": {
-                          "type": "string"
-                        },
-                        "generatedAt": {
-                          "type": "string"
-                        },
-                        "period": {
-                          "type": "object",
-                          "properties": {
-                            "start": {
-                              "type": "string"
-                            },
-                            "end": {
-                              "type": "string"
-                            }
-                          },
-                          "required": [
-                            "start",
-                            "end"
-                          ]
-                        },
-                        "format": {
-                          "type": "string"
-                        },
-                        "content": {},
-                        "downloadUrl": {
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "reportId",
-                        "generatedAt",
-                        "period",
-                        "format"
-                      ]
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "data"
-                  ]
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Resource Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/mcp/sessions/stats": {
-      "get": {
-        "tags": [
-          "MCP",
-          "Analytics"
-        ],
-        "summary": "Get MCP session statistics",
-        "responses": {
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        true
-                      ]
-                    },
-                    "data": {
-                      "type": "object",
-                      "properties": {
-                        "activeSessions": {
-                          "type": "number"
-                        },
-                        "totalSessionsToday": {
-                          "type": "number"
-                        },
-                        "avgSessionDuration": {
-                          "type": "number"
-                        },
-                        "peakConcurrentSessions": {
-                          "type": "number"
-                        },
-                        "sessionsByServer": {
-                          "type": "object",
-                          "additionalProperties": {
-                            "type": "number"
-                          }
-                        }
-                      },
-                      "required": [
-                        "activeSessions",
-                        "totalSessionsToday",
-                        "avgSessionDuration",
-                        "peakConcurrentSessions",
-                        "sessionsByServer"
-                      ]
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "data"
-                  ]
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Resource Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/mcp/analytics/performance": {
-      "get": {
-        "tags": [
-          "MCP",
-          "Analytics"
-        ],
-        "summary": "Get MCP performance metrics",
-        "parameters": [
-          {
-            "schema": {
-              "type": "string",
-              "enum": [
-                "latency",
-                "throughput",
-                "error_rate"
-              ]
-            },
-            "required": false,
-            "name": "metricType",
+            "description": "Sort executions by field",
+            "name": "sortBy",
             "in": "query"
           },
           {
             "schema": {
               "type": "string",
               "enum": [
-                "avg",
-                "min",
-                "max",
-                "p50",
-                "p95",
-                "p99"
+                "asc",
+                "desc"
               ],
-              "default": "avg"
+              "description": "Sort order"
             },
             "required": false,
-            "name": "aggregation",
+            "description": "Sort order",
+            "name": "sortOrder",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "Alias for toolName supporting comma-separated values"
+            },
+            "required": false,
+            "description": "Alias for toolName supporting comma-separated values",
+            "name": "toolNames",
             "in": "query"
           }
         ],
@@ -24832,78 +24752,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        true
-                      ]
-                    },
-                    "data": {
-                      "type": "object",
-                      "properties": {
-                        "metrics": {
-                          "type": "array",
-                          "items": {
-                            "type": "object",
-                            "properties": {
-                              "timestamp": {
-                                "type": "string"
-                              },
-                              "value": {
-                                "type": "number"
-                              },
-                              "type": {
-                                "type": "string"
-                              }
-                            },
-                            "required": [
-                              "timestamp",
-                              "value",
-                              "type"
-                            ]
-                          }
-                        },
-                        "aggregation": {
-                          "type": "string"
-                        },
-                        "summary": {
-                          "type": "object",
-                          "properties": {
-                            "current": {
-                              "type": "number"
-                            },
-                            "trend": {
-                              "type": "string",
-                              "enum": [
-                                "up",
-                                "down",
-                                "stable"
-                              ]
-                            },
-                            "changePercent": {
-                              "type": "number"
-                            }
-                          },
-                          "required": [
-                            "current",
-                            "trend",
-                            "changePercent"
-                          ]
-                        }
-                      },
-                      "required": [
-                        "metrics",
-                        "aggregation",
-                        "summary"
-                      ]
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "data"
-                  ]
+                  "$ref": "#/components/schemas/MCPExecutionListSuccessResponse"
                 }
               }
             }
@@ -24955,16 +24804,19 @@
       "get": {
         "tags": [
           "MCP",
-          "Analytics",
-          "Projects"
+          "Analytics"
         ],
-        "summary": "Get MCP analytics overview for a project",
+        "summary": "Get aggregated MCP analytics overview for a project",
         "parameters": [
           {
             "schema": {
-              "type": "string"
+              "type": "integer",
+              "format": "int64",
+              "example": 1716537600000,
+              "description": "Entity ID - coerces strings to positive integers for URL parameters"
             },
             "required": true,
+            "description": "Entity ID - coerces strings to positive integers for URL parameters",
             "name": "id",
             "in": "path"
           },
@@ -24976,18 +24828,44 @@
                 "day",
                 "week",
                 "month"
-              ]
+              ],
+              "description": "Time window to aggregate analytics over"
             },
             "required": false,
+            "description": "Time window to aggregate analytics over",
             "name": "period",
             "in": "query"
           },
           {
             "schema": {
-              "type": "string"
+              "type": "string",
+              "description": "Comma-separated list of MCP tool names to filter"
             },
             "required": false,
+            "description": "Comma-separated list of MCP tool names to filter",
             "name": "toolNames",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^\\d+$",
+              "description": "Unix timestamp (ms) for range start"
+            },
+            "required": false,
+            "description": "Unix timestamp (ms) for range start",
+            "name": "startDate",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^\\d+$",
+              "description": "Unix timestamp (ms) for range end"
+            },
+            "required": false,
+            "description": "Unix timestamp (ms) for range end",
+            "name": "endDate",
             "in": "query"
           }
         ],
@@ -24997,57 +24875,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        true
-                      ]
-                    },
-                    "data": {
-                      "type": "object",
-                      "properties": {
-                        "totalExecutions": {
-                          "type": "number"
-                        },
-                        "uniqueTools": {
-                          "type": "number"
-                        },
-                        "overallSuccessRate": {
-                          "type": "number"
-                        },
-                        "avgExecutionTime": {
-                          "type": "number"
-                        },
-                        "topTools": {
-                          "type": "array",
-                          "items": {}
-                        },
-                        "recentErrors": {
-                          "type": "array",
-                          "items": {}
-                        },
-                        "executionTrend": {
-                          "type": "array",
-                          "items": {}
-                        }
-                      },
-                      "required": [
-                        "totalExecutions",
-                        "uniqueTools",
-                        "overallSuccessRate",
-                        "avgExecutionTime",
-                        "topTools",
-                        "recentErrors",
-                        "executionTrend"
-                      ]
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "data"
-                  ]
+                  "$ref": "#/components/schemas/MCPAnalyticsOverviewSuccessResponse"
                 }
               }
             }
@@ -25099,16 +24927,19 @@
       "get": {
         "tags": [
           "MCP",
-          "Analytics",
-          "Projects"
+          "Analytics"
         ],
         "summary": "Get MCP tool statistics for a project",
         "parameters": [
           {
             "schema": {
-              "type": "string"
+              "type": "integer",
+              "format": "int64",
+              "example": 1716537600000,
+              "description": "Entity ID - coerces strings to positive integers for URL parameters"
             },
             "required": true,
+            "description": "Entity ID - coerces strings to positive integers for URL parameters",
             "name": "id",
             "in": "path"
           },
@@ -25120,18 +24951,44 @@
                 "day",
                 "week",
                 "month"
-              ]
+              ],
+              "description": "Time window to aggregate analytics over"
             },
             "required": false,
+            "description": "Time window to aggregate analytics over",
             "name": "period",
             "in": "query"
           },
           {
             "schema": {
-              "type": "string"
+              "type": "string",
+              "description": "Comma-separated list of MCP tool names to filter"
             },
             "required": false,
+            "description": "Comma-separated list of MCP tool names to filter",
             "name": "toolNames",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^\\d+$",
+              "description": "Unix timestamp (ms) for range start"
+            },
+            "required": false,
+            "description": "Unix timestamp (ms) for range start",
+            "name": "startDate",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^\\d+$",
+              "description": "Unix timestamp (ms) for range end"
+            },
+            "required": false,
+            "description": "Unix timestamp (ms) for range end",
+            "name": "endDate",
             "in": "query"
           }
         ],
@@ -25141,23 +24998,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        true
-                      ]
-                    },
-                    "data": {
-                      "type": "array",
-                      "items": {}
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "data"
-                  ]
+                  "$ref": "#/components/schemas/MCPAnalyticsStatisticsSuccessResponse"
                 }
               }
             }
@@ -25209,16 +25050,19 @@
       "get": {
         "tags": [
           "MCP",
-          "Analytics",
-          "Projects"
+          "Analytics"
         ],
         "summary": "Get MCP execution timeline for a project",
         "parameters": [
           {
             "schema": {
-              "type": "string"
+              "type": "integer",
+              "format": "int64",
+              "example": 1716537600000,
+              "description": "Entity ID - coerces strings to positive integers for URL parameters"
             },
             "required": true,
+            "description": "Entity ID - coerces strings to positive integers for URL parameters",
             "name": "id",
             "in": "path"
           },
@@ -25230,18 +25074,44 @@
                 "day",
                 "week",
                 "month"
-              ]
+              ],
+              "description": "Time window to aggregate analytics over"
             },
             "required": false,
+            "description": "Time window to aggregate analytics over",
             "name": "period",
             "in": "query"
           },
           {
             "schema": {
-              "type": "string"
+              "type": "string",
+              "description": "Comma-separated list of MCP tool names to filter"
             },
             "required": false,
+            "description": "Comma-separated list of MCP tool names to filter",
             "name": "toolNames",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^\\d+$",
+              "description": "Unix timestamp (ms) for range start"
+            },
+            "required": false,
+            "description": "Unix timestamp (ms) for range start",
+            "name": "startDate",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^\\d+$",
+              "description": "Unix timestamp (ms) for range end"
+            },
+            "required": false,
+            "description": "Unix timestamp (ms) for range end",
+            "name": "endDate",
             "in": "query"
           }
         ],
@@ -25251,23 +25121,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        true
-                      ]
-                    },
-                    "data": {
-                      "type": "array",
-                      "items": {}
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "data"
-                  ]
+                  "$ref": "#/components/schemas/MCPExecutionTimelineSuccessResponse"
                 }
               }
             }
@@ -25319,16 +25173,19 @@
       "get": {
         "tags": [
           "MCP",
-          "Analytics",
-          "Projects"
+          "Analytics"
         ],
-        "summary": "Get MCP error patterns for a project",
+        "summary": "Get common MCP error patterns for a project",
         "parameters": [
           {
             "schema": {
-              "type": "string"
+              "type": "integer",
+              "format": "int64",
+              "example": 1716537600000,
+              "description": "Entity ID - coerces strings to positive integers for URL parameters"
             },
             "required": true,
+            "description": "Entity ID - coerces strings to positive integers for URL parameters",
             "name": "id",
             "in": "path"
           },
@@ -25340,185 +25197,56 @@
                 "day",
                 "week",
                 "month"
-              ]
+              ],
+              "description": "Time window to aggregate analytics over"
             },
             "required": false,
+            "description": "Time window to aggregate analytics over",
             "name": "period",
             "in": "query"
           },
           {
             "schema": {
-              "type": "string"
+              "type": "string",
+              "description": "Comma-separated list of MCP tool names to filter"
             },
             "required": false,
+            "description": "Comma-separated list of MCP tool names to filter",
             "name": "toolNames",
-            "in": "query"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        true
-                      ]
-                    },
-                    "data": {
-                      "type": "array",
-                      "items": {}
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "data"
-                  ]
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Resource Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/projects/{id}/mcp/analytics/executions": {
-      "get": {
-        "tags": [
-          "MCP",
-          "Analytics",
-          "Projects"
-        ],
-        "summary": "Get MCP tool executions for a project",
-        "parameters": [
-          {
-            "schema": {
-              "type": "string"
-            },
-            "required": true,
-            "name": "id",
-            "in": "path"
-          },
-          {
-            "schema": {
-              "type": "string"
-            },
-            "required": false,
-            "name": "toolName",
             "in": "query"
           },
           {
             "schema": {
               "type": "string",
-              "enum": [
-                "success",
-                "error",
-                "timeout"
-              ]
+              "pattern": "^\\d+$",
+              "description": "Unix timestamp (ms) for range start"
             },
             "required": false,
-            "name": "status",
-            "in": "query"
-          },
-          {
-            "schema": {
-              "type": "string"
-            },
-            "required": false,
+            "description": "Unix timestamp (ms) for range start",
             "name": "startDate",
             "in": "query"
           },
           {
             "schema": {
-              "type": "string"
+              "type": "string",
+              "pattern": "^\\d+$",
+              "description": "Unix timestamp (ms) for range end"
             },
             "required": false,
+            "description": "Unix timestamp (ms) for range end",
             "name": "endDate",
             "in": "query"
           },
           {
             "schema": {
-              "type": "string"
+              "type": "string",
+              "pattern": "^\\d+$",
+              "description": "Maximum number of error patterns to return"
             },
             "required": false,
+            "description": "Maximum number of error patterns to return",
             "name": "limit",
             "in": "query"
-          },
-          {
-            "schema": {
-              "type": "string"
-            },
-            "required": false,
-            "name": "offset",
-            "in": "query"
-          },
-          {
-            "schema": {
-              "type": "string",
-              "enum": [
-                "startedAt",
-                "duration",
-                "toolName"
-              ]
-            },
-            "required": false,
-            "name": "sortBy",
-            "in": "query"
-          },
-          {
-            "schema": {
-              "type": "string",
-              "enum": [
-                "asc",
-                "desc"
-              ]
-            },
-            "required": false,
-            "name": "sortOrder",
-            "in": "query"
           }
         ],
         "responses": {
@@ -25527,1711 +25255,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        true
-                      ]
-                    },
-                    "data": {
-                      "type": "object",
-                      "properties": {
-                        "executions": {
-                          "type": "array",
-                          "items": {}
-                        },
-                        "total": {
-                          "type": "number"
-                        },
-                        "page": {
-                          "type": "number"
-                        },
-                        "pageSize": {
-                          "type": "number"
-                        }
-                      },
-                      "required": [
-                        "executions",
-                        "total",
-                        "page",
-                        "pageSize"
-                      ]
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "data"
-                  ]
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Resource Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/mcp/test/connection": {
-      "post": {
-        "tags": [
-          "MCP",
-          "Testing"
-        ],
-        "summary": "Test MCP server connection",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "url": {
-                    "type": "string",
-                    "format": "uri",
-                    "description": "MCP server URL to test"
-                  },
-                  "timeout": {
-                    "type": "integer",
-                    "exclusiveMinimum": 0,
-                    "default": 5000
-                  }
-                },
-                "required": [
-                  "url"
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        true
-                      ]
-                    },
-                    "data": {
-                      "type": "object",
-                      "properties": {
-                        "connected": {
-                          "type": "boolean"
-                        },
-                        "responseTime": {
-                          "type": "number"
-                        },
-                        "error": {
-                          "type": "string"
-                        },
-                        "serverInfo": {}
-                      },
-                      "required": [
-                        "connected",
-                        "responseTime"
-                      ]
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "data"
-                  ]
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Resource Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/mcp/test/initialize": {
-      "post": {
-        "tags": [
-          "MCP",
-          "Testing"
-        ],
-        "summary": "Test MCP initialize handshake",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "url": {
-                    "type": "string",
-                    "format": "uri",
-                    "description": "MCP server URL to test"
-                  },
-                  "capabilities": {
-                    "type": "object",
-                    "properties": {
-                      "tools": {
-                        "type": "boolean",
-                        "default": true
-                      },
-                      "resources": {
-                        "type": "boolean",
-                        "default": true
-                      },
-                      "prompts": {
-                        "type": "boolean",
-                        "default": false
-                      }
-                    }
-                  }
-                },
-                "required": [
-                  "url"
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        true
-                      ]
-                    },
-                    "data": {
-                      "type": "object",
-                      "properties": {
-                        "initialized": {
-                          "type": "boolean"
-                        },
-                        "sessionId": {
-                          "type": "string"
-                        },
-                        "capabilities": {},
-                        "serverInfo": {},
-                        "error": {
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "initialized"
-                      ]
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "data"
-                  ]
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Resource Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/mcp/test/tool": {
-      "post": {
-        "tags": [
-          "MCP",
-          "Testing"
-        ],
-        "summary": "Test MCP tool execution",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "serverId": {
-                    "type": "string"
-                  },
-                  "toolName": {
-                    "type": "string"
-                  },
-                  "arguments": {
-                    "type": "object",
-                    "additionalProperties": {},
-                    "default": {}
-                  },
-                  "validateOnly": {
-                    "type": "boolean",
-                    "default": false
-                  }
-                },
-                "required": [
-                  "toolName"
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        true
-                      ]
-                    },
-                    "data": {
-                      "type": "object",
-                      "properties": {
-                        "executed": {
-                          "type": "boolean"
-                        },
-                        "result": {},
-                        "executionTime": {
-                          "type": "number"
-                        },
-                        "error": {
-                          "type": "string"
-                        },
-                        "validationErrors": {
-                          "type": "array",
-                          "items": {
-                            "type": "string"
-                          }
-                        }
-                      },
-                      "required": [
-                        "executed",
-                        "executionTime"
-                      ]
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "data"
-                  ]
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Resource Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/mcp/test/validate-config": {
-      "post": {
-        "tags": [
-          "MCP",
-          "Testing"
-        ],
-        "summary": "Validate MCP server configuration",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "serverId": {
-                    "type": "string"
-                  },
-                  "checkConnectivity": {
-                    "type": "boolean",
-                    "default": true
-                  },
-                  "checkCapabilities": {
-                    "type": "boolean",
-                    "default": true
-                  },
-                  "checkTools": {
-                    "type": "boolean",
-                    "default": true
-                  }
-                },
-                "required": [
-                  "serverId"
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        true
-                      ]
-                    },
-                    "data": {
-                      "type": "object",
-                      "properties": {
-                        "valid": {
-                          "type": "boolean"
-                        },
-                        "checks": {
-                          "type": "object",
-                          "properties": {
-                            "connectivity": {
-                              "type": "object",
-                              "properties": {
-                                "passed": {
-                                  "type": "boolean"
-                                },
-                                "message": {
-                                  "type": "string"
-                                }
-                              },
-                              "required": [
-                                "passed"
-                              ]
-                            },
-                            "capabilities": {
-                              "type": "object",
-                              "properties": {
-                                "passed": {
-                                  "type": "boolean"
-                                },
-                                "message": {
-                                  "type": "string"
-                                },
-                                "details": {}
-                              },
-                              "required": [
-                                "passed"
-                              ]
-                            },
-                            "tools": {
-                              "type": "object",
-                              "properties": {
-                                "passed": {
-                                  "type": "boolean"
-                                },
-                                "message": {
-                                  "type": "string"
-                                },
-                                "availableTools": {
-                                  "type": "array",
-                                  "items": {
-                                    "type": "string"
-                                  }
-                                }
-                              },
-                              "required": [
-                                "passed"
-                              ]
-                            }
-                          }
-                        },
-                        "errors": {
-                          "type": "array",
-                          "items": {
-                            "type": "string"
-                          }
-                        },
-                        "warnings": {
-                          "type": "array",
-                          "items": {
-                            "type": "string"
-                          }
-                        }
-                      },
-                      "required": [
-                        "valid",
-                        "checks"
-                      ]
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "data"
-                  ]
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Resource Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/mcp/test/debug": {
-      "post": {
-        "tags": [
-          "MCP",
-          "Testing"
-        ],
-        "summary": "Debug MCP communication",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "serverId": {
-                    "type": "string"
-                  },
-                  "action": {
-                    "type": "string",
-                    "enum": [
-                      "list-tools",
-                      "list-resources",
-                      "get-capabilities",
-                      "raw-request"
-                    ]
-                  },
-                  "rawRequest": {
-                    "type": "object",
-                    "properties": {
-                      "method": {
-                        "type": "string"
-                      },
-                      "params": {}
-                    },
-                    "required": [
-                      "method"
-                    ]
-                  }
-                },
-                "required": [
-                  "serverId",
-                  "action"
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        true
-                      ]
-                    },
-                    "data": {
-                      "type": "object",
-                      "properties": {
-                        "request": {},
-                        "response": {},
-                        "timing": {
-                          "type": "object",
-                          "properties": {
-                            "start": {
-                              "type": "string"
-                            },
-                            "end": {
-                              "type": "string"
-                            },
-                            "duration": {
-                              "type": "number"
-                            }
-                          },
-                          "required": [
-                            "start",
-                            "end",
-                            "duration"
-                          ]
-                        },
-                        "metadata": {
-                          "type": "object",
-                          "properties": {
-                            "serverId": {
-                              "type": "string"
-                            },
-                            "action": {
-                              "type": "string"
-                            },
-                            "protocol": {
-                              "type": "string"
-                            }
-                          },
-                          "required": [
-                            "serverId",
-                            "action"
-                          ]
-                        }
-                      },
-                      "required": [
-                        "timing",
-                        "metadata"
-                      ]
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "data"
-                  ]
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Resource Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/mcp/sessions": {
-      "post": {
-        "tags": [
-          "MCP",
-          "Sessions"
-        ],
-        "summary": "Create a new MCP session",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "serverId": {
-                    "type": "string"
-                  },
-                  "clientInfo": {
-                    "type": "object",
-                    "properties": {
-                      "name": {
-                        "type": "string"
-                      },
-                      "version": {
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "name",
-                      "version"
-                    ]
-                  },
-                  "capabilities": {
-                    "type": "object",
-                    "properties": {
-                      "tools": {
-                        "type": "boolean"
-                      },
-                      "resources": {
-                        "type": "boolean"
-                      },
-                      "prompts": {
-                        "type": "boolean"
-                      }
-                    }
-                  }
-                },
-                "required": [
-                  "serverId"
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "id": {
-                      "type": "string"
-                    },
-                    "serverId": {
-                      "type": "string"
-                    },
-                    "status": {
-                      "type": "string",
-                      "enum": [
-                        "active",
-                        "idle",
-                        "disconnected"
-                      ]
-                    },
-                    "startedAt": {
-                      "type": "string"
-                    },
-                    "lastActivity": {
-                      "type": "string"
-                    },
-                    "metadata": {
-                      "type": "object",
-                      "properties": {
-                        "clientInfo": {},
-                        "serverInfo": {},
-                        "capabilities": {}
-                      }
-                    }
-                  },
-                  "required": [
-                    "id",
-                    "serverId",
-                    "status",
-                    "startedAt",
-                    "lastActivity"
-                  ]
-                }
-              }
-            }
-          },
-          "201": {
-            "description": "Session created successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        true
-                      ]
-                    },
-                    "data": {
-                      "type": "object",
-                      "properties": {
-                        "id": {
-                          "type": "string"
-                        },
-                        "serverId": {
-                          "type": "string"
-                        },
-                        "status": {
-                          "type": "string",
-                          "enum": [
-                            "active",
-                            "idle",
-                            "disconnected"
-                          ]
-                        },
-                        "startedAt": {
-                          "type": "string"
-                        },
-                        "lastActivity": {
-                          "type": "string"
-                        },
-                        "metadata": {
-                          "type": "object",
-                          "properties": {
-                            "clientInfo": {},
-                            "serverInfo": {},
-                            "capabilities": {}
-                          }
-                        }
-                      },
-                      "required": [
-                        "id",
-                        "serverId",
-                        "status",
-                        "startedAt",
-                        "lastActivity"
-                      ]
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "data"
-                  ]
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Resource Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      },
-      "get": {
-        "tags": [
-          "MCP",
-          "Sessions"
-        ],
-        "summary": "List all MCP sessions",
-        "parameters": [
-          {
-            "schema": {
-              "type": "string",
-              "enum": [
-                "active",
-                "idle",
-                "disconnected",
-                "all"
-              ],
-              "default": "active"
-            },
-            "required": false,
-            "name": "status",
-            "in": "query"
-          },
-          {
-            "schema": {
-              "type": "string"
-            },
-            "required": false,
-            "name": "serverId",
-            "in": "query"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        true
-                      ]
-                    },
-                    "data": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "id": {
-                            "type": "string"
-                          },
-                          "serverId": {
-                            "type": "string"
-                          },
-                          "status": {
-                            "type": "string",
-                            "enum": [
-                              "active",
-                              "idle",
-                              "disconnected"
-                            ]
-                          },
-                          "startedAt": {
-                            "type": "string"
-                          },
-                          "lastActivity": {
-                            "type": "string"
-                          },
-                          "metadata": {
-                            "type": "object",
-                            "properties": {
-                              "clientInfo": {},
-                              "serverInfo": {},
-                              "capabilities": {}
-                            }
-                          }
-                        },
-                        "required": [
-                          "id",
-                          "serverId",
-                          "status",
-                          "startedAt",
-                          "lastActivity"
-                        ]
-                      }
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "data"
-                  ]
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Resource Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/mcp/sessions/{sessionId}": {
-      "get": {
-        "tags": [
-          "MCP",
-          "Sessions"
-        ],
-        "summary": "Get MCP session by ID",
-        "parameters": [
-          {
-            "schema": {
-              "type": "string"
-            },
-            "required": true,
-            "name": "sessionId",
-            "in": "path"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        true
-                      ]
-                    },
-                    "data": {
-                      "type": "object",
-                      "properties": {
-                        "id": {
-                          "type": "string"
-                        },
-                        "serverId": {
-                          "type": "string"
-                        },
-                        "status": {
-                          "type": "string",
-                          "enum": [
-                            "active",
-                            "idle",
-                            "disconnected"
-                          ]
-                        },
-                        "startedAt": {
-                          "type": "string"
-                        },
-                        "lastActivity": {
-                          "type": "string"
-                        },
-                        "metadata": {
-                          "type": "object",
-                          "properties": {
-                            "clientInfo": {},
-                            "serverInfo": {},
-                            "capabilities": {}
-                          }
-                        }
-                      },
-                      "required": [
-                        "id",
-                        "serverId",
-                        "status",
-                        "startedAt",
-                        "lastActivity"
-                      ]
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "data"
-                  ]
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Resource Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/mcp/sessions/{sessionId}/close": {
-      "post": {
-        "tags": [
-          "MCP",
-          "Sessions"
-        ],
-        "summary": "Close an MCP session",
-        "parameters": [
-          {
-            "schema": {
-              "type": "string"
-            },
-            "required": true,
-            "name": "sessionId",
-            "in": "path"
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "reason": {
-                    "type": "string"
-                  },
-                  "force": {
-                    "type": "boolean",
-                    "default": false
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OperationSuccessResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Resource Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/mcp/sessions/{sessionId}/refresh": {
-      "post": {
-        "tags": [
-          "MCP",
-          "Sessions"
-        ],
-        "summary": "Refresh/keep-alive an MCP session",
-        "parameters": [
-          {
-            "schema": {
-              "type": "string"
-            },
-            "required": true,
-            "name": "sessionId",
-            "in": "path"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        true
-                      ]
-                    },
-                    "data": {
-                      "type": "object",
-                      "properties": {
-                        "id": {
-                          "type": "string"
-                        },
-                        "serverId": {
-                          "type": "string"
-                        },
-                        "status": {
-                          "type": "string",
-                          "enum": [
-                            "active",
-                            "idle",
-                            "disconnected"
-                          ]
-                        },
-                        "startedAt": {
-                          "type": "string"
-                        },
-                        "lastActivity": {
-                          "type": "string"
-                        },
-                        "metadata": {
-                          "type": "object",
-                          "properties": {
-                            "clientInfo": {},
-                            "serverInfo": {},
-                            "capabilities": {}
-                          }
-                        }
-                      },
-                      "required": [
-                        "id",
-                        "serverId",
-                        "status",
-                        "startedAt",
-                        "lastActivity"
-                      ]
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "data"
-                  ]
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Resource Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/mcp/sessions/{sessionId}/history": {
-      "get": {
-        "tags": [
-          "MCP",
-          "Sessions"
-        ],
-        "summary": "Get session command history",
-        "parameters": [
-          {
-            "schema": {
-              "type": "string"
-            },
-            "required": true,
-            "name": "sessionId",
-            "in": "path"
-          },
-          {
-            "schema": {
-              "type": "integer",
-              "exclusiveMinimum": 0,
-              "default": 100
-            },
-            "required": false,
-            "name": "limit",
-            "in": "query"
-          },
-          {
-            "schema": {
-              "type": "integer",
-              "minimum": 0,
-              "default": 0
-            },
-            "required": false,
-            "name": "offset",
-            "in": "query"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        true
-                      ]
-                    },
-                    "data": {
-                      "type": "object",
-                      "properties": {
-                        "sessionId": {
-                          "type": "string"
-                        },
-                        "history": {
-                          "type": "array",
-                          "items": {
-                            "type": "object",
-                            "properties": {
-                              "timestamp": {
-                                "type": "string"
-                              },
-                              "type": {
-                                "type": "string",
-                                "enum": [
-                                  "request",
-                                  "response",
-                                  "notification"
-                                ]
-                              },
-                              "method": {
-                                "type": "string"
-                              },
-                              "params": {},
-                              "result": {},
-                              "error": {}
-                            },
-                            "required": [
-                              "timestamp",
-                              "type"
-                            ]
-                          }
-                        },
-                        "total": {
-                          "type": "number"
-                        },
-                        "hasMore": {
-                          "type": "boolean"
-                        }
-                      },
-                      "required": [
-                        "sessionId",
-                        "history",
-                        "total",
-                        "hasMore"
-                      ]
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "data"
-                  ]
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Resource Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ApiErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/mcp/sessions/cleanup": {
-      "post": {
-        "tags": [
-          "MCP",
-          "Sessions"
-        ],
-        "summary": "Cleanup idle MCP sessions",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "idleThresholdMinutes": {
-                    "type": "integer",
-                    "exclusiveMinimum": 0,
-                    "default": 30
-                  },
-                  "dryRun": {
-                    "type": "boolean",
-                    "default": false
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "enum": [
-                        true
-                      ]
-                    },
-                    "data": {
-                      "type": "object",
-                      "properties": {
-                        "sessionsChecked": {
-                          "type": "number"
-                        },
-                        "sessionsClosed": {
-                          "type": "number"
-                        },
-                        "sessionIds": {
-                          "type": "array",
-                          "items": {
-                            "type": "string"
-                          }
-                        },
-                        "dryRun": {
-                          "type": "boolean"
-                        }
-                      },
-                      "required": [
-                        "sessionsChecked",
-                        "sessionsClosed",
-                        "sessionIds",
-                        "dryRun"
-                      ]
-                    }
-                  },
-                  "required": [
-                    "success",
-                    "data"
-                  ]
+                  "$ref": "#/components/schemas/MCPErrorPatternsSuccessResponse"
                 }
               }
             }
@@ -27857,6 +25881,87 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/MergedConfigResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mcp/active-tools": {
+      "get": {
+        "tags": [
+          "MCP Tools"
+        ],
+        "description": "Get active MCP servers and their tools, including conditional Groq remote MCP based on provider selection",
+        "parameters": [
+          {
+            "schema": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "required": false,
+            "name": "projectId",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "provider",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActiveMCPToolsResponse"
                 }
               }
             }
@@ -35131,6 +33236,9 @@
       "ok": true
     },
     "mcpProjectConfigRoutes": {
+      "ok": true
+    },
+    "mcpToolsRoutes": {
       "ok": true
     },
     "gitRoutes": {

@@ -15,6 +15,7 @@ import { flowRoutes } from './routes/flow-routes'
 import { browseDirectoryRoutes } from './routes/browse-directory-routes'
 import { mcpRoutes } from './routes/mcp'
 import { mcpProjectConfigApp } from './routes/mcp-project-config-routes'
+import { mcpToolsRoutes } from './routes/mcp-tools-routes'
 import { gitRoutes } from './routes/git'
 import { gitAdvancedRoutes } from './routes/git-advanced-routes'
 import { projectTabRoutes } from './routes/project-tab-routes'
@@ -336,6 +337,7 @@ app.route('/', genAiRoutes)
 app.route('/', browseDirectoryRoutes)
 app.route('/', mcpRoutes)
 app.route('/', mcpProjectConfigApp)
+app.route('/', mcpToolsRoutes)
 app.route('/', gitRoutes)
 app.route('/', gitAdvancedRoutes)
 app.route('/', projectTabRoutes)
@@ -462,6 +464,7 @@ app.get('/doc', async (c) => {
   tryRegister('browseDirectoryRoutes', (a) => a.route('/', browseDirectoryRoutes))
   tryRegister('mcpRoutes', (a) => a.route('/', mcpRoutes))
   tryRegister('mcpProjectConfigRoutes', (a) => a.route('/', mcpProjectConfigApp))
+  tryRegister('mcpToolsRoutes', (a) => a.route('/', mcpToolsRoutes))
   tryRegister('gitRoutes', (a) => a.route('/', gitRoutes))
   tryRegister('gitAdvancedRoutes', (a) => a.route('/', gitAdvancedRoutes))
   tryRegister('projectTabRoutes', (a) => a.route('/', projectTabRoutes))
