@@ -191,7 +191,7 @@ describe('MessageHistorySlider Component', () => {
 
   describe('User Interactions', () => {
     test('should call onChange when slider value changes', () => {
-      render(
+      const { container } = render(
         <MessageHistorySlider
           messages={testMessages}
           currentValue={5}
@@ -200,14 +200,14 @@ describe('MessageHistorySlider Component', () => {
         />
       )
 
-      const slider = screen.getByTestId('slider-input')
+      const slider = container.querySelector('[data-testid="slider-input"]') as HTMLInputElement
       fireEvent.change(slider, { target: { value: '7' } })
 
       expect(mockOnChange).toHaveBeenCalledWith(7)
     })
 
     test('should update display when currentValue prop changes', () => {
-      const { rerender } = render(
+      const { rerender, container } = render(
         <MessageHistorySlider
           messages={testMessages}
           currentValue={5}
@@ -216,7 +216,7 @@ describe('MessageHistorySlider Component', () => {
         />
       )
 
-      const slider = screen.getByTestId('slider-input')
+      const slider = container.querySelector('[data-testid="slider-input"]') as HTMLInputElement
       expect(slider.getAttribute('value')).toBe('5')
 
       rerender(
@@ -232,7 +232,7 @@ describe('MessageHistorySlider Component', () => {
     })
 
     test('should update token counts when slider value changes', async () => {
-      const { rerender } = render(
+      const { rerender, container } = render(
         <MessageHistorySlider
           messages={testMessages}
           currentValue={10}
@@ -241,7 +241,7 @@ describe('MessageHistorySlider Component', () => {
         />
       )
 
-      const initialTokenCounts = screen.getAllByTestId('token-count')
+      const initialTokenCounts = Array.from(container.querySelectorAll('[data-testid="token-count"]'))
       const initialTotal = parseInt(initialTokenCounts[2]?.textContent || '0', 10)
 
       // Change slider value to include fewer messages
@@ -255,7 +255,7 @@ describe('MessageHistorySlider Component', () => {
       )
 
       await waitFor(() => {
-        const newTokenCounts = screen.getAllByTestId('token-count')
+        const newTokenCounts = Array.from(container.querySelectorAll('[data-testid="token-count"]'))
         const newTotal = parseInt(newTokenCounts[2]?.textContent || '0', 10)
         expect(newTotal).toBeLessThan(initialTotal)
       })
@@ -362,7 +362,7 @@ describe('MessageHistorySlider Component', () => {
 
   describe('Edge Cases', () => {
     test('should handle empty messages array', () => {
-      render(
+      const { container } = render(
         <MessageHistorySlider
           messages={[]}
           currentValue={1}
@@ -371,7 +371,7 @@ describe('MessageHistorySlider Component', () => {
         />
       )
 
-      const slider = screen.getByTestId('slider-input')
+      const slider = container.querySelector('[data-testid="slider-input"]') as HTMLInputElement
       expect(slider.getAttribute('max')).toBe('1') // Should have max of 1 even with no messages
     })
 
@@ -380,7 +380,7 @@ describe('MessageHistorySlider Component', () => {
         { id: '1', role: 'user', content: 'Hello', createdAt: new Date() }
       ] as AIMessage[]
 
-      render(
+      const { container } = render(
         <MessageHistorySlider
           messages={singleMessage}
           currentValue={1}
@@ -389,13 +389,13 @@ describe('MessageHistorySlider Component', () => {
         />
       )
 
-      const slider = screen.getByTestId('slider-input')
+      const slider = container.querySelector('[data-testid="slider-input"]') as HTMLInputElement
       expect(slider.getAttribute('max')).toBe('1')
       expect(slider.getAttribute('value')).toBe('1')
     })
 
     test('should handle currentValue exceeding message count', () => {
-      render(
+      const { container } = render(
         <MessageHistorySlider
           messages={testMessages}
           currentValue={100} // Way more than available
@@ -405,7 +405,7 @@ describe('MessageHistorySlider Component', () => {
       )
 
       // Should still render without crashing
-      const slider = screen.getByTestId('slider-input')
+      const slider = container.querySelector('[data-testid="slider-input"]')
       expect(slider).toBeDefined()
     })
 
@@ -438,7 +438,7 @@ describe('MessageHistorySlider Component', () => {
         }
       ] as AIMessage[]
 
-      render(
+      const { container } = render(
         <MessageHistorySlider
           messages={complexMessages}
           currentValue={1}
@@ -448,7 +448,7 @@ describe('MessageHistorySlider Component', () => {
       )
 
       // Should handle complex content without crashing
-      expect(screen.getByTestId('slider-input')).toBeDefined()
+      expect(container.querySelector('[data-testid="slider-input"]')).toBeDefined()
     })
   })
 
@@ -477,7 +477,7 @@ describe('MessageHistorySlider Component', () => {
     })
 
     test('should handle onChange callback correctly', () => {
-      render(
+      const { container } = render(
         <MessageHistorySlider
           messages={testMessages}
           currentValue={5}
@@ -486,7 +486,7 @@ describe('MessageHistorySlider Component', () => {
         />
       )
 
-      const slider = screen.getByTestId('slider-input')
+      const slider = container.querySelector('[data-testid="slider-input"]') as HTMLInputElement
       fireEvent.change(slider, { target: { value: '3' } })
 
       expect(mockOnChange).toHaveBeenCalledTimes(1)
@@ -496,7 +496,7 @@ describe('MessageHistorySlider Component', () => {
 
   describe('Accessibility', () => {
     test('should render slider with proper input type', () => {
-      render(
+      const { container } = render(
         <MessageHistorySlider
           messages={testMessages}
           currentValue={5}
@@ -505,7 +505,7 @@ describe('MessageHistorySlider Component', () => {
         />
       )
 
-      const slider = screen.getByTestId('slider-input')
+      const slider = container.querySelector('[data-testid="slider-input"]') as HTMLInputElement
       expect(slider.getAttribute('type')).toBe('range')
     })
 
