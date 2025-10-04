@@ -3,7 +3,17 @@
  * Provides utilities for creating test messages and calculating expected tokens
  */
 
-import type { Message as AIMessage } from 'ai'
+/**
+ * Simple test message type for testing purposes
+ * This is a simplified version for test data generation
+ */
+export type TestMessage = {
+  id: string
+  role: 'user' | 'assistant' | 'system'
+  content: string | any[]
+  createdAt: Date
+  metadata?: Record<string, any>
+}
 
 /**
  * Create a test message with specified role and content
@@ -16,7 +26,7 @@ export function createTestMessage(
     createdAt?: Date
     metadata?: Record<string, any>
   } = {}
-): AIMessage {
+): TestMessage {
   return {
     id: options.id || `msg-${Date.now()}-${Math.random()}`,
     role,
@@ -30,8 +40,8 @@ export function createTestMessage(
  * Create multiple test messages
  * Creates alternating user/assistant pairs
  */
-export function createTestMessages(count: number, messagePrefix = 'Test message'): AIMessage[] {
-  const messages: AIMessage[] = []
+export function createTestMessages(count: number, messagePrefix = 'Test message'): TestMessage[] {
+  const messages: TestMessage[] = []
 
   for (let i = 0; i < count; i++) {
     const isUser = i % 2 === 0
@@ -49,8 +59,8 @@ export function createTestMessages(count: number, messagePrefix = 'Test message'
 /**
  * Create a conversation with system prompt
  */
-export function createConversationWithSystem(turns: number = 3): AIMessage[] {
-  const messages: AIMessage[] = [
+export function createConversationWithSystem(turns: number = 3): TestMessage[] {
+  const messages: TestMessage[] = [
     createTestMessage('system', 'You are a helpful AI assistant. Be concise and accurate.')
   ]
 
@@ -67,7 +77,7 @@ export function createConversationWithSystem(turns: number = 3): AIMessage[] {
 /**
  * Create messages with varying lengths
  */
-export function createMessagesWithVaryingLengths(): AIMessage[] {
+export function createMessagesWithVaryingLengths(): TestMessage[] {
   return [
     createTestMessage('user', 'Hi'),
     createTestMessage('assistant', 'Hello! How can I help you today?'),
@@ -95,8 +105,8 @@ export function createMessagesWithVaryingLengths(): AIMessage[] {
 /**
  * Create messages for testing token limits
  */
-export function createLargeConversation(messageCount: number = 50): AIMessage[] {
-  const messages: AIMessage[] = [
+export function createLargeConversation(messageCount: number = 50): TestMessage[] {
+  const messages: TestMessage[] = [
     createTestMessage('system', 'You are a helpful assistant specialized in technical topics.')
   ]
 
@@ -150,7 +160,7 @@ function generateRandomContent(wordCount: number): string {
  * Calculate expected tokens for test messages
  * Uses simplified estimation: ~4 characters per token
  */
-export function calculateExpectedTokens(messages: AIMessage[]): number {
+export function calculateExpectedTokens(messages: TestMessage[]): number {
   return messages.reduce((total, message) => {
     const content = typeof message.content === 'string' ? message.content : JSON.stringify(message.content)
     return total + Math.ceil(content.length / 4)
@@ -160,7 +170,7 @@ export function calculateExpectedTokens(messages: AIMessage[]): number {
 /**
  * Calculate expected tokens by role
  */
-export function calculateExpectedTokensByRole(messages: AIMessage[]): {
+export function calculateExpectedTokensByRole(messages: TestMessage[]): {
   system: number
   user: number
   assistant: number
@@ -172,7 +182,10 @@ export function calculateExpectedTokensByRole(messages: AIMessage[]): {
     const content = typeof message.content === 'string' ? message.content : JSON.stringify(message.content)
     const tokens = Math.ceil(content.length / 4)
 
-    result[message.role] += tokens
+    // Only count tokens for recognized roles
+    if (message.role === 'system' || message.role === 'user' || message.role === 'assistant') {
+      result[message.role] += tokens
+    }
     result.total += tokens
   })
 
@@ -182,8 +195,8 @@ export function calculateExpectedTokensByRole(messages: AIMessage[]): {
 /**
  * Create messages that will exceed token limit
  */
-export function createLargeContextMessages(targetTokens: number = 10000): AIMessage[] {
-  const messages: AIMessage[] = []
+export function createLargeContextMessages(targetTokens: number = 10000): TestMessage[] {
+  const messages: TestMessage[] = []
   let currentTokens = 0
 
   let i = 0
@@ -203,7 +216,7 @@ export function createLargeContextMessages(targetTokens: number = 10000): AIMess
 /**
  * Create minimal test conversation
  */
-export function createMinimalConversation(): AIMessage[] {
+export function createMinimalConversation(): TestMessage[] {
   return [
     createTestMessage('user', 'Hello'),
     createTestMessage('assistant', 'Hi there!')
@@ -214,8 +227,8 @@ export function createMinimalConversation(): AIMessage[] {
  * Create conversation with specific token count
  * Useful for testing token thresholds
  */
-export function createConversationWithTokenCount(targetTokens: number): AIMessage[] {
-  const messages: AIMessage[] = []
+export function createConversationWithTokenCount(targetTokens: number): TestMessage[] {
+  const messages: TestMessage[] = []
   let currentTokens = 0
 
   let i = 0
@@ -239,7 +252,7 @@ export function createConversationWithTokenCount(targetTokens: number): AIMessag
 /**
  * Create messages with complex content (array-based)
  */
-export function createMessagesWithComplexContent(): AIMessage[] {
+export function createMessagesWithComplexContent(): TestMessage[] {
   return [
     {
       id: 'msg-complex-1',

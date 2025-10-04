@@ -60,14 +60,14 @@ export function useActiveMCPs(provider?: APIProviders | string, projectId?: numb
       })
 
       if (!result.success) {
-        throw new Error(result.error?.message || 'Failed to fetch active MCPs')
+        throw new Error('Failed to fetch active MCPs')
       }
 
       return result.data
     },
     enabled: !!client && !!provider,
     staleTime: 30 * 1000, // 30 seconds
-    cacheTime: 5 * 60 * 1000 // 5 minutes
+    gcTime: 5 * 60 * 1000 // 5 minutes
   })
 }
 
