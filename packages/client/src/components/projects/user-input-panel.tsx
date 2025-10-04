@@ -188,6 +188,7 @@ export const UserInputPanel = forwardRef<UserInputPanelRef, UserInputPanelProps>
         projectId: activeProjectTabState?.selectedProjectId ?? -1,
         prompt: `Please find the relevant files for the following prompt: ${localUserPrompt}`,
         limit: 15
+        
       },
       {
         onSuccess: (recommendedFiles) => {

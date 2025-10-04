@@ -124,7 +124,7 @@ export const flowManagerTool: MCPToolDefinition = {
       ticketId: { type: 'number', description: 'Ticket ID for task or ticket-specific actions' },
       taskId: { type: 'number', description: 'Task ID for task-specific actions' },
       queueId: { type: 'number', description: 'Queue ID for queue actions' },
-      data: { type: 'object', description: 'Action-specific data payload' }
+      data: { type: 'object', description: 'Action-specific data payload', additionalProperties: true }
     },
     required: ['action']
   },

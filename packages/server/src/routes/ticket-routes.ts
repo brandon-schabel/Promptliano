@@ -571,13 +571,18 @@ export const ticketRoutes = new OpenAPIHono()
     const files = await getProjectFiles(ticket.projectId)
     const byId = new Map((files || []).map((f: any) => [String(f.id), f]))
 
-    const { createSuggestionsService } = await import('@promptliano/services')
-    const sugg = createSuggestionsService()
-    const result = await sugg.suggestFilesForTicket(parseNumericId(ticketId), {
-      strategy: 'balanced',
-      maxResults: 10,
-      userContext: extraUserInput
-    })
+    // Use the exported suggestFilesForTicket function
+    const fileIds = await suggestFilesForTicket(parseNumericId(ticketId))
+    const result = {
+      suggestions: fileIds,
+      scores: [],
+      metadata: {
+        totalFiles: files?.length || 0,
+        analyzedFiles: fileIds.length,
+        strategy: 'balanced' as const,
+        tokensSaved: 0
+      }
+    }
 
     const relevanceMap = new Map<string, number>()
     if (Array.isArray(result.scores)) {
@@ -642,18 +647,23 @@ export const ticketRoutes = new OpenAPIHono()
 
     return stream(c, async (s) => {
       try {
-        const { createFileSuggestionStrategyService } = await import('@promptliano/services')
-        const strategy = createFileSuggestionStrategyService()
+        // Use simple suggestion instead of progressive (new service doesn't support streaming)
+        const fileIds = await suggestFilesForTicket(parseNumericId(ticketId))
 
-        for await (const update of strategy.progressiveSuggestion(ticket as any, 10, extraUserInput) as any) {
-          const payload = {
-            stage: update.stage,
-            suggestions: update.suggestions.map(String),
-            progress: update.progress
-          }
-          await s.writeln(`data: ${JSON.stringify(payload)}`)
-          await s.writeln('')
-        }
+        // Simulate progress updates for compatibility
+        await s.writeln(`data: ${JSON.stringify({
+          stage: 'analyzing',
+          suggestions: [],
+          progress: 0.5
+        })}`)
+        await s.writeln('')
+
+        await s.writeln(`data: ${JSON.stringify({
+          stage: 'complete',
+          suggestions: fileIds.map(String),
+          progress: 1.0
+        })}`)
+        await s.writeln('')
       } catch (error: any) {
         const errPayload = { stage: 'error', message: error?.message || 'suggestion stream failed' }
         await s.writeln(`data: ${JSON.stringify(errPayload)}`)

@@ -12,14 +12,13 @@ import {
 } from '../shared'
 
 export enum AIAssistantAction {
+  // Prompt Engineering (AI-powered)
   OPTIMIZE_PROMPT = 'optimize_prompt',
   GENERATE_PROMPT = 'generate_prompt',
-  ANALYZE_CODE = 'analyze_code',
-  SUGGEST_IMPROVEMENTS = 'suggest_improvements',
-  EXPLAIN_CONCEPT = 'explain_concept',
-  GENERATE_DOCUMENTATION = 'generate_documentation',
-  CODE_REVIEW = 'code_review',
-  REFACTOR_SUGGESTIONS = 'refactor_suggestions'
+
+  // File & Prompt Suggestions (AI-powered)
+  SUGGEST_FILES = 'suggest_files',
+  SUGGEST_PROMPTS = 'suggest_prompts'
 }
 
 const AIAssistantSchema = z.object({
@@ -31,23 +30,24 @@ const AIAssistantSchema = z.object({
 export const aiAssistantTool: MCPToolDefinition = {
   name: 'ai_assistant',
   description:
-    'Comprehensive AI-powered assistant for development tasks. Actions: optimize_prompt, generate_prompt, analyze_code, suggest_improvements, explain_concept, generate_documentation, code_review, refactor_suggestions',
+    'AI-powered tools for intelligent development assistance. All actions use AI models for smart suggestions and optimizations. Actions: optimize_prompt (improve prompt quality), generate_prompt (create prompts from descriptions), suggest_files (AI-powered file suggestions based on context), suggest_prompts (AI-powered prompt suggestions). This tool separates AI-based features from traditional algorithmic tools.',
   inputSchema: {
     type: 'object',
     properties: {
       action: {
         type: 'string',
-        description: 'The action to perform',
+        description: 'The AI-powered action to perform',
         enum: Object.values(AIAssistantAction)
       },
       projectId: {
         type: 'number',
-        description: 'The project ID (optional for some actions). Tip: use project_manager(list) to fetch a valid ID.'
+        description: 'The project ID (required for suggest_files and suggest_prompts). Tip: use project_manager(list) to fetch a valid ID.'
       },
       data: {
         type: 'object',
         description:
-          'Action-specific data. For optimize_prompt: { prompt: "original prompt", context?: "additional context" }. For analyze_code: { code: "code to analyze", language?: "typescript" }. For explain_concept: { concept: "concept to explain", level?: "beginner|intermediate|advanced" }'
+          'Action-specific data. For optimize_prompt: { prompt: "original prompt", context?: "additional context" }. For generate_prompt: { task: "task description", type?: "general|code|documentation", context?: "additional context" }. For suggest_files: { prompt: "what I\'m working on", strategy?: "fast|balanced|thorough", limit?: 10, lineCount?: 50, userContext?: "additional context", includeReasons?: false }. For suggest_prompts: { userInput: "search terms", strategy?: "fast|balanced|thorough", limit?: 10 }',
+        additionalProperties: true
       }
     },
     required: ['action']
@@ -130,229 +130,109 @@ Return only the generated prompt without explanations.`
             }
           }
 
-          case AIAssistantAction.ANALYZE_CODE: {
-            const code = validateDataField<string>(data, 'code', 'string', '"function example() { return true; }"')
-            const language = (data?.language as string | undefined) || 'auto-detect'
-            const focus = (data?.focus as string | undefined) || 'general analysis'
+          case AIAssistantAction.SUGGEST_FILES: {
+            const validProjectId = validateRequiredParam(projectId, 'projectId', 'number', '<PROJECT_ID>')
+            const prompt = validateDataField<string>(data, 'prompt', 'string', '"authentication flow"')
+            const limit = (data?.limit as number) || 10
+            const lineCount = (data?.lineCount as number) || 50
+            const strategy = (data?.strategy as 'fast' | 'balanced' | 'thorough') || 'balanced'
+            const userContext = data?.userContext as string | undefined
+            const includeReasons = (data?.includeReasons as boolean) ?? false
 
-            const systemPrompt = `You are a senior software engineer conducting a code analysis.
+            // Import the file suggestion service
+            const { suggestFilesForProject } = await import('@promptliano/services')
 
-Code to analyze:
-\`\`\`${language}
-${code}
-\`\`\`
-
-Focus: ${focus}
-
-Provide a comprehensive analysis covering:
-1. Code quality and best practices
-2. Potential issues or bugs
-3. Performance considerations
-4. Security concerns (if applicable)
-5. Suggestions for improvement
-6. Overall assessment
-
-Be specific and actionable in your feedback.`
-
-            const schema = z.object({
-              analysis: z.string().describe('Comprehensive code analysis'),
-              issues: z.array(z.string()).optional().describe('List of identified issues'),
-              suggestions: z.array(z.string()).optional().describe('List of improvement suggestions')
+            const result = await suggestFilesForProject(validProjectId, prompt, {
+              maxResults: limit,
+              strategy,
+              lineCount,
+              userContext,
+              includeScores: true,
+              includeReasons
             })
 
-            const result = await generateStructuredData({
-              prompt: code,
-              systemMessage: systemPrompt,
-              schema
-            })
+            // Format results with metadata
+            const lines: string[] = [
+              `# AI-Powered File Suggestions for: "${prompt}"`,
+              '',
+              `Strategy: ${result.metadata.strategy}`,
+              `Files Analyzed: ${result.metadata.analyzedFiles}`,
+              `Processing Time: ${result.metadata.processingTime}ms`,
+              '',
+              '## Suggested Files:',
+              ''
+            ]
 
-            let response = result.object.analysis
-            if (result.object.issues && result.object.issues.length) {
-              response += '\n\n**Issues Found:**\n' + result.object.issues.map((i: string) => `• ${i}`).join('\n')
-            }
-            if (result.object.suggestions && result.object.suggestions.length) {
-              response += '\n\n**Suggestions:**\n' + result.object.suggestions.map((s: string) => `• ${s}`).join('\n')
-            }
+            result.suggestedFiles.forEach((file, idx) => {
+              lines.push(`${idx + 1}. ${file.path}`)
+              lines.push(`   Relevance: ${(file.relevance * 100).toFixed(1)}%`)
+              lines.push(`   Confidence: ${(file.confidence * 100).toFixed(1)}%`)
+              if (includeReasons && file.reasons && file.reasons.length > 0) {
+                lines.push(`   Reasons: ${file.reasons.join(', ')}`)
+              }
+              lines.push('')
+            })
 
             return {
-              content: [{ type: 'text', text: response }]
+              content: [{ type: 'text', text: lines.join('\n') || 'No file suggestions found' }]
             }
           }
 
-          case AIAssistantAction.EXPLAIN_CONCEPT: {
-            const concept = validateDataField<string>(data, 'concept', 'string', '"React hooks"')
-            const level = (data?.level as string | undefined) || 'intermediate'
-            const context = data?.context as string | undefined
+          case AIAssistantAction.SUGGEST_PROMPTS: {
+            const validProjectId = validateRequiredParam(projectId, 'projectId', 'number', '<PROJECT_ID>')
+            const userInput = validateDataField<string>(data, 'userInput', 'string', '"help me with authentication"')
+            const limit = (data?.limit as number) || 5
+            const strategy = (data?.strategy as 'fast' | 'balanced' | 'thorough') || 'balanced'
 
-            const systemPrompt = `You are an expert technical educator. Explain the given concept clearly and effectively.
+            // Import prompt suggestion services
+            const { suggestPrompts, listPromptsByProject, listAllPrompts } = await import('@promptliano/services')
 
-Concept: ${concept}
-Target Level: ${level}
-${context ? `Context: ${context}` : ''}
+            // Get AI-powered prompt suggestions
+            const suggestedPrompts = await suggestPrompts(validProjectId, userInput)
 
-Provide an explanation that:
-1. Is appropriate for the target level
-2. Uses clear, accessible language
-3. Includes practical examples when helpful
-4. Covers key aspects and common pitfalls
-5. Relates to practical development scenarios
+            // Handle case where no suggestions found
+            if (suggestedPrompts.length === 0) {
+              const projectPrompts = await listPromptsByProject(validProjectId)
+              const allPrompts = await listAllPrompts()
 
-Make it engaging and easy to understand.`
-
-            const schema = z.object({
-              explanation: z.string().describe('Clear explanation of the concept')
-            })
-
-            const result = await generateStructuredData({
-              prompt: concept,
-              systemMessage: systemPrompt,
-              schema
-            })
-
-            return {
-              content: [{ type: 'text', text: result.object.explanation }]
-            }
-          }
-
-          case AIAssistantAction.GENERATE_DOCUMENTATION: {
-            const code = validateDataField<string>(data, 'code', 'string', '"function calculateTotal() { ... }"')
-            const type = (data?.type as string | undefined) || 'api'
-            const style = (data?.style as string | undefined) || 'comprehensive'
-
-            const systemPrompt = `You are a technical writer creating high-quality documentation.
-
-Code to document:
-\`\`\`
-${code}
-\`\`\`
-
-Documentation Type: ${type}
-Style: ${style}
-
-Generate documentation that:
-1. Clearly describes purpose and functionality
-2. Documents parameters, return values, and types
-3. Includes usage examples
-4. Covers edge cases and important notes
-5. Follows documentation best practices
-6. Is well-structured and readable
-
-Provide complete, professional documentation.`
-
-            const schema = z.object({
-              documentation: z.string().describe('Generated documentation')
-            })
-
-            const result = await generateStructuredData({
-              prompt: code,
-              systemMessage: systemPrompt,
-              schema
-            })
-
-            return {
-              content: [{ type: 'text', text: result.object.documentation }]
-            }
-          }
-
-          case AIAssistantAction.CODE_REVIEW: {
-            const code = validateDataField<string>(data, 'code', 'string', '"function example() { ... }"')
-            const context = data?.context as string | undefined
-            const focus = (data?.focus as string | undefined) || 'comprehensive'
-
-            const systemPrompt = `You are a senior engineer conducting a thorough code review.
-
-Code to review:
-\`\`\`
-${code}
-\`\`\`
-
-${context ? `Context: ${context}` : ''}
-Focus: ${focus}
-
-Provide a detailed code review covering:
-1. Code correctness and logic
-2. Style and conventions
-3. Performance implications
-4. Security considerations
-5. Maintainability and readability
-6. Test coverage suggestions
-7. Overall recommendations
-
-Be constructive and specific in your feedback.`
-
-            const schema = z.object({
-              review: z.string().describe('Comprehensive code review'),
-              rating: z
-                .enum(['excellent', 'good', 'needs_improvement', 'major_issues'])
-                .optional()
-                .describe('Overall quality rating')
-            })
-
-            const result = await generateStructuredData({
-              prompt: code,
-              systemMessage: systemPrompt,
-              schema
-            })
-
-            let response = result.object.review
-            if (result.object.rating) {
-              response = `**Overall Rating: ${result.object.rating.replace('_', ' ').toUpperCase()}**\n\n${response}`
+              if (projectPrompts.length === 0 && allPrompts.length > 0) {
+                return {
+                  content: [
+                    {
+                      type: 'text',
+                      text:
+                        `No prompts are currently associated with project ${validProjectId}.\n\n` +
+                        `There are ${allPrompts.length} prompts available in the system.\n` +
+                        `To use them with this project, first add them using the prompt_manager tool.`
+                    }
+                  ]
+                }
+              } else if (allPrompts.length === 0) {
+                return {
+                  content: [
+                    {
+                      type: 'text',
+                      text:
+                        'No prompts exist in the system yet.\n\n' +
+                        'Create prompts using the prompt_manager tool with the "create" action.'
+                    }
+                  ]
+                }
+              }
             }
 
-            return {
-              content: [{ type: 'text', text: response }]
-            }
-          }
-
-          case AIAssistantAction.REFACTOR_SUGGESTIONS: {
-            const code = validateDataField<string>(data, 'code', 'string', '"function example() { ... }"')
-            const goals = (data?.goals as string | undefined) || 'improve readability and maintainability'
-            const constraints = data?.constraints as string | undefined
-
-            const systemPrompt = `You are a senior engineer providing refactoring guidance.
-
-Code to refactor:
-\`\`\`
-${code}
-\`\`\`
-
-Refactoring Goals: ${goals}
-${constraints ? `Constraints: ${constraints}` : ''}
-
-Provide specific refactoring suggestions that:
-1. Address the stated goals
-2. Improve code quality and maintainability
-3. Are practical and implementable
-4. Consider potential risks and trade-offs
-5. Include before/after examples where helpful
-
-Focus on actionable, specific improvements.`
-
-            const schema = z.object({
-              suggestions: z
-                .array(
-                  z.object({
-                    title: z.string(),
-                    description: z.string(),
-                    priority: z.enum(['high', 'medium', 'low'])
-                  })
-                )
-                .describe('List of refactoring suggestions')
-            })
-
-            const result = await generateStructuredData({
-              prompt: code,
-              systemMessage: systemPrompt,
-              schema
-            })
-
-            const suggestions = result.object.suggestions || []
-            const response = suggestions
-              .map((s, i) => `${i + 1}. **${s.title}** (Priority: ${s.priority})\n   ${s.description}`)
-              .join('\n\n')
+            const promptList = suggestedPrompts.slice(0, limit).map((suggestion: string, index: number) => `${index + 1}: ${suggestion}`).join('\n\n')
 
             return {
-              content: [{ type: 'text', text: response || 'No specific refactoring suggestions identified.' }]
+              content: [
+                {
+                  type: 'text',
+                  text:
+                    suggestedPrompts.length > 0
+                      ? `# AI-Powered Prompt Suggestions for: "${userInput}"\n\nStrategy: ${strategy}\n\n${promptList}`
+                      : `No prompts found matching your input "${userInput}" in project ${validProjectId}`
+                }
+              ]
             }
           }
 

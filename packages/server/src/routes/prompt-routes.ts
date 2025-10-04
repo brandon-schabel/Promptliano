@@ -33,13 +33,12 @@ import {
   listPromptsByProject,
   removePromptFromProject,
   updatePrompt,
-  suggestPrompts,
-  createSuggestionsService,
   bulkImportMarkdownPrompts,
   exportPromptsToMarkdown,
   promptToMarkdown,
   validateMarkdownContent
 } from '@promptliano/services'
+import { createPromptSuggestionStrategyService } from '@promptliano/services/src/prompt-services/prompt-suggestion-strategy-service'
 
 // File upload constants for markdown imports
 const MARKDOWN_UPLOAD_CONFIG = {
@@ -363,13 +362,14 @@ export const promptRoutes = new OpenAPIHono()
     const { id: projectId } = (c.req as any).valid('param')
     const { userInput, limit, strategy, includeScores, userContext } = (c.req as any).valid('json')
 
-    const suggestionService = createSuggestionsService()
-    const suggestionResult = await suggestionService.suggestPromptsForProject(projectId, userInput, {
-      strategy,
-      maxResults: limit,
-      includeScores,
+    const promptSuggestionService = createPromptSuggestionStrategyService()
+    const suggestionResult = await promptSuggestionService.suggestPrompts(
+      projectId,
+      userInput,
+      strategy || 'balanced',
+      limit || 10,
       userContext
-    })
+    )
 
     const suggestionIds = suggestionResult.suggestions || []
 

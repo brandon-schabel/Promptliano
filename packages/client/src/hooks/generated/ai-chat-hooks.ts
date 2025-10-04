@@ -338,6 +338,8 @@ interface UseAIChatProps {
   systemMessage?: string
   enableChatAutoNaming?: boolean
   toolsEnabled?: boolean
+  maxMessagesToInclude?: number
+  includeSystemPrompt?: boolean
 }
 
 // useAppSettings, parseAIError and extractProviderName are imported above
@@ -348,7 +350,9 @@ export function useAIChat({
   model,
   systemMessage,
   enableChatAutoNaming = false,
-  toolsEnabled = true
+  toolsEnabled = true,
+  maxMessagesToInclude = 50,
+  includeSystemPrompt = true
 }: UseAIChatProps) {
   const initialMessagesLoadedRef = useRef(false)
   const [parsedError, setParsedError] = useState<ReturnType<typeof parseAIError> | null>(null)
@@ -383,7 +387,9 @@ export function useAIChat({
             system: systemMessage || undefined,
             enableChatAutoNaming,
             maxSteps: toolsEnabled ? 6 : 1,
-            toolChoice: toolsEnabled ? 'auto' : 'none'
+            toolChoice: toolsEnabled ? 'auto' : 'none',
+            maxMessagesToInclude,
+            includeSystemPrompt
           }
 
           const merged = {
@@ -777,7 +783,7 @@ const messages = useMemo<ChatUiMessage[]>(() => {
   )
 
   const sendMessage = useCallback(
-    async (messageContent: string, modelSettings?: AiSdkOptions) => {
+    async (messageContent: string, options?: AiSdkOptions & { maxMessagesToInclude?: number }) => {
       if (!messageContent.trim()) return
 
       setParsedError(null)
@@ -788,7 +794,9 @@ const messages = useMemo<ChatUiMessage[]>(() => {
         model,
         system: systemMessage,
         toolChoice: toolsEnabled ? 'auto' : 'none',
-        ...buildRequestExtras(modelSettings)
+        maxMessagesToInclude: options?.maxMessagesToInclude ?? maxMessagesToInclude,
+        includeSystemPrompt,
+        ...buildRequestExtras(options)
       }
 
       await sendChatMessage(
@@ -800,7 +808,7 @@ const messages = useMemo<ChatUiMessage[]>(() => {
         { body: bodyExtras }
       )
     },
-    [buildRequestExtras, model, provider, sendChatMessage, systemMessage, toolsEnabled]
+    [buildRequestExtras, model, provider, sendChatMessage, systemMessage, toolsEnabled, maxMessagesToInclude, includeSystemPrompt]
   )
 
   const handleInputChange = useCallback((event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {

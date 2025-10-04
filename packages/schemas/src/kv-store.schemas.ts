@@ -13,7 +13,8 @@ export const KVKeyEnum = {
   projectTabs: 'projectTabs',
   activeProjectTabId: 'activeProjectTabId',
   activeChatId: 'activeChatId',
-  recentProjects: 'recentProjects'
+  recentProjects: 'recentProjects',
+  chatSettings: 'chatSettings'
 } as const
 
 export type KVKey = (typeof KVKeyEnum)[keyof typeof KVKeyEnum]
@@ -23,13 +24,52 @@ export const kvKeyEnumSchema = z.enum(Object.values(KVKeyEnum) as [KVKey, ...KVK
 // Schema for recent projects - array of project IDs
 const recentProjectsSchema = z.array(z.number()).max(5).default([])
 
+/**
+ * Chat Settings Schema
+ * Manages user preferences for chat context management and message history.
+ */
+export const chatSettingsSchema = z
+  .object({
+    /**
+     * Default maximum number of messages to include in chat context.
+     * Range: 1-100 messages. Default: 50 messages.
+     */
+    defaultMaxMessages: z.number().int().min(1).max(100).default(50),
+    /**
+     * Whether to automatically adjust context based on token limits.
+     * When enabled, the system will dynamically limit messages to stay within token budgets.
+     */
+    autoAdjustContext: z.boolean().default(true),
+    /**
+     * Whether to display token counts in the chat interface.
+     * Shows estimated token usage for context management.
+     */
+    showTokenCounts: z.boolean().default(true),
+    /**
+     * Whether to warn users when context size approaches limits.
+     * Helps prevent unexpected context truncation.
+     */
+    warnOnLargeContext: z.boolean().default(true),
+    /**
+     * Token threshold for triggering large context warnings.
+     * Default: 8000 tokens (safe for most models).
+     */
+    largeContextThreshold: z.number().int().positive().default(8000)
+  })
+  .openapi('ChatSettings', {
+    description: 'User preferences for chat context management and message history control'
+  })
+
+export type ChatSettings = z.infer<typeof chatSettingsSchema>
+
 export const KvSchemas = {
   [KVKeyEnum.appSettings]: appSettingsSchema,
   [KVKeyEnum.projectTabs]: projectTabsStateRecordSchema,
   // No active project tab by default; will be set when user opens/selects a project tab
   [KVKeyEnum.activeProjectTabId]: idSchemaSpec.default(-1),
   [KVKeyEnum.activeChatId]: idSchemaSpec.default(-1),
-  [KVKeyEnum.recentProjects]: recentProjectsSchema
+  [KVKeyEnum.recentProjects]: recentProjectsSchema,
+  [KVKeyEnum.chatSettings]: chatSettingsSchema
 } as const
 
 const getInitialGlobalState = () => {
@@ -49,7 +89,14 @@ export const KVDefaultValues: { [K in KVKey]: KVValue<K> } = {
   activeProjectTabId: initialGlobalState.projectActiveTabId ?? -1,
   appSettings: initialGlobalState.appSettings,
   projectTabs: initialGlobalState.projectTabs,
-  recentProjects: []
+  recentProjects: [],
+  chatSettings: {
+    defaultMaxMessages: 50,
+    autoAdjustContext: true,
+    showTokenCounts: true,
+    warnOnLargeContext: true,
+    largeContextThreshold: 8000
+  }
 }
 
 export type KVValue<K extends KVKey> = z.infer<(typeof KvSchemas)[K]>

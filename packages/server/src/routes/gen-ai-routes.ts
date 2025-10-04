@@ -21,8 +21,10 @@ import {
   genTextStream,
   providerKeyService,
   updateProviderSettings,
-  toDataStreamResponse
+  toDataStreamResponse,
+  messageContextService
 } from '@promptliano/services'
+import { createLogger } from '@promptliano/services'
 import type { UIMessage } from 'ai'
 import type { StreamChatSessionParams } from '../ai/chat/session'
 import { type APIProviders, type ProviderKey } from '@promptliano/database'
@@ -30,6 +32,9 @@ import { type ProviderKeysConfig, ModelFetcherService } from '@promptliano/servi
 import { OLLAMA_BASE_URL, LMSTUDIO_BASE_URL } from '@promptliano/services/src/model-providers/provider-defaults'
 import { streamChatSession } from '../ai/chat/session'
 import { createMcpToolSuite } from '../ai/mcp/registry'
+
+// Logger for debugging
+const logger = createLogger('GenAIRoutes')
 
 // Define the Zod schema for filename suggestions
 const FilenameSuggestionSchema = z
@@ -152,7 +157,9 @@ const AiSdkChatRequestSchema = z.object({
   forceFinalText: z.boolean().optional(),
   parallelToolCalls: z.boolean().optional(),
   enableChatAutoNaming: z.boolean().optional(),
-  messages: z.array(AiSdkChatMessageSchema).min(1)
+  messages: z.array(AiSdkChatMessageSchema).min(1),
+  maxMessagesToInclude: z.number().int().min(1).max(100).optional(),
+  includeSystemPrompt: z.boolean().optional().default(true)
 })
 
 const postAiChatSdkRoute = createRoute({
@@ -419,6 +426,37 @@ export const genAiRoutes = new OpenAPIHono()
       )
     }
 
+    // Apply message context filtering
+    let filteredMessages = body.messages
+    try {
+      // Cast messages to compatible format for context service
+      const messagesForContext = body.messages.map(msg => ({
+        ...msg,
+        content: msg.content ?? ''
+      }))
+
+      const contextResult = messageContextService.selectMessagesForContext(messagesForContext as any, {
+        maxMessages: body.maxMessagesToInclude,
+        includeSystemPrompt: body.includeSystemPrompt ?? true,
+        preserveUserAssistantPairs: true
+      })
+
+      // Log context metadata for debugging
+      logger.info('Chat context prepared', {
+        chatId,
+        ...contextResult.metadata
+      })
+
+      // Cast back to original message format
+      filteredMessages = contextResult.messages as any
+    } catch (error) {
+      // If filtering fails, log warning and use all messages as fallback
+      logger.warn('Message context filtering failed, using all messages', {
+        chatId,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      })
+    }
+
     const options = {
       provider: body.provider,
       model: body.model,
@@ -430,13 +468,13 @@ export const genAiRoutes = new OpenAPIHono()
       ...(body.responseFormat !== undefined && { responseFormat: body.responseFormat })
     }
 
-    const normalizedMessages = body.messages.map((message, index) => ({
+    const normalizedMessages = filteredMessages.map((message, index) => ({
       ...message,
       id: message.id ?? `msg-${index}`,
       parts: Array.isArray(message.parts) ? message.parts : []
     })) as unknown as UIMessage[]
 
-    const rawSystemMessage = body.messages.find((msg) => msg.role === 'system')
+    const rawSystemMessage = filteredMessages.find((msg) => msg.role === 'system')
     const systemMessageContent = typeof rawSystemMessage?.content === 'string' ? rawSystemMessage.content : undefined
 
     const sessionParams: StreamChatSessionParams = {

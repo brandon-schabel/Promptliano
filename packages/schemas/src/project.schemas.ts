@@ -128,9 +128,32 @@ export const SuggestFilesBodySchema = z
       example: true,
       description: 'Return per-file relevance scores when available'
     }),
+    includeReasons: z.boolean().default(false).openapi({
+      example: false,
+      description: 'Include detailed AI-generated reasons for each file suggestion (default: false to save tokens)'
+    }),
     userContext: z.string().min(1).optional().openapi({
       example: 'Focus on MCP transport tools and remove unused prompts',
       description: 'Additional context used to bias relevance scoring'
+    }),
+    // V2 New fields
+    lineCount: z
+      .number()
+      .int()
+      .min(10)
+      .max(200)
+      .default(50)
+      .openapi({
+        example: 50,
+        description: 'Number of lines to read from each file (V2 only)'
+      }),
+    directories: z.array(z.string()).optional().openapi({
+      example: ['src/auth', 'src/api'],
+      description: 'Optional: manually specify directories to search (skips AI directory selection)'
+    }),
+    skipDirectorySelection: z.boolean().default(false).openapi({
+      example: false,
+      description: 'If true and directories provided, skip AI directory selection stage'
     })
   })
   .superRefine((data, ctx) => {
@@ -148,10 +171,14 @@ export const SuggestFilesResponseSchema = z
         z.object({
           path: z.string(),
           relevance: z.number().min(0).max(1),
-          reason: z.string(),
+          reason: z.string().optional(), // V1 compat
+          reasons: z.array(z.string()).optional(), // V2 format
           fileType: z.string(),
-          aiConfidence: z.number().min(0).max(1).optional(),
-          aiReasons: z.array(z.string()).optional()
+          aiConfidence: z.number().min(0).max(1).optional(), // V1 compat
+          confidence: z.number().min(0).max(1).optional(), // V2 format
+          aiReasons: z.array(z.string()).optional(), // V1 compat
+          lineCount: z.number().optional(), // V2: lines analyzed
+          totalLines: z.number().optional() // V2: total lines in file
         })
       ),
       totalFiles: z.number(),
@@ -168,7 +195,16 @@ export const SuggestFilesResponseSchema = z
             reasons: z.array(z.string())
           })
         )
-        .optional()
+        .optional(),
+      // V2 new metadata fields
+      selectedDirectories: z.array(z.string()).optional(),
+      totalDirectories: z.number().optional(),
+      filesFromDirectories: z.number().optional(),
+      lineCountPerFile: z.number().optional(),
+      aiModel: z.string().optional(),
+      directorySelectionTime: z.number().optional(),
+      fileFetchTime: z.number().optional(),
+      suggestionTime: z.number().optional()
     })
   })
   .openapi('SuggestFilesResponse')

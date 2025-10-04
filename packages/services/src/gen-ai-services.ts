@@ -10,6 +10,7 @@ import {
 import { formatDataStreamPart } from '@ai-sdk/ui-utils'
 import { createOpenAI } from '@ai-sdk/openai'
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible'
+import { createOpenRouter } from '@openrouter/ai-sdk-provider'
 import { createAnthropic } from '@ai-sdk/anthropic'
 import { createGoogleGenerativeAI } from '@ai-sdk/google'
 import { createGroq } from '@ai-sdk/groq'
@@ -981,23 +982,26 @@ export async function getProviderLanguageModelInterface(
       if (!apiKey) {
         throw ErrorFactory.missingRequired('OpenRouter API Key', 'database or environment')
       }
-      const site = process.env.OPENROUTER_SITE_URL?.trim() || 'https://promptliano.dev/local'
-      const title = process.env.OPENROUTER_APP_TITLE?.trim() || 'Promptliano Dev'
-      const userAgent =
-        process.env.OPENROUTER_USER_AGENT?.trim() || 'Promptliano/Dev (https://promptliano.dev/local)'
+      const site = process.env.OPENROUTER_SITE_URL?.trim() || 'https://promptliano.com'
+      const title = process.env.OPENROUTER_APP_TITLE?.trim() || 'Promptliano'
+
       const defaultHeaders: Record<string, string> = {
         'HTTP-Referer': site,
-        Referer: site,
-        'X-Title': title,
-        'User-Agent': userAgent,
-        Accept: 'application/json'
+        'X-Title': title
       }
 
-      return createOpenAI({
+      if (debug) {
+        console.log('[OpenRouter Debug] Configuration:', {
+          site,
+          title,
+          headers: defaultHeaders
+        })
+      }
+
+      return createOpenRouter({
         apiKey,
         baseURL: 'https://openrouter.ai/api/v1',
-        headers: defaultHeaders,
-        name: 'openrouter'
+        headers: defaultHeaders
       })(modelId)
     }
     case 'copilot': {

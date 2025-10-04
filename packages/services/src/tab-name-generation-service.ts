@@ -226,27 +226,48 @@ export type TabNameGenerationService = ReturnType<typeof createTabNameGeneration
 
 // Export singleton for backward compatibility (lazy loading with default deps)
 let defaultService: TabNameGenerationService | null = null
-export function getTabNameGenerationService(): TabNameGenerationService {
-  if (!defaultService) {
-    // Try to load dependencies dynamically for backward compatibility
-    try {
-      const { generateTabName } = require('./gen-ai-services')
-      const { getProjectById, getProjectFiles } = require('./project-service')
+let initializationPromise: Promise<TabNameGenerationService> | null = null
 
-      defaultService = createTabNameGenerationService({
-        aiService: { generateTabName },
-        projectService: { getById: getProjectById, getProjectFiles }
-      })
-    } catch (error) {
-      // Fallback service without AI capabilities
-      defaultService = createTabNameGenerationService({})
-    }
+export async function getTabNameGenerationService(): Promise<TabNameGenerationService> {
+  if (!defaultService && !initializationPromise) {
+    initializationPromise = (async () => {
+      try {
+        // Use dynamic import instead of require to support top-level await
+        const [genAiModule, projectServiceModule] = await Promise.all([
+          import('./gen-ai-services'),
+          import('./project-service')
+        ])
+
+        defaultService = createTabNameGenerationService({
+          aiService: { generateTabName: genAiModule.generateTabName },
+          projectService: {
+            getById: projectServiceModule.getProjectById,
+            getProjectFiles: projectServiceModule.getProjectFiles
+          }
+        })
+      } catch (error) {
+        // Fallback service without AI capabilities
+        defaultService = createTabNameGenerationService({})
+      }
+      return defaultService!
+    })()
   }
-  return defaultService
+  return initializationPromise || defaultService!
 }
 
-// Export individual functions for tree-shaking
-export const tabNameGenerationService = getTabNameGenerationService()
+// Lazy initialized singleton - use getTabNameGenerationService() for async access
+let _lazyService: TabNameGenerationService | null = null
+
+// Synchronous getter for backward compatibility (initializes without dependencies)
+function getOrCreateLazyService(): TabNameGenerationService {
+  if (!_lazyService) {
+    _lazyService = createTabNameGenerationService({})
+  }
+  return _lazyService
+}
+
+// Export individual functions for tree-shaking (synchronous fallback)
+export const tabNameGenerationService = getOrCreateLazyService()
 export const {
   generateTabName,
   generateUniqueTabName,

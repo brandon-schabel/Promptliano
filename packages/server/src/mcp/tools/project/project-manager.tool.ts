@@ -21,6 +21,9 @@ import {
   deleteProject,
   getProjectFiles,
   updateFileContent,
+  insertFileAtLine,
+  replaceFileLines,
+  applyFilePatch,
   suggestFilesForProject,
   suggestFiles,
   syncProject,
@@ -35,7 +38,7 @@ import { ApiError } from '@promptliano/shared'
 export const projectManagerTool: MCPToolDefinition = {
   name: 'project_manager',
   description:
-    'Manage projects, files, and project-related operations. Actions: list, get, create, update, delete (requires confirmDelete:true), delete_file (delete single file), browse_files, get_file_content, update_file_content, suggest_files, search, create_file, get_file_content_partial, get_file_tree (paginated file tree; options: maxDepth, includeHidden, fileTypes, maxFilesPerDir, limit, offset, excludePatterns, includeContent=false), overview (get essential project context - recommended first tool)',
+    'Manage projects, files, and project-related operations. Actions: list, get, create, update, delete (requires confirmDelete:true), delete_file (delete single file), browse_files, get_file_content, update_file_content (supports modes: replace, insert, replace-lines, patch), search, create_file, get_file_content_partial, get_file_tree (paginated file tree; options: maxDepth, includeHidden, fileTypes, maxFilesPerDir, limit, offset, excludePatterns, includeContent=false), overview (get essential project context - recommended first tool). File editing modes: (1) replace: full file replacement (default), (2) insert: insert content at lineNumber with position (before/after), line numbers are 1-indexed with valid range based on file length, (3) replace-lines: replace from startLine to endLine, (4) patch: apply unified diff patch (requires valid unified diff format with --- / +++ headers and @@ hunk markers)',
   inputSchema: {
     type: 'object',
     properties: {
@@ -52,7 +55,8 @@ export const projectManagerTool: MCPToolDefinition = {
       data: {
         type: 'object',
         description:
-          'Action-specific data. For get_file_content: { path: "src/index.ts" }. For browse_files: { path: "src/" }. For create: { name: "My Project", path: "/path/to/project" }. For delete_file: { path: "src/file.ts" }. For overview: no data required'
+          'Action-specific data. For get_file_content: { path: "src/index.ts" }. For browse_files: { path: "src/" }. For create: { name: "My Project", path: "/path/to/project" }. For delete_file: { path: "src/file.ts" }. For update_file_content: { path: "src/file.ts", content: "new content", mode?: "replace" (default) | "insert" | "replace-lines" | "patch", lineNumber?: number (insert mode), position?: "before" | "after" (insert mode), startLine?: number (replace-lines mode), endLine?: number (replace-lines mode) }. For overview: no data required',
+        additionalProperties: true
       }
     },
     required: ['action']
@@ -254,6 +258,22 @@ export const projectManagerTool: MCPToolDefinition = {
             const filePath = validateDataField<string>(data, 'path', 'string', '"src/index.ts"')
             const content = validateDataField<string>(data, 'content', 'string', '"// Updated content"')
 
+            // Get edit mode (default to 'replace' for backward compatibility)
+            const mode = (data?.mode as string) || 'replace'
+            const validModes = ['replace', 'insert', 'replace-lines', 'patch']
+
+            if (!validModes.includes(mode)) {
+              throw createMCPError(
+                MCPErrorCode.VALIDATION_FAILED,
+                `Invalid edit mode: ${mode}. Valid modes: ${validModes.join(', ')}`,
+                {
+                  parameter: 'data.mode',
+                  value: mode,
+                  validValues: validModes
+                }
+              )
+            }
+
             const files = await getProjectFiles(validProjectId)
             if (!files) {
               throw createMCPError(MCPErrorCode.SERVICE_ERROR, 'Failed to retrieve project files', {
@@ -276,51 +296,142 @@ export const projectManagerTool: MCPToolDefinition = {
               )
             }
 
-            // Use file.id (which is the path) directly now that service layer is fixed
-            await updateFileContent(validProjectId, file.id, content)
-            return {
-              content: [{ type: 'text', text: `File ${filePath} updated successfully` }]
-            }
-          }
-
-          case ProjectManagerAction.SUGGEST_FILES: {
-            const validProjectId = validateRequiredParam(projectId, 'projectId', 'number', '<PROJECT_ID>')
-            const prompt = validateDataField<string>(data, 'prompt', 'string', '"authentication flow"')
-            const limit = (data?.limit as number) || 10
-
-            let suggestionText = ''
-
+            // Execute edit based on mode
             try {
-              const result = await suggestFilesForProject(validProjectId, prompt, {
-                maxResults: limit,
-                strategy: 'fast'
-              })
+              switch (mode) {
+                case 'replace': {
+                  // Full file replacement (backward compatible)
+                  await updateFileContent(validProjectId, file.id, content)
+                  return {
+                    content: [{ type: 'text', text: `File ${filePath} updated successfully (full replacement)` }]
+                  }
+                }
 
-              const files = (await getProjectFiles(validProjectId)) ?? []
-              const fileById = new Map(files.map((file) => [String(file.id), file]))
-              suggestionText = (result.suggestions || [])
-                .map((fileId) => {
-                  const file = fileById.get(String(fileId))
-                  return file?.path ?? String(fileId)
-                })
-                .filter(Boolean)
-                .join('\n')
+                case 'insert': {
+                  // Insert at specific line
+                  const lineNumber = data?.lineNumber as number | undefined
+                  if (!lineNumber || lineNumber < 1) {
+                    throw createMCPError(
+                      MCPErrorCode.VALIDATION_FAILED,
+                      'Insert mode requires valid lineNumber >= 1',
+                      {
+                        parameter: 'data.lineNumber',
+                        value: lineNumber,
+                        example: '{ mode: "insert", lineNumber: 10, position: "after", content: "..." }'
+                      }
+                    )
+                  }
+
+                  const position = (data?.position as 'before' | 'after') || 'after'
+                  if (position !== 'before' && position !== 'after') {
+                    throw createMCPError(
+                      MCPErrorCode.VALIDATION_FAILED,
+                      'Insert position must be "before" or "after"',
+                      {
+                        parameter: 'data.position',
+                        value: position,
+                        validValues: ['before', 'after']
+                      }
+                    )
+                  }
+
+                  await insertFileAtLine(validProjectId, file.id, lineNumber, content, position)
+                  return {
+                    content: [
+                      {
+                        type: 'text',
+                        text: `File ${filePath} updated successfully (inserted ${position} line ${lineNumber})`
+                      }
+                    ]
+                  }
+                }
+
+                case 'replace-lines': {
+                  // Replace line range
+                  const startLine = data?.startLine as number | undefined
+                  const endLine = data?.endLine as number | undefined
+
+                  if (!startLine || startLine < 1) {
+                    throw createMCPError(
+                      MCPErrorCode.VALIDATION_FAILED,
+                      'Replace-lines mode requires valid startLine >= 1',
+                      {
+                        parameter: 'data.startLine',
+                        value: startLine,
+                        example: '{ mode: "replace-lines", startLine: 5, endLine: 10, content: "..." }'
+                      }
+                    )
+                  }
+
+                  if (!endLine || endLine < 1) {
+                    throw createMCPError(
+                      MCPErrorCode.VALIDATION_FAILED,
+                      'Replace-lines mode requires valid endLine >= 1',
+                      {
+                        parameter: 'data.endLine',
+                        value: endLine,
+                        example: '{ mode: "replace-lines", startLine: 5, endLine: 10, content: "..." }'
+                      }
+                    )
+                  }
+
+                  if (startLine > endLine) {
+                    throw createMCPError(
+                      MCPErrorCode.VALIDATION_FAILED,
+                      `Start line ${startLine} must be <= end line ${endLine}`,
+                      {
+                        parameter: 'data.startLine',
+                        value: startLine,
+                        endLine
+                      }
+                    )
+                  }
+
+                  await replaceFileLines(validProjectId, file.id, startLine, endLine, content)
+                  return {
+                    content: [
+                      {
+                        type: 'text',
+                        text: `File ${filePath} updated successfully (replaced lines ${startLine}-${endLine})`
+                      }
+                    ]
+                  }
+                }
+
+                case 'patch': {
+                  // Apply unified diff patch
+                  await applyFilePatch(validProjectId, file.id, content)
+                  return {
+                    content: [{ type: 'text', text: `File ${filePath} updated successfully (patch applied)` }]
+                  }
+                }
+
+                default:
+                  throw createMCPError(
+                    MCPErrorCode.OPERATION_FAILED,
+                    `Unhandled edit mode: ${mode}`,
+                    { mode }
+                  )
+              }
             } catch (error) {
-              console.warn(
-                '[ProjectManagerTool] AI-powered suggest_files failed; falling back to semantic search results',
-                error
+              // If it's already an MCP error, re-throw it
+              if (error instanceof MCPError) {
+                throw error
+              }
+
+              // Convert service errors to MCP errors
+              const errorMessage = error instanceof Error ? error.message : String(error)
+              throw createMCPError(
+                MCPErrorCode.OPERATION_FAILED,
+                `Failed to update file: ${errorMessage}`,
+                {
+                  filePath,
+                  mode,
+                  originalError: errorMessage
+                }
               )
-
-              const fallbackFiles = await suggestFiles(validProjectId, prompt, limit)
-              suggestionText = fallbackFiles.map((file) => file.path).join('\n')
-            }
-
-            return {
-              content: [{ type: 'text', text: suggestionText || 'No file suggestions found' }]
             }
           }
-
-          // Removed: GET_SELECTION_CONTEXT (active-tab dependent)
 
           case ProjectManagerAction.SEARCH: {
             const validProjectId = validateRequiredParam(projectId, 'projectId', 'number')

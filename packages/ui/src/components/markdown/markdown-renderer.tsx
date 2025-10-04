@@ -18,6 +18,7 @@ export type MarkdownRendererProps = {
   mermaidConfig?: MermaidConfig
   defaultOrigin?: string
   copyToClipboard?: (text: string) => void
+  showMermaidControls?: boolean
 }
 
 export function MarkdownRenderer({
@@ -28,7 +29,8 @@ export function MarkdownRenderer({
   allowedLinkPrefixes,
   mermaidConfig,
   defaultOrigin,
-  copyToClipboard: _copyToClipboard
+  copyToClipboard: _copyToClipboard,
+  showMermaidControls = true
 }: MarkdownRendererProps) {
   const shikiThemeCandidate = Array.isArray(codeTheme)
     ? codeTheme
@@ -64,6 +66,7 @@ export function MarkdownRenderer({
       allowedLinkPrefixes={allowedLinkPrefixes ?? [...DEFAULT_LINK_PREFIXES]}
       defaultOrigin={resolvedDefaultOrigin}
       parseIncompleteMarkdown
+      controls={{ mermaid: showMermaidControls }}
       data-color-mode={_isDarkMode ? 'dark' : 'light'}
     >
       {content}

@@ -13,6 +13,7 @@ export interface MCPToolInputSchema {
       description: string
       default?: any
       enum?: string[]
+      additionalProperties?: boolean // Allow dynamic properties in data fields
     }
   >
   required?: string[]

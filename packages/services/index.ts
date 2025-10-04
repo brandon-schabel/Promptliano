@@ -13,7 +13,6 @@ export {
   getProjectStats,
   // File-related functions
   getProjectFiles,
-  updateFileContent,
   suggestFiles,
   getProjectFileTree,
   getProjectOverview,
@@ -115,6 +114,11 @@ export {
   // File Service
   createFileService,
   fileService,
+  updateFileContent,
+  insertFileAtLine,
+  replaceFileLines,
+  applyFilePatch,
+  createFileDiff,
   type FileService,
   type FileSyncData
 } from './src/file-service'
@@ -276,6 +280,15 @@ export * from './src/core/base-service'
 export * from './src/utils/logger'
 export * from './src/utils/model-usage-logger'
 
+// Message Context Service
+export {
+  createMessageContextService,
+  messageContextService,
+  type MessageContextOptions,
+  type MessageContextResult,
+  type Message as MessageContextMessage
+} from './src/message-context-service'
+
 // server side utils
 // Removed project summary service exports
 export * from './src/utils/file-importance-scorer'
@@ -286,12 +299,18 @@ export * from './src/utils/json-scribe'
 export * from './src/file-search-service'
 export * from './src/mcp-tracking-service'
 export * from './src/file-relevance-service'
-export * from './src/file-suggestion-strategy-service'
 export * from './src/utils/compact-file-formatter'
-export * from './src/utils/file-suggestion-utils'
 export * from './src/file-grouping-service'
-// Suggestions Service facade
-export * from './src/suggestions/suggestions-service'
+// Simplified AI-Based Suggestions Service
+export {
+  suggestFilesForProject,
+  recommendStrategy,
+  createSuggestionsService,
+  suggestionsService,
+  type SuggestFilesOptions,
+  type SuggestFilesResult
+} from './src/suggestions/suggestions-service'
+
 // New shared suggestion utilities and prompt services (scaffold)
 // Internal prompt suggestion modules are intentionally not exported to avoid name collisions
 // with existing file suggestion utilities. They are used via suggestions-service and tests.

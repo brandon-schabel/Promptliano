@@ -57,7 +57,7 @@
     "@hono/zod-openapi": "^1.1.0",
     "@hono/zod-validator": "^0.4.3",
     "@modelcontextprotocol/sdk": "^1.13.0",
-    "@openrouter/ai-sdk-provider": "^0.4.6",
+    "@openrouter/ai-sdk-provider": "^1.2.0",
     "@promptliano/api-client": "workspace:*",
     "@promptliano/schemas": "workspace:*",
     "@promptliano/services": "workspace:*",

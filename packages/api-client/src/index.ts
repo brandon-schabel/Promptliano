@@ -450,6 +450,10 @@ export class PromptlianoClient {
 
   // MCP methods
   public readonly mcp = {
+    // ----- Active Tools -----
+    listMcpActiveTools: (query?: { projectId?: number; provider?: string }) =>
+      this.typeSafe.listMcpActiveTools(query),
+
     // ----- Global (use explicit fetch to match server routes) -----
     getGlobalConfig: async () => {
       const res = await fetch(`${this.config.baseUrl}/api/mcp/global/config`, {

@@ -293,36 +293,53 @@ export type QueueTimeoutService = ReturnType<typeof createQueueTimeoutService>
 
 // Export singleton for backward compatibility (lazy loading with default deps)
 let defaultService: QueueTimeoutService | null = null
+let initializationPromise: Promise<QueueTimeoutService> | null = null
 
-export function getQueueTimeoutService(options?: {
+export async function getQueueTimeoutService(options?: {
   checkInterval?: number
   defaultTimeout?: number
-}): QueueTimeoutService {
-  if (!defaultService) {
-    try {
-      // Try to load dependencies dynamically for backward compatibility
-      const { getQueuesByProject, checkAndHandleTimeouts } = require('./queue-service')
-      const { listProjects } = require('./project-service')
+}): Promise<QueueTimeoutService> {
+  if (!defaultService && !initializationPromise) {
+    initializationPromise = (async () => {
+      try {
+        // Use dynamic import instead of require to support top-level await
+        const [queueServiceModule, projectServiceModule] = await Promise.all([
+          import('./queue-service'),
+          import('./project-service')
+        ])
 
-      defaultService = createQueueTimeoutService(options || {}, {
-        queueService: {
-          getByProject: getQueuesByProject,
-          checkAndHandleTimeouts
-        },
-        projectService: {
-          list: listProjects
-        }
-      })
-    } catch (error) {
-      // Fallback service without dependencies
-      defaultService = createQueueTimeoutService(options || {})
-    }
+        defaultService = createQueueTimeoutService(options || {}, {
+          queueService: {
+            getByProject: queueServiceModule.getQueuesByProject,
+            checkAndHandleTimeouts: queueServiceModule.checkAndHandleTimeouts
+          },
+          projectService: {
+            list: projectServiceModule.listProjects
+          }
+        })
+      } catch (error) {
+        // Fallback service without dependencies
+        defaultService = createQueueTimeoutService(options || {})
+      }
+      return defaultService!
+    })()
   }
-  return defaultService
+  return initializationPromise || defaultService!
 }
 
-// Export individual functions for tree-shaking
-export const queueTimeoutService = getQueueTimeoutService()
+// Lazy initialized singleton - use getQueueTimeoutService() for async access
+let _lazyService: QueueTimeoutService | null = null
+
+// Synchronous getter for backward compatibility (initializes without dependencies)
+function getOrCreateLazyService(): QueueTimeoutService {
+  if (!_lazyService) {
+    _lazyService = createQueueTimeoutService({})
+  }
+  return _lazyService
+}
+
+// Export individual functions for tree-shaking (synchronous fallback)
+export const queueTimeoutService = getOrCreateLazyService()
 export const {
   start: startQueueTimeoutService,
   stop: stopQueueTimeoutService,
@@ -338,7 +355,8 @@ export class QueueTimeoutServiceClass {
   private service: ReturnType<typeof createQueueTimeoutService>
 
   constructor(options: { checkInterval?: number; defaultTimeout?: number } = {}) {
-    this.service = getQueueTimeoutService(options)
+    // Use synchronous fallback for legacy compatibility
+    this.service = createQueueTimeoutService(options)
   }
 
   async start(): Promise<void> {

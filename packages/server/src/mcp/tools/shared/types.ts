@@ -10,7 +10,6 @@ export enum ProjectManagerAction {
   BROWSE_FILES = 'browse_files',
   GET_FILE_CONTENT = 'get_file_content',
   UPDATE_FILE_CONTENT = 'update_file_content',
-  SUGGEST_FILES = 'suggest_files',
   SEARCH = 'search',
   CREATE_FILE = 'create_file',
   GET_FILE_CONTENT_PARTIAL = 'get_file_content_partial',
@@ -34,8 +33,7 @@ export enum PromptManagerAction {
   DELETE = 'delete',
   LIST_BY_PROJECT = 'list_by_project',
   ADD_TO_PROJECT = 'add_to_project',
-  REMOVE_FROM_PROJECT = 'remove_from_project',
-  SUGGEST_PROMPTS = 'suggest_prompts'
+  REMOVE_FROM_PROJECT = 'remove_from_project'
 }
 
 export const PromptManagerSchema = z.object({
@@ -173,14 +171,20 @@ export const GitManagerSchema = z.object({
   data: z.any().optional()
 })
 
-// AI Assistant Types (already migrated but included for completeness)
+// AI Assistant Types - AI-powered tools for intelligent development assistance
 export enum AIAssistantAction {
-  OPTIMIZE_PROMPT = 'optimize_prompt'
+  // Prompt Engineering (AI-powered)
+  OPTIMIZE_PROMPT = 'optimize_prompt',
+  GENERATE_PROMPT = 'generate_prompt',
+
+  // File & Prompt Suggestions (AI-powered)
+  SUGGEST_FILES = 'suggest_files',
+  SUGGEST_PROMPTS = 'suggest_prompts'
 }
 
 export const AIAssistantSchema = z.object({
   action: z.nativeEnum(AIAssistantAction),
-  projectId: z.number(),
+  projectId: z.number().optional(),
   data: z.any().optional()
 })
 

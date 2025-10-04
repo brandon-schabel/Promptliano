@@ -13,8 +13,8 @@
  */
 
 import { createCrudService, extendService, withErrorContext, createServiceLogger } from './core/base-service'
-import ErrorFactory from '@promptliano/shared/src/error/error-factory'
-import { fileRepository } from '@promptliano/database'
+import { ErrorFactory } from '@promptliano/shared'
+import { fileRepository, projectRepository } from '@promptliano/database'
 import {
   type File as ProjectFile,
   type InsertFile as CreateProjectFileBody,
@@ -24,6 +24,14 @@ import {
 import { resolvePath } from '@promptliano/shared'
 import path from 'node:path'
 import fs from 'fs/promises'
+import {
+  insertAtLine as insertAtLineUtil,
+  replaceLineRange as replaceLineRangeUtil,
+  applyPatch as applyPatchUtil,
+  validatePatch as validatePatchUtil,
+  createPatch as createPatchUtil,
+  type PatchResult
+} from './utils/diff-utils'
 
 // Update type for file updates
 type UpdateProjectFileBody = Partial<Omit<CreateProjectFileBody, 'id' | 'createdAt' | 'updatedAt'>>
@@ -33,7 +41,7 @@ export interface FileServiceDeps {
   repository?: typeof fileRepository
   logger?: ReturnType<typeof createServiceLogger>
   fs?: typeof fs // For testing with mock filesystem
-  projectService?: any // For project validation
+  projectService?: any // For project validation and getting project paths for filesystem operations
 }
 
 // File system abstraction for testing
@@ -379,16 +387,240 @@ export function createFileService(deps: FileServiceDeps = {}) {
     async updateContent(projectId: number, fileId: string, content: string): Promise<ProjectFile> {
       return withErrorContext(
         async () => {
+          // Get the current file to get its path
+          const file = await baseService.getById(fileId)
+          if (!file) {
+            throw ErrorFactory.notFound('File', fileId)
+          }
+
           const size = Buffer.byteLength(content, 'utf8')
           const checksum = calculateChecksum(content)
 
-          return await baseService.update(fileId, {
+          // Update database first
+          const updatedFile = await baseService.update(fileId, {
             content,
             size,
             checksum
           } as UpdateProjectFileBody)
+
+          // Write to filesystem
+          try {
+            console.log(`[FileService] Writing to filesystem for projectId=${projectId}, fileId=${fileId}`)
+            const project = await projectRepository.getById(projectId)
+            console.log(`[FileService] Got project:`, project)
+            if (project) {
+              const fullPath = path.join(project.path, file.path)
+              console.log(`[FileService] Writing to fullPath:`, fullPath)
+              await fileSystem.writeFile(fullPath, content, 'utf-8')
+              console.log(`[FileService] Successfully wrote to filesystem`)
+            } else {
+              console.log(`[FileService] No project found for projectId=${projectId}`)
+            }
+          } catch (error) {
+            console.log(`[FileService] ERROR writing to filesystem:`, error)
+            logger.warn(`Failed to write file to filesystem:`, error)
+            // Continue - database is already updated
+          }
+
+          return updatedFile
         },
         { entity: 'File', action: 'updateContent', id: fileId }
+      )
+    },
+
+    /**
+     * Insert content at a specific line in a file
+     */
+    async insertAtLine(
+      projectId: number,
+      fileId: string,
+      lineNumber: number,
+      content: string,
+      position: 'before' | 'after' = 'after'
+    ): Promise<ProjectFile> {
+      return withErrorContext(
+        async () => {
+          // Get the current file
+          const file = await baseService.getById(fileId)
+          if (!file) {
+            throw ErrorFactory.notFound('File', fileId)
+          }
+
+          const fileContent = file.content || ''
+          const lineCount = fileContent.split('\n').length
+
+          // Perform the insertion
+          const result = insertAtLineUtil(fileContent, lineNumber, content, position)
+
+          if (!result.success) {
+            // Preserve the detailed error message from diff-utils
+            throw ErrorFactory.invalidInput(
+              'lineNumber',
+              `line number in range 1-${lineCount + 1}`,
+              result.error || `Line ${lineNumber} is out of bounds for file with ${lineCount} lines`
+            )
+          }
+
+          // Update the file with new content
+          const size = Buffer.byteLength(result.content!, 'utf8')
+          const checksum = calculateChecksum(result.content!)
+
+          // Update database first
+          const updatedFile = await baseService.update(fileId, {
+            content: result.content,
+            size,
+            checksum
+          } as UpdateProjectFileBody)
+
+          // Write to filesystem
+          try {
+            const project = await projectRepository.getById(projectId)
+            if (project) {
+              const fullPath = path.join(project.path, file.path)
+              await fileSystem.writeFile(fullPath, result.content!, 'utf-8')
+            }
+          } catch (error) {
+            logger.warn(`Failed to write file to filesystem:`, error)
+            // Continue - database is already updated
+          }
+
+          return updatedFile
+        },
+        { entity: 'File', action: 'insertAtLine', id: fileId }
+      )
+    },
+
+    /**
+     * Replace a range of lines in a file
+     */
+    async replaceLines(
+      projectId: number,
+      fileId: string,
+      startLine: number,
+      endLine: number,
+      content: string
+    ): Promise<ProjectFile> {
+      return withErrorContext(
+        async () => {
+          // Get the current file
+          const file = await baseService.getById(fileId)
+          if (!file) {
+            throw ErrorFactory.notFound('File', fileId)
+          }
+
+          // Perform the replacement
+          const result = replaceLineRangeUtil(file.content || '', startLine, endLine, content)
+
+          if (!result.success) {
+            throw ErrorFactory.invalidInput('lineRange', 'valid line range to replace', result.error)
+          }
+
+          // Update the file with new content
+          const size = Buffer.byteLength(result.content!, 'utf8')
+          const checksum = calculateChecksum(result.content!)
+
+          // Update database first
+          const updatedFile = await baseService.update(fileId, {
+            content: result.content,
+            size,
+            checksum
+          } as UpdateProjectFileBody)
+
+          // Write to filesystem
+          try {
+            const project = await projectRepository.getById(projectId)
+            if (project) {
+              const fullPath = path.join(project.path, file.path)
+              await fileSystem.writeFile(fullPath, result.content!, 'utf-8')
+            }
+          } catch (error) {
+            logger.warn(`Failed to write file to filesystem:`, error)
+            // Continue - database is already updated
+          }
+
+          return updatedFile
+        },
+        { entity: 'File', action: 'replaceLines', id: fileId }
+      )
+    },
+
+    /**
+     * Apply a unified diff patch to a file
+     */
+    async applyPatch(projectId: number, fileId: string, patch: string): Promise<ProjectFile> {
+      return withErrorContext(
+        async () => {
+          // Get the current file
+          const file = await baseService.getById(fileId)
+          if (!file) {
+            throw ErrorFactory.notFound('File', fileId)
+          }
+
+          // Validate patch first
+          const validation = validatePatchUtil(file.content || '', patch)
+          if (!validation.valid) {
+            throw ErrorFactory.invalidInput(
+              'patch',
+              'valid unified diff format',
+              `Patch validation failed: ${validation.error}${validation.conflicts ? ` (conflicts: ${validation.conflicts.join(', ')})` : ''}`
+            )
+          }
+
+          // Apply the patch
+          const result = applyPatchUtil(file.content || '', patch)
+
+          if (!result.success) {
+            throw ErrorFactory.invalidInput('patch', 'valid unified diff format', result.error || 'Failed to apply patch')
+          }
+
+          // Update the file with new content
+          const size = Buffer.byteLength(result.content!, 'utf8')
+          const checksum = calculateChecksum(result.content!)
+
+          // Update database first
+          const updatedFile = await baseService.update(fileId, {
+            content: result.content,
+            size,
+            checksum
+          } as UpdateProjectFileBody)
+
+          // Write to filesystem
+          try {
+            const project = await projectRepository.getById(projectId)
+            if (project) {
+              const fullPath = path.join(project.path, file.path)
+              await fileSystem.writeFile(fullPath, result.content!, 'utf-8')
+            }
+          } catch (error) {
+            logger.warn(`Failed to write file to filesystem:`, error)
+            // Continue - database is already updated
+          }
+
+          return updatedFile
+        },
+        { entity: 'File', action: 'applyPatch', id: fileId }
+      )
+    },
+
+    /**
+     * Create a diff patch between file's current content and new content
+     */
+    async createDiff(projectId: number, fileId: string, newContent: string): Promise<string> {
+      return withErrorContext(
+        async () => {
+          // Get the current file
+          const file = await baseService.getById(fileId)
+          if (!file) {
+            throw ErrorFactory.notFound('File', fileId)
+          }
+
+          // Create the patch
+          return createPatchUtil(file.content || '', newContent, {
+            originalFile: `a/${file.path}`,
+            modifiedFile: `b/${file.path}`
+          })
+        },
+        { entity: 'File', action: 'createDiff', id: fileId }
       )
     },
 
@@ -522,5 +754,9 @@ export const {
   delete: deleteFile,
   getByProject: getFilesByProject,
   syncProject: syncProjectFiles,
-  updateContent: updateFileContent
+  updateContent: updateFileContent,
+  insertAtLine: insertFileAtLine,
+  replaceLines: replaceFileLines,
+  applyPatch: applyFilePatch,
+  createDiff: createFileDiff
 } = fileService

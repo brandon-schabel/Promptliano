@@ -154,9 +154,46 @@ try {
 
   if (missingCoreTables.length > 0) {
     if (process.env.NODE_ENV === 'test') {
-      // In test mode, don't auto-create tables - tests should use createTestDatabase()
-      console.error('📋 Test mode: skipping automatic table creation (use createTestDatabase() instead)')
-      console.warn('⚠️ Warning: Tests should use createTestDatabase() from test-utils/test-db.ts')
+      // In test mode, create tables for MCP tests that use the global db instance
+      console.error('📋 Test mode: creating database tables from base migration...')
+      const migrationPath = join(drizzleDir, '0000_base.sql')
+      const migrationSql = readFileSync(migrationPath, 'utf8')
+      const statements = migrationSql.split('--> statement-breakpoint')
+      const createTableRe = /^CREATE\s+TABLE\s+`?(\w+)`?\s*\(/i
+      for (const statement of statements) {
+        const clean = statement.trim()
+        if (!clean || clean.startsWith('--')) continue
+        try {
+          sqlite.exec(clean)
+        } catch (e: any) {
+          const msg = String(e?.message || e)
+          if (!/already exists/i.test(msg)) {
+            console.warn(`⚠️ Failed to execute statement in test mode:`, msg)
+          }
+        }
+      }
+      console.error('✅ Test tables created successfully')
+
+      // Seed a test project for MCP tests using a real temp directory
+      try {
+        const { tmpdir } = await import('os')
+        const { join } = await import('path')
+        const { mkdirSync, existsSync } = await import('fs')
+
+        const testProjectPath = join(tmpdir(), `promptliano-test-project-${Date.now()}`)
+        if (!existsSync(testProjectPath)) {
+          mkdirSync(testProjectPath, { recursive: true })
+        }
+
+        const now = Date.now()
+        sqlite.exec(`
+          INSERT OR IGNORE INTO projects (id, name, path, description, created_at, updated_at)
+          VALUES (1, 'Test Project', '${testProjectPath.replace(/'/g, "''")}', 'Auto-created test project', ${now}, ${now})
+        `)
+        console.error(`✅ Test project seeded (ID: 1, path: ${testProjectPath})`)
+      } catch (e: any) {
+        console.warn('⚠️ Failed to seed test project:', e?.message || e)
+      }
     } else {
       console.error(
         `📋 Creating database tables (initial bootstrap for missing tables: ${missingCoreTables.join(', ')})...`
