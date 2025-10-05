@@ -4,6 +4,7 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi'
 import { mcpService } from '@promptliano/services'
 import { ApiError } from '@promptliano/shared'
+import { CONSOLIDATED_TOOLS } from '../mcp/tools'
 import { createStandardResponses, successResponse } from '../utils/route-helpers'
 import type { APIProviders } from '@promptliano/database'
 
@@ -12,6 +13,11 @@ const GROQ_REMOTE_TOOLS = [
   {
     name: 'web_search',
     description: 'Search the web using Parallel AI web search MCP',
+    category: 'search'
+  },
+  {
+    name: 'wesearch',
+    description: 'Search the web using the latest Parallel AI weSearch MCP',
     category: 'search'
   },
   {
@@ -106,26 +112,30 @@ export const mcpToolsRoutes = new OpenAPIHono().openapi(getActiveMCPToolsRoute, 
     const mcps: z.infer<typeof MCPServerInfoSchema>[] = []
     let totalTools = 0
 
+    const promptlianoTools = CONSOLIDATED_TOOLS.map((tool) => {
+      const toolInfo: z.infer<typeof MCPToolSchema> = {
+        name: `mcp__promptliano__${tool.name}`
+      }
+
+      if (tool.description) {
+        toolInfo.description = tool.description
+      }
+
+      const toolWithCategory = tool as { category?: string }
+      if (typeof toolWithCategory.category === 'string') {
+        toolInfo.category = toolWithCategory.category
+      }
+
+      return toolInfo
+    })
+
     // Always include Promptliano MCP (local)
     const promptlianoMCP = {
       name: 'Promptliano',
       type: 'local' as const,
       enabled: true,
-      toolCount: 12, // Approximate count of Promptliano MCP tools
-      tools: [
-        { name: 'mcp__promptliano__project_manager', description: 'Manage projects and files' },
-        { name: 'mcp__promptliano__flow_manager', description: 'Manage workflows, tickets, and queues' },
-        { name: 'mcp__promptliano__prompt_manager', description: 'Manage prompts' },
-        { name: 'mcp__promptliano__ai_assistant', description: 'AI-powered development assistance' },
-        { name: 'mcp__promptliano__git_manager', description: 'Git operations' },
-        { name: 'mcp__promptliano__queue_manager', description: 'Queue management' },
-        { name: 'mcp__promptliano__task_manager', description: 'Task management' },
-        { name: 'mcp__promptliano__ticket_manager', description: 'Ticket management' },
-        { name: 'mcp__promptliano__queue_processor', description: 'Queue processing' },
-        { name: 'mcp__promptliano__database_manager', description: 'Database operations' },
-        { name: 'mcp__promptliano__mcp_manager', description: 'MCP server management' },
-        { name: 'mcp__promptliano__service_architect', description: 'Service architecture' }
-      ]
+      toolCount: promptlianoTools.length,
+      tools: promptlianoTools
     }
     mcps.push(promptlianoMCP)
     totalTools += promptlianoMCP.toolCount

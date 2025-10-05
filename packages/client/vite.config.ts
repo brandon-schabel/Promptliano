@@ -3,7 +3,6 @@ import react from '@vitejs/plugin-react-swc'
 import { tanstackRouter } from '@tanstack/router-plugin/vite'
 import { resolve } from 'path'
 import tsconfigPaths from 'vite-tsconfig-paths'
-import { VitePWA } from 'vite-plugin-pwa'
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -13,56 +12,21 @@ export default defineConfig({
     port: 1420,
     strictPort: true,
     host: false,
-    open: true
+    open: true,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3147',
+        changeOrigin: true,
+        cookieDomainRewrite: 'localhost',
+        secure: false
+      }
+    }
   },
   plugins: [
     // TanStackRouterVite automatically generates routeTree.gen.ts during dev and build
     tanstackRouter(),
     react({}),
     tsconfigPaths(),
-    VitePWA({
-      registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'favicon-16x16.png', 'favicon-32x32.png', 'apple-touch-icon.png', 'mask-icon.svg'],
-      manifest: {
-        name: 'Promptliano',
-        short_name: 'Promptliano',
-        description: 'Promptliano helps teams orchestrate AI-powered workflows and MCP integrations.',
-        theme_color: '#9747FF',
-        background_color: '#f2f1ff',
-        display: 'standalone',
-        start_url: '/',
-        scope: '/',
-        icons: [
-          {
-            src: 'pwa-192x192.png',
-            sizes: '192x192',
-            type: 'image/png'
-          },
-          {
-            src: 'pwa-512x512.png',
-            sizes: '512x512',
-            type: 'image/png'
-          },
-          {
-            src: 'pwa-512x512.png',
-            sizes: '512x512',
-            type: 'image/png',
-            purpose: 'any maskable'
-          }
-        ]
-      },
-      workbox: {
-        clientsClaim: true,
-        skipWaiting: true,
-        maximumFileSizeToCacheInBytes: 8 * 1024 * 1024, // allow up to 8 MiB
-        // avoid precaching the very large main chunk explicitly if needed
-        // globIgnores patterns are relative to the sw scope
-        globIgnores: ['**/assets/main-*.js']
-      },
-      devOptions: {
-        enabled: true
-      }
-    }),
     // TYPE-SAFE DATABASE IMPORTS PLUGIN
     {
       name: 'enforce-database-type-imports',

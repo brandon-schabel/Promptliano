@@ -31,6 +31,21 @@ export { BaseApiClient, PromptlianoError } from './base-client'
 export type { ApiConfig } from './base-client'
 export * from './types' // Common type re-exports
 
+// Export auth client and types
+export { AuthClient, createAuthClient } from './auth-client'
+export type {
+  User,
+  AuthSettings,
+  AuthStatusResponse,
+  AuthResponse,
+  SetupRequest,
+  LoginRequest,
+  RefreshTokenRequest,
+  LogoutRequest,
+  CreateUserRequest,
+  UpdateUserRequest
+} from './auth-client'
+
 // Import for creating backward-compatible wrapper
 import { TypeSafeApiClient } from './generated/type-safe-client'
 import { BaseApiClient } from './base-client'

@@ -83,6 +83,30 @@ export {
 } from './src/chat-service'
 
 export {
+  // Auth Service
+  createAuthService,
+  authService,
+  hashPassword,
+  verifyPassword,
+  generateAccessToken,
+  generateRefreshToken,
+  verifyAccessToken,
+  setupFirstUser,
+  authenticateUser,
+  refreshAccessToken,
+  logout,
+  logoutAllSessions,
+  needsSetup,
+  getAuthSettings,
+  updateAuthSettings,
+  cleanupExpiredTokens,
+  getJwtSecret,
+  type AuthService,
+  type JWTPayload,
+  type AuthTokens
+} from './src/auth-service'
+
+export {
   createChatStreamService,
   type ChatStreamService
 } from './src/chat-stream-service'
@@ -409,3 +433,40 @@ export { chatService as chatMessageService } from './src/chat-service'
 export { queueItemService } from './src/queue-item-service'
 export { selectedFileService } from './src/selected-file-service'
 export { taskService as ticketTaskService } from './src/task-service'
+
+// Web Crawling Services
+export * from './src/crawling'
+
+// Crawl Service (in-memory)
+export {
+  createCrawlService,
+  crawlService,
+  crawlWebpage,
+  crawlWebsite,
+  searchCached,
+  getCrawlHistory,
+  checkRobotsTxt,
+  clearCrawlCache,
+  type CrawlService,
+  type CrawlResult,
+  type CrawlWebsiteOptions,
+  type CrawlWebpageOptions,
+  type CachedCrawl,
+  type SearchCachedOptions,
+  type CrawlHistory,
+  type RobotsTxtCheck
+} from './src/crawl-service'
+
+// Crawling Service (database-integrated)
+export {
+  createCrawlingService,
+  crawlingService,
+  crawlUrl,
+  crawlWebsite as crawlWebsiteDb,
+  getCachedByUrlHash,
+  searchCachedContent,
+  getCrawlHistory as getCrawlHistoryDb,
+  getDomainStats,
+  getRobotsTxt,
+  type CrawlingService
+} from './src/crawling-service'

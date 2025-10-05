@@ -602,7 +602,26 @@ export class TypeSafeApiClient {
   }
 
   /**
-   * Internal request handler with proper error handling
+   * Get CSRF token from cookie (browser only)
+   */
+  private getCsrfTokenFromCookie(): string | null {
+    if (typeof document === 'undefined') {
+      return null
+    }
+
+    const cookies = document.cookie.split(';')
+    const csrfCookie = cookies.find(c => c.trim().startsWith('csrf_token='))
+
+    if (!csrfCookie) {
+      return null
+    }
+
+    const tokenValue = csrfCookie.split('=')[1]
+    return tokenValue || null
+  }
+
+  /**
+   * Internal request handler with proper error handling and CSRF protection
    */
   private async request<T>(
     method: string,
@@ -614,7 +633,7 @@ export class TypeSafeApiClient {
     }
   ): Promise<T> {
     const url = new URL(path, this.baseUrl)
-    
+
     // Add query parameters
     if (options?.params) {
       Object.entries(options.params).forEach(([key, value]) => {
@@ -631,6 +650,15 @@ export class TypeSafeApiClient {
     try {
       const isForm = typeof FormData !== 'undefined' && options?.body instanceof FormData
       const headers: Record<string, string> = { ...this.headers }
+
+      // Add CSRF token for state-changing requests (browser only)
+      if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(method.toUpperCase()) && typeof window !== 'undefined') {
+        const csrfToken = this.getCsrfTokenFromCookie()
+        if (csrfToken) {
+          headers['x-csrf-token'] = csrfToken
+        }
+      }
+
       if (isForm && headers['Content-Type']) {
         // Let fetch set the multipart boundary
         delete headers['Content-Type']
@@ -640,7 +668,8 @@ export class TypeSafeApiClient {
         method,
         headers,
         body: isForm ? (options?.body as FormData) : options?.body ? JSON.stringify(options.body) : undefined,
-        signal: controller.signal
+        signal: controller.signal,
+        credentials: 'include' // Include cookies for CSRF token
       })
 
       clearTimeout(timeoutId)

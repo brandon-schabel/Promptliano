@@ -22,7 +22,9 @@ import {
   Cloud,
   Database,
   FileJson,
-  Terminal
+  Terminal,
+  LogOut,
+  User
 } from 'lucide-react'
 import { HelpDialog } from '@/components/navigation/help-dialog'
 import {
@@ -46,6 +48,7 @@ import {
 } from '@promptliano/ui' // Correct path to your sidebar.tsx
 import { ErrorBoundary } from '@/components/error-boundary/error-boundary'
 import { ServerStatusIndicator } from '@/components/navigation/server-status-indicator'
+import { useAuth } from '@/contexts/auth-context'
 
 const baseNavigationSections = [
   {
@@ -217,6 +220,9 @@ export function AppSidebar({ ...props }: React.HTMLAttributes<HTMLDivElement>) {
   // The sidebar state (open/collapsed) is managed by SidebarProvider
   const { open } = useSidebar()
 
+  // Auth for logout functionality
+  const { logout, user } = useAuth()
+
   return (
     <ErrorBoundary>
       <>
@@ -305,6 +311,19 @@ export function AppSidebar({ ...props }: React.HTMLAttributes<HTMLDivElement>) {
                 <SidebarMenuItem className='flex items-center w-full justify-center gap-2 group-data-[collapsible=icon]:hidden'>
                   <ServerStatusIndicator />
                 </SidebarMenuItem>
+                {user && (
+                  <SidebarMenuItem className='flex items-center w-full justify-center gap-2 px-3 py-2 group-data-[collapsible=icon]:hidden'>
+                    <div className='flex items-center gap-2 w-full'>
+                      <div className='flex items-center justify-center h-8 w-8 rounded-full bg-primary/10 flex-shrink-0'>
+                        <User className='h-4 w-4 text-primary' />
+                      </div>
+                      <div className='flex flex-col min-w-0'>
+                        <span className='text-sm font-medium truncate'>{user.username}</span>
+                        <span className='text-xs text-muted-foreground capitalize'>{user.role}</span>
+                      </div>
+                    </div>
+                  </SidebarMenuItem>
+                )}
                 <SidebarMenuItem className='flex items-center w-full justify-center gap-2'>
                   <SidebarMenuButton
                     onClick={() => setOpenProjectListDialog(true)}
@@ -329,6 +348,19 @@ export function AppSidebar({ ...props }: React.HTMLAttributes<HTMLDivElement>) {
                     <span className='truncate'>Help</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
+                {user && (
+                  <SidebarMenuItem className='flex items-center w-full justify-center gap-2'>
+                    <SidebarMenuButton
+                      onClick={() => logout()}
+                      tooltip='Logout'
+                      data-testid='sidebar-logout'
+                      className='text-destructive hover:text-destructive hover:bg-destructive/10'
+                    >
+                      <LogOut className='h-4 w-4 flex-shrink-0' />
+                      <span className='truncate'>Logout</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                )}
                 <SidebarMenuItem className='flex items-center w-full justify-center gap-2 text-xs text-muted-foreground group-data-[collapsible=icon]:hidden'>
                   <span className='px-3'>v{packageJson.version}</span>
                 </SidebarMenuItem>

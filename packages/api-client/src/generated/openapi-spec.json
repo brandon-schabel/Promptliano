@@ -384,10 +384,21 @@
                     "reason": {
                       "type": "string"
                     },
+                    "reasons": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
                     "fileType": {
                       "type": "string"
                     },
                     "aiConfidence": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 1
+                    },
+                    "confidence": {
                       "type": "number",
                       "minimum": 0,
                       "maximum": 1
@@ -397,12 +408,17 @@
                       "items": {
                         "type": "string"
                       }
+                    },
+                    "lineCount": {
+                      "type": "number"
+                    },
+                    "totalLines": {
+                      "type": "number"
                     }
                   },
                   "required": [
                     "path",
                     "relevance",
-                    "reason",
                     "fileType"
                   ]
                 }
@@ -461,6 +477,33 @@
                     "reasons"
                   ]
                 }
+              },
+              "selectedDirectories": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "totalDirectories": {
+                "type": "number"
+              },
+              "filesFromDirectories": {
+                "type": "number"
+              },
+              "lineCountPerFile": {
+                "type": "number"
+              },
+              "aiModel": {
+                "type": "string"
+              },
+              "directorySelectionTime": {
+                "type": "number"
+              },
+              "fileFetchTime": {
+                "type": "number"
+              },
+              "suggestionTime": {
+                "type": "number"
               }
             },
             "required": [
@@ -515,11 +558,42 @@
             "example": true,
             "description": "Return per-file relevance scores when available"
           },
+          "includeReasons": {
+            "type": "boolean",
+            "default": false,
+            "example": false,
+            "description": "Include detailed AI-generated reasons for each file suggestion (default: false to save tokens)"
+          },
           "userContext": {
             "type": "string",
             "minLength": 1,
             "example": "Focus on MCP transport tools and remove unused prompts",
             "description": "Additional context used to bias relevance scoring"
+          },
+          "lineCount": {
+            "type": "integer",
+            "minimum": 10,
+            "maximum": 200,
+            "default": 50,
+            "example": 50,
+            "description": "Number of lines to read from each file (V2 only)"
+          },
+          "directories": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "example": [
+              "src/auth",
+              "src/api"
+            ],
+            "description": "Optional: manually specify directories to search (skips AI directory selection)"
+          },
+          "skipDirectorySelection": {
+            "type": "boolean",
+            "default": false,
+            "example": false,
+            "description": "If true and directories provided, skip AI directory selection stage"
           }
         }
       },
@@ -5920,13 +5994,13 @@
             "type": "integer",
             "format": "int64",
             "description": "Unix timestamp in milliseconds, between 1970 and 2050. Input can be string, number, or Date.",
-            "example": 1759279306739
+            "example": 1759637630350
           },
           "updated": {
             "type": "integer",
             "format": "int64",
             "description": "Unix timestamp in milliseconds, between 1970 and 2050. Input can be string, number, or Date.",
-            "example": 1759279306739
+            "example": 1759637630350
           }
         },
         "required": [
@@ -6069,13 +6143,13 @@
             "type": "integer",
             "format": "int64",
             "description": "Unix timestamp in milliseconds, between 1970 and 2050. Input can be string, number, or Date.",
-            "example": 1759279306739
+            "example": 1759637630350
           },
           "completedAt": {
             "type": "integer",
             "format": "int64",
             "description": "Unix timestamp in milliseconds, between 1970 and 2050. Input can be string, number, or Date.",
-            "example": 1759279306739
+            "example": 1759637630350
           }
         },
         "required": [

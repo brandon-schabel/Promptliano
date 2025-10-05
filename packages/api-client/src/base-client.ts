@@ -62,6 +62,25 @@ export class BaseApiClient {
   }
 
   /**
+   * Get CSRF token from cookie (browser only)
+   */
+  private getCsrfTokenFromCookie(): string | null {
+    if (typeof document === 'undefined') {
+      return null
+    }
+
+    const cookies = document.cookie.split(';')
+    const csrfCookie = cookies.find(c => c.trim().startsWith('csrf_token='))
+
+    if (!csrfCookie) {
+      return null
+    }
+
+    const tokenValue = csrfCookie.split('=')[1]
+    return tokenValue || null
+  }
+
+  /**
    * Make a request to the API with proper error handling and validation
    */
   protected async request<TResponse>(
@@ -70,6 +89,7 @@ export class BaseApiClient {
     options?: {
       body?: unknown
       params?: Record<string, string | number | boolean>
+      headers?: Record<string, string>
       responseSchema?: z.ZodType<TResponse>
       skipValidation?: boolean
       timeout?: number
@@ -77,7 +97,8 @@ export class BaseApiClient {
     }
   ): Promise<TResponse> {
     // Handle both absolute and relative URLs
-    const apiPath = `/api${endpoint}`
+    // Don't add /api prefix if endpoint already starts with /api
+    const apiPath = endpoint.startsWith('/api') ? endpoint : `/api${endpoint}`
     const url = this.baseUrl
       ? new URL(apiPath, this.baseUrl.endsWith('/') ? this.baseUrl : this.baseUrl + '/')
       : new URL(apiPath, typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3579')
@@ -98,7 +119,21 @@ export class BaseApiClient {
     try {
       // Handle different body types
       let body: any = undefined
-      let headers = { ...this.headers }
+      let headers = { ...this.headers, ...options?.headers }
+
+      // Add CSRF token for state-changing requests (browser only)
+      if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(method.toUpperCase()) && typeof window !== 'undefined') {
+        try {
+          // Get CSRF token from cookie
+          const csrfToken = this.getCsrfTokenFromCookie()
+          if (csrfToken) {
+            headers['X-CSRF-Token'] = csrfToken
+          }
+        } catch (error) {
+          console.error('Failed to get CSRF token:', error)
+          // Continue without CSRF token - will fail on server if required
+        }
+      }
 
       if (options?.body) {
         if (options.body instanceof FormData) {
@@ -115,7 +150,8 @@ export class BaseApiClient {
         method,
         headers,
         body,
-        signal: controller.signal
+        signal: controller.signal,
+        credentials: 'include' // ✅ Include cookies in requests
       })
 
       clearTimeout(timeoutId)

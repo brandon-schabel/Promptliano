@@ -17552,10 +17552,14 @@ export interface components {
                 suggestedFiles: {
                     path: string;
                     relevance: number;
-                    reason: string;
+                    reason?: string;
+                    reasons?: string[];
                     fileType: string;
                     aiConfidence?: number;
+                    confidence?: number;
                     aiReasons?: string[];
+                    lineCount?: number;
+                    totalLines?: number;
                 }[];
                 totalFiles: number;
                 analyzedFiles: number;
@@ -17572,6 +17576,14 @@ export interface components {
                     confidence: number;
                     reasons: string[];
                 }[];
+                selectedDirectories?: string[];
+                totalDirectories?: number;
+                filesFromDirectories?: number;
+                lineCountPerFile?: number;
+                aiModel?: string;
+                directorySelectionTime?: number;
+                fileFetchTime?: number;
+                suggestionTime?: number;
             };
         };
         SuggestFilesRequestBody: {
@@ -17601,10 +17613,36 @@ export interface components {
              */
             includeScores: boolean;
             /**
+             * @description Include detailed AI-generated reasons for each file suggestion (default: false to save tokens)
+             * @default false
+             * @example false
+             */
+            includeReasons: boolean;
+            /**
              * @description Additional context used to bias relevance scoring
              * @example Focus on MCP transport tools and remove unused prompts
              */
             userContext?: string;
+            /**
+             * @description Number of lines to read from each file (V2 only)
+             * @default 50
+             * @example 50
+             */
+            lineCount: number;
+            /**
+             * @description Optional: manually specify directories to search (skips AI directory selection)
+             * @example [
+             *       "src/auth",
+             *       "src/api"
+             *     ]
+             */
+            directories?: string[];
+            /**
+             * @description If true and directories provided, skip AI directory selection stage
+             * @default false
+             * @example false
+             */
+            skipDirectorySelection: boolean;
         };
         Ticket: {
             id: number;
@@ -19187,13 +19225,13 @@ export interface components {
             /**
              * Format: int64
              * @description Unix timestamp in milliseconds, between 1970 and 2050. Input can be string, number, or Date.
-             * @example 1759279306739
+             * @example 1759637630350
              */
             created: number;
             /**
              * Format: int64
              * @description Unix timestamp in milliseconds, between 1970 and 2050. Input can be string, number, or Date.
-             * @example 1759279306739
+             * @example 1759637630350
              */
             updated: number;
         };
@@ -19274,13 +19312,13 @@ export interface components {
             /**
              * Format: int64
              * @description Unix timestamp in milliseconds, between 1970 and 2050. Input can be string, number, or Date.
-             * @example 1759279306739
+             * @example 1759637630350
              */
             startedAt: number;
             /**
              * Format: int64
              * @description Unix timestamp in milliseconds, between 1970 and 2050. Input can be string, number, or Date.
-             * @example 1759279306739
+             * @example 1759637630350
              */
             completedAt: number;
         };

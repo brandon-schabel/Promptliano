@@ -94,12 +94,21 @@ export const assetsSearchSchema = z.object({
 
 // Settings page search schema
 export const settingsTabSchema = z
-  .enum(['general', 'server', 'local-providers', 'global-mcp', 'dev'])
+  .enum(['general', 'server', 'local-providers', 'global-mcp', 'users', 'dev'])
   .catch('general')
   .optional()
 
 export const settingsSearchSchema = z.object({
   tab: settingsTabSchema
+})
+
+// Login/Setup search schemas
+export const loginSearchSchema = z.object({
+  redirect: z.string().optional().catch(undefined)
+})
+
+export const setupSearchSchema = z.object({
+  step: z.enum(['account', 'complete']).catch('account').optional()
 })
 
 // Queue dashboard search schema
@@ -123,6 +132,8 @@ export type TicketsSearch = z.infer<typeof ticketsSearchSchema>
 export type AssetsSearch = z.infer<typeof assetsSearchSchema>
 export type SettingsSearch = z.infer<typeof settingsSearchSchema>
 export type SettingsTab = z.infer<typeof settingsTabSchema>
+export type LoginSearch = z.infer<typeof loginSearchSchema>
+export type SetupSearch = z.infer<typeof setupSearchSchema>
 export type QueueDashboardSearch = z.infer<typeof queueDashboardSearchSchema>
 
 // Utility function to merge search schemas

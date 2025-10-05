@@ -9,10 +9,12 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SetupRouteImport } from './routes/setup'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ProvidersRouteImport } from './routes/providers'
 import { Route as PromptsRouteImport } from './routes/prompts'
 import { Route as ProjectsRouteImport } from './routes/projects'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as HealthRouteImport } from './routes/health'
 import { Route as DevSwaggerRouteImport } from './routes/dev-swagger'
 import { Route as DevMcpRouteImport } from './routes/dev-mcp'
@@ -22,6 +24,11 @@ import { Route as AssetsRouteImport } from './routes/assets'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as QueueDashboardQueueIdRouteImport } from './routes/queue-dashboard.$queueId'
 
+const SetupRoute = SetupRouteImport.update({
+  id: '/setup',
+  path: '/setup',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -40,6 +47,11 @@ const PromptsRoute = PromptsRouteImport.update({
 const ProjectsRoute = ProjectsRouteImport.update({
   id: '/projects',
   path: '/projects',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const HealthRoute = HealthRouteImport.update({
@@ -91,10 +103,12 @@ export interface FileRoutesByFullPath {
   '/dev-mcp': typeof DevMcpRoute
   '/dev-swagger': typeof DevSwaggerRoute
   '/health': typeof HealthRoute
+  '/login': typeof LoginRoute
   '/projects': typeof ProjectsRoute
   '/prompts': typeof PromptsRoute
   '/providers': typeof ProvidersRoute
   '/settings': typeof SettingsRoute
+  '/setup': typeof SetupRoute
   '/queue-dashboard/$queueId': typeof QueueDashboardQueueIdRoute
 }
 export interface FileRoutesByTo {
@@ -105,10 +119,12 @@ export interface FileRoutesByTo {
   '/dev-mcp': typeof DevMcpRoute
   '/dev-swagger': typeof DevSwaggerRoute
   '/health': typeof HealthRoute
+  '/login': typeof LoginRoute
   '/projects': typeof ProjectsRoute
   '/prompts': typeof PromptsRoute
   '/providers': typeof ProvidersRoute
   '/settings': typeof SettingsRoute
+  '/setup': typeof SetupRoute
   '/queue-dashboard/$queueId': typeof QueueDashboardQueueIdRoute
 }
 export interface FileRoutesById {
@@ -120,10 +136,12 @@ export interface FileRoutesById {
   '/dev-mcp': typeof DevMcpRoute
   '/dev-swagger': typeof DevSwaggerRoute
   '/health': typeof HealthRoute
+  '/login': typeof LoginRoute
   '/projects': typeof ProjectsRoute
   '/prompts': typeof PromptsRoute
   '/providers': typeof ProvidersRoute
   '/settings': typeof SettingsRoute
+  '/setup': typeof SetupRoute
   '/queue-dashboard/$queueId': typeof QueueDashboardQueueIdRoute
 }
 export interface FileRouteTypes {
@@ -136,10 +154,12 @@ export interface FileRouteTypes {
     | '/dev-mcp'
     | '/dev-swagger'
     | '/health'
+    | '/login'
     | '/projects'
     | '/prompts'
     | '/providers'
     | '/settings'
+    | '/setup'
     | '/queue-dashboard/$queueId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -150,10 +170,12 @@ export interface FileRouteTypes {
     | '/dev-mcp'
     | '/dev-swagger'
     | '/health'
+    | '/login'
     | '/projects'
     | '/prompts'
     | '/providers'
     | '/settings'
+    | '/setup'
     | '/queue-dashboard/$queueId'
   id:
     | '__root__'
@@ -164,10 +186,12 @@ export interface FileRouteTypes {
     | '/dev-mcp'
     | '/dev-swagger'
     | '/health'
+    | '/login'
     | '/projects'
     | '/prompts'
     | '/providers'
     | '/settings'
+    | '/setup'
     | '/queue-dashboard/$queueId'
   fileRoutesById: FileRoutesById
 }
@@ -179,15 +203,24 @@ export interface RootRouteChildren {
   DevMcpRoute: typeof DevMcpRoute
   DevSwaggerRoute: typeof DevSwaggerRoute
   HealthRoute: typeof HealthRoute
+  LoginRoute: typeof LoginRoute
   ProjectsRoute: typeof ProjectsRoute
   PromptsRoute: typeof PromptsRoute
   ProvidersRoute: typeof ProvidersRoute
   SettingsRoute: typeof SettingsRoute
+  SetupRoute: typeof SetupRoute
   QueueDashboardQueueIdRoute: typeof QueueDashboardQueueIdRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/setup': {
+      id: '/setup'
+      path: '/setup'
+      fullPath: '/setup'
+      preLoaderRoute: typeof SetupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/settings': {
       id: '/settings'
       path: '/settings'
@@ -214,6 +247,13 @@ declare module '@tanstack/react-router' {
       path: '/projects'
       fullPath: '/projects'
       preLoaderRoute: typeof ProjectsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/health': {
@@ -283,10 +323,12 @@ const rootRouteChildren: RootRouteChildren = {
   DevMcpRoute: DevMcpRoute,
   DevSwaggerRoute: DevSwaggerRoute,
   HealthRoute: HealthRoute,
+  LoginRoute: LoginRoute,
   ProjectsRoute: ProjectsRoute,
   PromptsRoute: PromptsRoute,
   ProvidersRoute: ProvidersRoute,
   SettingsRoute: SettingsRoute,
+  SetupRoute: SetupRoute,
   QueueDashboardQueueIdRoute: QueueDashboardQueueIdRoute,
 }
 export const routeTree = rootRouteImport

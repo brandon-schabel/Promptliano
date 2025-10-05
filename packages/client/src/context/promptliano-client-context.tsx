@@ -42,8 +42,13 @@ export function PromptlianoClientProvider({ children }: PromptlianoClientProvide
   const [appSettings] = useGetAppSettings()
   const { mutate: updateAppSettings } = useSetKvValue('appSettings')
 
+  const defaultServerUrl =
+    typeof window !== 'undefined'
+      ? window.location.origin
+      : appSettings?.promptlianoServerUrl || 'http://localhost:3147'
+
   const [client, setClient] = useState<PromptlianoClient | null>(null)
-  const [serverUrl, setServerUrlState] = useState<string>(appSettings?.promptlianoServerUrl || 'http://localhost:3147')
+  const [serverUrl, setServerUrlState] = useState<string>(defaultServerUrl)
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('disconnected')
   const [connectionError, setConnectionError] = useState<string | null>(null)
   const [savedServers, setSavedServers] = useState<SavedServer[]>(appSettings?.promptlianoServerUrls || [])
@@ -235,7 +240,10 @@ export function PromptlianoClientProvider({ children }: PromptlianoClientProvide
 
   // Initialize connection on mount
   useEffect(() => {
-    const initialUrl = appSettings?.promptlianoServerUrl || 'http://localhost:3147'
+    const initialUrl =
+      typeof window !== 'undefined'
+        ? window.location.origin
+        : appSettings?.promptlianoServerUrl || 'http://localhost:3147'
     setServerUrlState(initialUrl)
     connectToServer(initialUrl)
 

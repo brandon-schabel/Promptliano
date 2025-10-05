@@ -1,5 +1,6 @@
 // File: packages/client/src/routes/__root.tsx
-import { Outlet, createRootRouteWithContext } from '@tanstack/react-router'
+import { Outlet, createRootRouteWithContext, isRedirect } from '@tanstack/react-router'
+import type { AuthStatusResponse } from '@promptliano/api-client'
 import type { RouterContext } from '../main'
 // Removed: import { AppNavbar } from '@/components/navigation/app-navbar';
 import { AppSidebar } from '@/components/navigation/app-sidebar' // Added
@@ -29,6 +30,9 @@ import { useMigrateDefaultTab } from '@/hooks/use-migrate-default-tab'
 import { useMigrateTabViews } from '@/hooks/use-migrate-tab-views'
 import { useSyncProviderSettings } from '@/hooks/use-sync-provider-settings'
 import { useReactScan } from '@/hooks/use-react-scan'
+import { useAuth } from '@/contexts/auth-context'
+import { Loader2 } from 'lucide-react'
+import { redirect } from '@tanstack/react-router'
 
 // Dynamic imports for DevTools - only load when enabled
 const ReactQueryDevtools = React.lazy(() =>
@@ -48,6 +52,63 @@ const AIDevtools = React.lazy(() =>
     default: module.AIDevtools
   }))
 )
+
+export const DEFAULT_AUTH_SETTINGS: AuthStatusResponse['data']['authSettings'] = {
+  requirePassword: false,
+  sessionTimeout: 3600,
+  maxLoginAttempts: 5
+}
+
+function normalizeAuthSettings(settings: unknown): AuthStatusResponse['data']['authSettings'] {
+  if (settings && typeof settings === 'object') {
+    const record = settings as Record<string, unknown>
+    return {
+      requirePassword:
+        typeof record.requirePassword === 'boolean' ? record.requirePassword : DEFAULT_AUTH_SETTINGS.requirePassword,
+      sessionTimeout:
+        typeof record.sessionTimeout === 'number' ? record.sessionTimeout : DEFAULT_AUTH_SETTINGS.sessionTimeout,
+      maxLoginAttempts:
+        typeof record.maxLoginAttempts === 'number' ? record.maxLoginAttempts : DEFAULT_AUTH_SETTINGS.maxLoginAttempts
+    }
+  }
+
+  return { ...DEFAULT_AUTH_SETTINGS }
+}
+
+export function normalizeAuthStatus(status: unknown): AuthStatusResponse {
+  if (status && typeof status === 'object') {
+    const candidate = status as Record<string, unknown>
+
+    if ('data' in candidate && typeof candidate.data === 'object' && candidate.data !== null) {
+      const data = candidate.data as Record<string, unknown>
+      return {
+        success: true as const,
+        data: {
+          needsSetup: typeof data.needsSetup === 'boolean' ? data.needsSetup : false,
+          authSettings: normalizeAuthSettings(data.authSettings)
+        }
+      }
+    }
+
+    if ('needsSetup' in candidate) {
+      return {
+        success: true as const,
+        data: {
+          needsSetup: typeof candidate.needsSetup === 'boolean' ? (candidate.needsSetup as boolean) : false,
+          authSettings: normalizeAuthSettings(candidate.authSettings)
+        }
+      }
+    }
+  }
+
+  return {
+    success: true as const,
+    data: {
+      needsSetup: true,
+      authSettings: { ...DEFAULT_AUTH_SETTINGS }
+    }
+  }
+}
 
 function GlobalCommandPalette() {
   const [open, setOpen] = useState(false)
@@ -179,6 +240,69 @@ function GlobalCommandPalette() {
 }
 
 export const Route = createRootRouteWithContext<RouterContext>()({
+  beforeLoad: async ({ context, location }) => {
+    console.log('[ROOT-GUARD] beforeLoad triggered, pathname:', location.pathname)
+
+    try {
+      // Use cached FULL auth status to eliminate redundant API calls
+      const cachedStatus = context.queryClient.getQueryData(['auth', 'full-status'])
+
+      const fullStatus = cachedStatus
+        ? normalizeAuthStatus(cachedStatus)
+        : normalizeAuthStatus(await context.authClient.getAuthStatus())
+      context.queryClient.setQueryData(['auth', 'full-status'], fullStatus)
+
+      console.log('[ROOT-GUARD] Using auth status:', fullStatus)
+
+      const authStatus = {
+        needsSetup: fullStatus.data.needsSetup,
+        authSettings: fullStatus.data.authSettings
+      }
+
+      // Keep legacy cache key in sync for downstream consumers
+      context.queryClient.setQueryData(['auth', 'setup-status'], authStatus.needsSetup)
+
+      console.log('[ROOT-GUARD] Auth status determined:', {
+        needsSetup: authStatus.needsSetup,
+        pathname: location.pathname
+      })
+
+      // If setup needed and not already on setup page, redirect
+      if (authStatus.needsSetup && location.pathname !== '/setup') {
+        console.log('[ROOT-GUARD] Setup needed, redirecting to /setup')
+        throw redirect({ to: '/setup' })
+      }
+
+      // If setup complete but on setup page, redirect to login
+      if (!authStatus.needsSetup && location.pathname === '/setup') {
+        console.log('[ROOT-GUARD] Setup complete, redirecting to /login')
+        const { redirect } = await import('@tanstack/react-router')
+        throw redirect({ to: '/login' })
+      }
+
+      console.log('[ROOT-GUARD] No redirect needed, returning auth status')
+      return {
+        setupStatus: { needsSetup: authStatus.needsSetup },
+        authSettings: authStatus.authSettings
+      }
+    } catch (error) {
+      if (isRedirect(error)) {
+        throw error
+      }
+      console.error('[ROOT-GUARD] Unexpected error during auth status check', error)
+      const fallbackStatus = {
+        success: true as const,
+        data: {
+          needsSetup: true,
+          authSettings: { ...DEFAULT_AUTH_SETTINGS }
+        }
+      } satisfies AuthStatusResponse
+      context.queryClient.setQueryData(['auth', 'full-status'], fallbackStatus)
+      context.queryClient.setQueryData(['auth', 'setup-status'], true)
+      const { redirect } = await import('@tanstack/react-router')
+      throw redirect({ to: '/setup' })
+    }
+  },
   component: RootComponent
 })
 
@@ -186,6 +310,7 @@ function RootComponent() {
   const [activeProjectTabId] = useGetActiveProjectTabId()
   const navigate = useNavigate()
   const [settings] = useAppSettings()
+  const { isLoading: authLoading, needsSetup } = useAuth()
 
   // Get dev tools enabled settings
   const devToolsEnabled = settings?.devToolsEnabled || {
@@ -199,6 +324,9 @@ function RootComponent() {
   }
 
   const isDevEnv = import.meta.env.DEV
+
+  // CRITICAL: Check if we're on setup/login pages
+  const isAuthPage = window.location.pathname === '/setup' || window.location.pathname === '/login'
 
   // Use React Scan hook for dynamic loading
   useReactScan(devToolsEnabled.reactScan)
@@ -219,34 +347,54 @@ function RootComponent() {
     }
   }, [])
 
+  // Show loading screen during authentication initialization
+  if (authLoading) {
+    return (
+      <div className='flex h-screen items-center justify-center bg-background'>
+        <div className='flex flex-col items-center gap-4'>
+          <Loader2 className='h-8 w-8 animate-spin text-primary' />
+          <p className='text-muted-foreground'>Initializing Promptliano...</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <ErrorBoundary>
       <SidebarProvider>
         {/* defaultOpen={initialSidebarOpen} can be used here */}
         <div className='flex h-screen w-screen bg-background text-foreground'>
           {/* Ensure background and text colors are set */}
-          <ComponentErrorBoundary componentName='Sidebar'>
-            <AppSidebar data-testid='app-sidebar' />
-          </ComponentErrorBoundary>
+          {/* Only render sidebar on non-auth pages */}
+          {!isAuthPage && (
+            <ComponentErrorBoundary componentName='Sidebar'>
+              <AppSidebar data-testid='app-sidebar' />
+            </ComponentErrorBoundary>
+          )}
           <main className='flex-1 min-h-0 overflow-auto relative' data-testid='main-content'>
             {/* pt-[env(safe-area-inset-top)] can be added if needed */}
             {/* Example of a manual SidebarTrigger fixed in the content area */}
             {/* You might not need this if SidebarRail is sufficient */}
-            <div className='absolute top-4 left-4 z-20 md:hidden'>
-              {/* Show only on mobile, or remove if rail is enough */}
-              <SidebarTrigger asChild>
-                <Button variant='ghost' size='icon'>
-                  <MenuIcon />
-                </Button>
-              </SidebarTrigger>
-            </div>
+            {!isAuthPage && (
+              <div className='absolute top-4 left-4 z-20 md:hidden'>
+                {/* Show only on mobile, or remove if rail is enough */}
+                <SidebarTrigger asChild>
+                  <Button variant='ghost' size='icon'>
+                    <MenuIcon />
+                  </Button>
+                </SidebarTrigger>
+              </div>
+            )}
             <ComponentErrorBoundary componentName='Main Content'>
               <Outlet />
             </ComponentErrorBoundary>
           </main>
-          <ComponentErrorBoundary componentName='Command Palette'>
-            <GlobalCommandPalette />
-          </ComponentErrorBoundary>
+          {/* Only render command palette on non-auth pages */}
+          {!isAuthPage && (
+            <ComponentErrorBoundary componentName='Command Palette'>
+              <GlobalCommandPalette />
+            </ComponentErrorBoundary>
+          )}
           <ComponentErrorBoundary componentName='Development Tools'>
             {devToolsEnabled.tanstackQuery && (
               <Suspense fallback={null}>

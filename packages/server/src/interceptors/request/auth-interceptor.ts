@@ -1,4 +1,5 @@
 import type { Context } from 'hono'
+import { getCookie } from 'hono/cookie'
 import { ErrorFactory } from '@promptliano/shared'
 import {
   type Interceptor,
@@ -24,11 +25,31 @@ function matchesRoutePattern(pattern: string, path: string): boolean {
 }
 
 /**
- * Default token validation function (placeholder)
+ * Default token validation function using authService
  */
 async function defaultValidateToken(token: string): Promise<any> {
-  // This should be replaced with actual token validation logic
-  throw ErrorFactory.unauthorized('No token validation function provided')
+  // Import at the top if not already imported
+  const { authService } = await import('@promptliano/services')
+
+  // Verify JWT token
+  const payload = authService.verifyAccessToken(token)
+  if (!payload) {
+    throw ErrorFactory.unauthorized('Invalid or expired token')
+  }
+
+  // Get user from database to ensure they still exist and are active
+  const { authRepository } = await import('@promptliano/database')
+  const user = await authRepository.getUserById(payload.userId)
+
+  if (!user) {
+    throw ErrorFactory.unauthorized('User not found')
+  }
+
+  if (!user.isActive) {
+    throw ErrorFactory.unauthorized('User account is deactivated')
+  }
+
+  return user
 }
 
 /**
@@ -54,21 +75,17 @@ function createAuthHandler(config: AuthInterceptorConfig): InterceptorHandler {
         return
       }
 
-      // Get authorization header
-      const authHeader = context.req.header('authorization')
+      // Extract token from httpOnly cookie (not from headers!)
+      const token = getCookie(context, 'access_token')
 
-      if (!authHeader) {
-        // No token provided
+      if (!token) {
+        // No token provided in cookie
         if (config.onUnauthorized) {
           const response = await config.onUnauthorized(context)
-          // In a real interceptor, this would need to handle the response properly
           throw new Error('Custom unauthorized response handled')
         }
         throw ErrorFactory.unauthorized('Authentication required')
       }
-
-      // Extract token from Bearer header
-      const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : authHeader
 
       // Validate token
       const validateFn = config.validateToken || defaultValidateToken
@@ -81,8 +98,8 @@ function createAuthHandler(config: AuthInterceptorConfig): InterceptorHandler {
         context.set('user', user)
 
         // Add authentication metadata
-        interceptorContext.metadata.authMethod = 'bearer'
-        interceptorContext.metadata.tokenLength = authHeader.length
+        interceptorContext.metadata.authMethod = 'httponly-cookie'
+        interceptorContext.metadata.tokenLength = token.length
         interceptorContext.metadata.userId = user?.id
 
         await next()
@@ -139,7 +156,20 @@ export function createAuthInterceptor(config: Partial<AuthInterceptorConfig> = {
  */
 export const authInterceptor = createAuthInterceptor({
   requireAuth: true,
-  publicRoutes: ['/api/health', '/api/status', '/api/public/*']
+  publicRoutes: [
+    '/api/health',
+    '/api/status',
+    '/api/public/*',
+    '/api/auth/setup',
+    '/api/auth/login',
+    '/api/auth/refresh',
+    '/api/auth/logout',
+    '/api/auth/status',
+    '/api/csrf-token',      // CSRF token endpoint
+    '/doc',                  // OpenAPI documentation
+    '/swagger',              // Swagger UI
+    '/_openapi-debug'        // Debug endpoint
+  ]
 })
 
 /**

@@ -24,11 +24,15 @@ import { mcpInstallationRoutes } from './routes/mcp-installation-routes'
 import { processManagementRoutes } from './routes/process-management-routes'
 import { copilotProxyRoutes } from './routes/copilot-proxy-routes'
 import { copilotEmbedRoutes } from './routes/copilot-embed-routes'
+import { crawlingRoutes } from './routes/crawling-routes'
 import { initCopilotEmbed, parseCopilotEmbedConfig } from './integrations/copilot-embed'
 // import { mcpConfigRoutes } from './routes/mcp-config-routes-factory'
 // Legacy provider key routes (supports /api/keys and /api/providers/health)
 import { providerKeyRoutes as providerKeyLegacyRoutes } from './routes/provider-key-routes'
 import { modelConfigRoutes } from './routes/model-config-routes'
+// Authentication and admin routes
+import { authRoutes } from './routes/auth-routes'
+import { adminRoutes } from './routes/admin-routes'
 import { OpenAPIHono, z } from '@hono/zod-openapi'
 import { ZodError } from 'zod'
 import { fromError as zodFromError } from 'zod-validation-error'
@@ -48,6 +52,26 @@ const AI_RATE_LIMIT_WINDOW_MS = rateLimitConfig.aiWindowMs
 const AI_RATE_LIMIT_MAX_REQUESTS = rateLimitConfig.aiMaxRequests
 import { swaggerUI } from '@hono/swagger-ui'
 import { ApiErrorResponseSchema } from '@promptliano/schemas'
+
+// Security: Validate JWT secret on startup
+import { getJwtSecret } from '@promptliano/services'
+
+// Security: CSRF protection middleware
+import { csrfTokenGenerator, createCsrfProtection } from './middleware/csrf'
+
+// Run JWT validation immediately to fail fast in production
+try {
+  const jwtSecret = getJwtSecret()
+  if (!jwtSecret || jwtSecret.length < 32) {
+    throw new Error('JWT_SECRET validation failed - secret is missing or too short')
+  }
+} catch (error) {
+  console.error('❌ FATAL SECURITY ERROR during startup:', (error as Error).message)
+  if (process.env.NODE_ENV === 'production') {
+    console.error('Server cannot start with invalid JWT_SECRET in production')
+    process.exit(1)
+  }
+}
 
 // Helper to format Zod errors for more readable responses
 const formatZodErrors = (error: z.ZodError) => {
@@ -83,6 +107,23 @@ app.use('*', cors(serverConfig.corsConfig))
 
 // Add logger middleware
 app.use('*', logger())
+
+// Generate CSRF tokens for all requests
+app.use('*', csrfTokenGenerator)
+
+// Apply CSRF protection to all state-changing operations
+app.use(
+  '/api/*',
+  createCsrfProtection({
+    ignoredPaths: [
+      '/api/auth/login',     // Auth endpoint
+      '/api/auth/register',  // Auth endpoint
+      '/api/auth/status',    // Public endpoint
+      '/api/health',         // Public endpoint
+      '/api/csrf-token',     // CSRF token endpoint itself
+    ]
+  })
+)
 
 // Helper function to get client IP with better localhost detection
 const getClientIP = (c: Context) => {
@@ -331,6 +372,10 @@ app.route('/', providerKeyLegacyRoutes)
 // app.route('/', mcpConfigRoutes)
 app.route('/', modelConfigRoutes) // Model configuration and presets
 
+// Authentication and admin routes (register early for auth flow)
+app.route('/', authRoutes)
+app.route('/', adminRoutes)
+
 // KEEP: Complex operations that don't conflict
 app.route('/', flowRoutes)
 app.route('/', genAiRoutes)
@@ -346,6 +391,7 @@ app.route('/', mcpInstallationRoutes)
 app.route('/', processManagementRoutes)
 app.route('/', copilotProxyRoutes)
 app.route('/', copilotEmbedRoutes)
+app.route('/', crawlingRoutes)
 
 // NOTE: These route files have been replaced by generated routes:
 // - chatRoutes -> /api/chats CRUD via generated routes
@@ -485,8 +531,8 @@ app.get('/doc', async (c) => {
         title: packageJson.name
       }
     })
-    // Attach diagnostics under an extension field
-    ;(doc as any)['x-doc-build'] = buildLog
+      // Attach diagnostics under an extension field
+      ; (doc as any)['x-doc-build'] = buildLog
     return c.json(doc)
   } catch (err: any) {
     const message = typeof err?.message === 'string' ? err.message : String(err)
@@ -517,24 +563,24 @@ app.get('/doc', async (c) => {
   }
 })
 
-// Manual routes are registered directly above, no async registration needed
+  // Manual routes are registered directly above, no async registration needed
 
-// Initialize and mount the embedded Copilot upstream app (skip in test env)
-;(async () => {
-  const isTest = String(process.env.NODE_ENV || '').toLowerCase() === 'test'
-  if (isTest) {
-    console.log('[Copilot Embed] Skipping embedded initialization in test environment')
-    return
-  }
-  try {
-    const cfg = parseCopilotEmbedConfig(process.env as Record<string, string>)
-    // Mount the embedded app under /api/upstream/copilot regardless of enabled flag
-    // (proxy selection will determine whether it is used).
-    const copilotApp = await initCopilotEmbed(cfg)
-    // Hono's route composition: attach mounted app
-    app.route('/api/upstream/copilot', copilotApp as any)
-    console.log('[Copilot Embed] Initialized embedded Copilot API under /api/upstream/copilot')
-  } catch (e) {
-    console.warn('[Copilot Embed] Failed to initialize embedded Copilot API:', e)
-  }
-})()
+  // Initialize and mount the embedded Copilot upstream app (skip in test env)
+  ; (async () => {
+    const isTest = String(process.env.NODE_ENV || '').toLowerCase() === 'test'
+    if (isTest) {
+      console.log('[Copilot Embed] Skipping embedded initialization in test environment')
+      return
+    }
+    try {
+      const cfg = parseCopilotEmbedConfig(process.env as Record<string, string>)
+      // Mount the embedded app under /api/upstream/copilot regardless of enabled flag
+      // (proxy selection will determine whether it is used).
+      const copilotApp = await initCopilotEmbed(cfg)
+      // Hono's route composition: attach mounted app
+      app.route('/api/upstream/copilot', copilotApp as any)
+      console.log('[Copilot Embed] Initialized embedded Copilot API under /api/upstream/copilot')
+    } catch (e) {
+      console.warn('[Copilot Embed] Failed to initialize embedded Copilot API:', e)
+    }
+  })()

@@ -314,6 +314,52 @@ export const queueItems = sqliteTable('queue_items', {
 })
 
 // =============================================================================
+// AUTHENTICATION TABLES
+// =============================================================================
+
+// Users table for authentication
+export const users = sqliteTable('users', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  username: text('username').notNull().unique(),
+  email: text('email'),
+  passwordHash: text('password_hash'), // Nullable - null means passwordless mode
+  role: text('role', { enum: ['admin', 'user'] })
+    .notNull()
+    .default('user'),
+  isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
+  createdAt: integer('created_at').notNull(),
+  updatedAt: integer('updated_at').notNull()
+}, (table) => ({
+  usernameIdx: index('users_username_idx').on(table.username),
+  roleIdx: index('users_role_idx').on(table.role)
+}))
+
+// Refresh tokens for session management
+export const refreshTokens = sqliteTable('refresh_tokens', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  userId: integer('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  token: text('token').notNull().unique(),
+  expiresAt: integer('expires_at').notNull(),
+  createdAt: integer('created_at').notNull()
+}, (table) => ({
+  tokenIdx: index('refresh_tokens_token_idx').on(table.token),
+  userIdx: index('refresh_tokens_user_idx').on(table.userId),
+  expiresIdx: index('refresh_tokens_expires_idx').on(table.expiresAt)
+}))
+
+// Global auth settings (singleton table)
+export const authSettings = sqliteTable('auth_settings', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  authEnabled: integer('auth_enabled', { mode: 'boolean' }).notNull().default(true),
+  requirePassword: integer('require_password', { mode: 'boolean' }).notNull().default(false),
+  sessionTimeout: integer('session_timeout').notNull().default(604800000), // 7 days in milliseconds
+  createdAt: integer('created_at').notNull(),
+  updatedAt: integer('updated_at').notNull()
+})
+
+// =============================================================================
 // CONFIGURATION & SECURITY TABLES
 // =============================================================================
 
@@ -725,6 +771,18 @@ export const processPorts = sqliteTable('process_ports', {
 // RELATIONSHIPS - Drizzle Relational API
 // =============================================================================
 
+// Authentication relationships
+export const usersRelations = relations(users, ({ many }) => ({
+  refreshTokens: many(refreshTokens)
+}))
+
+export const refreshTokensRelations = relations(refreshTokens, ({ one }) => ({
+  user: one(users, {
+    fields: [refreshTokens.userId],
+    references: [users.id]
+  })
+}))
+
 export const projectsRelations = relations(projects, ({ many }) => ({
   tickets: many(tickets),
   chats: many(chats),
@@ -987,6 +1045,11 @@ export const insertPromptSchema = createInsertSchema(prompts).openapi('InsertPro
 export const insertQueueSchema = createInsertSchema(queues).openapi('InsertQueue')
 export const insertQueueItemSchema = createInsertSchema(queueItems).openapi('InsertQueueItem')
 
+// Authentication insert schemas - OpenAPI compatible
+export const insertUserSchema = createInsertSchema(users).openapi('InsertUser')
+export const insertRefreshTokenSchema = createInsertSchema(refreshTokens).openapi('InsertRefreshToken')
+export const insertAuthSettingsSchema = createInsertSchema(authSettings).openapi('InsertAuthSettings')
+
 export const insertProviderKeySchema = createInsertSchema(providerKeys).openapi('InsertProviderKey')
 export const insertFileSchema = createInsertSchema(files).openapi('InsertFile')
 export const insertSelectedFileSchema = createInsertSchema(selectedFiles).openapi('InsertSelectedFile')
@@ -1025,6 +1088,12 @@ export const selectChatStreamEventSchema = createSelectSchema(chatStreamEvents).
 export const selectPromptSchema = createSelectSchema(prompts).openapi('Prompt')
 export const selectQueueSchema = createSelectSchema(queues).openapi('Queue')
 export const selectQueueItemSchema = createSelectSchema(queueItems).openapi('QueueItem')
+
+// Authentication select schemas - OpenAPI compatible
+export const selectUserSchema = createSelectSchema(users).openapi('User')
+export const selectRefreshTokenSchema = createSelectSchema(refreshTokens).openapi('RefreshToken')
+export const selectAuthSettingsSchema = createSelectSchema(authSettings).openapi('AuthSettings')
+
 export const selectProviderKeySchema = createSelectSchema(providerKeys).openapi('ProviderKey')
 export const selectFileSchema = createSelectSchema(files).openapi('File')
 export const selectSelectedFileSchema = createSelectSchema(selectedFiles).openapi('SelectedFile')
@@ -1067,6 +1136,12 @@ export type InsertChatStreamEvent = typeof chatStreamEvents.$inferInsert
 export type InsertPrompt = typeof prompts.$inferInsert
 export type InsertQueue = typeof queues.$inferInsert
 export type InsertQueueItem = typeof queueItems.$inferInsert
+
+// Authentication insert types
+export type InsertUser = typeof users.$inferInsert
+export type InsertRefreshToken = typeof refreshTokens.$inferInsert
+export type InsertAuthSettings = typeof authSettings.$inferInsert
+
 export type InsertProviderKey = typeof providerKeys.$inferInsert
 export type InsertModelConfig = typeof modelConfigs.$inferInsert
 export type InsertModelPreset = typeof modelPresets.$inferInsert
@@ -1102,8 +1177,18 @@ export type InsertProcessRun = typeof processRuns.$inferInsert
 export type InsertProcessLog = typeof processLogs.$inferInsert
 export type InsertProcessPort = typeof processPorts.$inferInsert
 
+// Web Crawling insert types
+export type InsertDomain = typeof domains.$inferInsert
+export type InsertUrl = typeof urls.$inferInsert
+export type InsertCrawledContent = typeof crawledContent.$inferInsert
+
 // Select types (for reading existing records)
 export type Project = typeof projects.$inferSelect
+
+// Authentication select types
+export type User = typeof users.$inferSelect
+export type RefreshToken = typeof refreshTokens.$inferSelect
+export type AuthSettings = typeof authSettings.$inferSelect
 
 // Override Ticket type to fix JSON field types
 type TicketInferred = typeof tickets.$inferSelect
@@ -1279,6 +1364,25 @@ export type ProcessLog = typeof processLogs.$inferSelect
 
 export type ProcessPort = typeof processPorts.$inferSelect
 
+// Web Crawling select types
+export type Domain = typeof domains.$inferSelect
+
+export type Url = typeof urls.$inferSelect
+
+// Override CrawledContent type to fix JSON field types
+type CrawledContentInferred = typeof crawledContent.$inferSelect
+export type CrawledContent = Omit<CrawledContentInferred, 'metadata' | 'links'> & {
+  metadata: {
+    author?: string
+    date?: string
+    publishedTime?: string
+    siteName?: string
+    excerpt?: string
+    lang?: string
+  } | null
+  links: string[] | null
+}
+
 // Complex relationship types
 export type ProcessRunWithLogs = ProcessRun & {
   logs: ProcessLog[]
@@ -1293,6 +1397,9 @@ export type QueueStatus = 'queued' | 'in_progress' | 'completed' | 'failed' | 'c
 export type MessageRole = 'user' | 'assistant' | 'system'
 export type HookType = 'pre' | 'post' | 'error'
 export type ItemType = 'ticket' | 'task' | 'chat' | 'prompt'
+
+// Authentication enum types
+export type UserRole = 'admin' | 'user'
 
 // New enum types
 export type GitFileStatusType =
@@ -1331,6 +1438,9 @@ export type ProcessPortProtocol = 'tcp' | 'udp'
 export type ProcessPortState = 'listening' | 'established' | 'closed'
 export type ProcessScriptType = 'npm' | 'bun' | 'yarn' | 'pnpm' | 'custom'
 
+// Web Crawling enum types
+export type UrlStatus = 'pending' | 'crawled' | 'failed'
+
 export type HookEvent =
   | 'PreToolUse'
   | 'PostToolUse'
@@ -1349,6 +1459,10 @@ export interface HookConfig {
 }
 
 // Complex relationship types
+export type UserWithTokens = User & {
+  refreshTokens: RefreshToken[]
+}
+
 export type TicketWithTasks = Ticket & {
   tasks: TicketTask[]
 }
@@ -1386,6 +1500,15 @@ export type ProjectWithGit = Project & {
   gitTags: GitTag[]
   gitStashes: GitStash[]
   gitWorktrees: GitWorktree[]
+}
+
+// Web Crawling relationship types
+export type UrlWithContent = Url & {
+  content: CrawledContent[]
+}
+
+export type DomainWithUrls = Domain & {
+  urls: UrlWithContent[]
 }
 
 // =============================================================================
@@ -1468,6 +1591,86 @@ export const processPortsRelations = relations(processPorts, ({ one }) => ({
   })
 }))
 
+// =============================================================================
+// WEB CRAWLING TABLES
+// =============================================================================
+
+export const domains = sqliteTable('domains', {
+  id: integer('id').primaryKey(),
+  domain: text('domain').notNull().unique(),
+  robotsTxt: text('robots_txt'),
+  crawlDelay: integer('crawl_delay').notNull().default(1000), // milliseconds
+  lastCrawlAt: integer('last_crawl_at'),
+  createdAt: integer('created_at').notNull(),
+  updatedAt: integer('updated_at').notNull()
+}, (table) => ({
+  domainIdx: index('domains_domain_idx').on(table.domain)
+}))
+
+export const urls = sqliteTable('urls', {
+  id: integer('id').primaryKey(),
+  url: text('url').notNull(),
+  urlHash: text('url_hash').notNull().unique(), // MD5 hash for fast lookups
+  domain: text('domain').notNull(),
+  status: text('status', { enum: ['pending', 'crawled', 'failed'] })
+    .notNull()
+    .default('pending'),
+  httpStatus: integer('http_status'),
+  lastCrawledAt: integer('last_crawled_at'),
+  nextCrawlAt: integer('next_crawl_at'), // TTL-based recrawling
+  createdAt: integer('created_at').notNull(),
+  updatedAt: integer('updated_at').notNull()
+}, (table) => ({
+  urlHashIdx: index('urls_url_hash_idx').on(table.urlHash),
+  domainIdx: index('urls_domain_idx').on(table.domain),
+  statusIdx: index('urls_status_idx').on(table.status),
+  nextCrawlIdx: index('urls_next_crawl_idx').on(table.nextCrawlAt)
+}))
+
+export const crawledContent = sqliteTable('crawled_content', {
+  id: integer('id').primaryKey(),
+  urlId: integer('url_id')
+    .notNull()
+    .references(() => urls.id, { onDelete: 'cascade' }),
+  title: text('title'),
+  cleanContent: text('clean_content'), // From @mozilla/readability
+  rawHtml: text('raw_html'),
+  summary: text('summary'), // AI-generated summary
+  metadata: text('metadata', { mode: 'json' })
+    .$type<{
+      author?: string
+      date?: string
+      publishedTime?: string
+      siteName?: string
+      excerpt?: string
+      lang?: string
+    }>()
+    .default(sql`'{}'`),
+  links: text('links', { mode: 'json' })
+    .$type<string[]>()
+    .notNull()
+    .default(sql`'[]'`), // Extracted links array
+  crawledAt: integer('crawled_at').notNull()
+}, (table) => ({
+  urlIdx: index('crawled_content_url_idx').on(table.urlId)
+}))
+
+// Web Crawling Relations
+export const domainsRelations = relations(domains, ({ many }) => ({
+  urls: many(urls)
+}))
+
+export const urlsRelations = relations(urls, ({ many }) => ({
+  content: many(crawledContent)
+}))
+
+export const crawledContentRelations = relations(crawledContent, ({ one }) => ({
+  url: one(urls, {
+    fields: [crawledContent.urlId],
+    references: [urls.id]
+  })
+}))
+
 // Model Configuration Relations
 export const modelConfigsRelations = relations(modelConfigs, ({ many }) => ({
   presets: many(modelPresets)
@@ -1485,6 +1688,14 @@ export const insertModelConfigSchema = createInsertSchema(modelConfigs)
 export const insertModelPresetSchema = createInsertSchema(modelPresets)
 export const selectModelConfigSchema = createSelectSchema(modelConfigs)
 export const selectModelPresetSchema = createSelectSchema(modelPresets)
+
+// Web Crawling Schemas
+export const insertDomainSchema = createInsertSchema(domains).openapi('InsertDomain')
+export const insertUrlSchema = createInsertSchema(urls).openapi('InsertUrl')
+export const insertCrawledContentSchema = createInsertSchema(crawledContent).openapi('InsertCrawledContent')
+export const selectDomainSchema = createSelectSchema(domains).openapi('Domain')
+export const selectUrlSchema = createSelectSchema(urls).openapi('Url')
+export const selectCrawledContentSchema = createSelectSchema(crawledContent).openapi('CrawledContent')
 
 // NOTE: OpenAPI naming will be handled in the route definitions where schemas are used
 

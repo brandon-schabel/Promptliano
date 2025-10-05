@@ -91,6 +91,7 @@ import { AIErrorDisplay } from '@/components/errors'
 import { useModelConfigPresets } from '@/hooks/use-model-presets'
 import type { ToolUIPart } from 'ai'
 import { MCPIndicator } from '@/components/chat/mcp-indicator'
+import { getCsrfToken } from '@/lib/csrf'
 
 export function ModelSettingsPopover() {
   const {
@@ -1739,6 +1740,12 @@ function ChatPage() {
   const [isInputCollapsed, setInputCollapsed] = useState(false)
   const [maxMessagesToInclude, setMaxMessagesToInclude] = useState(50)
   const [isMessageHistoryPopoverOpen, setIsMessageHistoryPopoverOpen] = useState(false)
+
+  useEffect(() => {
+    getCsrfToken().catch((err) => {
+      console.error('[ChatPage] Failed to initialize CSRF token', err)
+    })
+  }, [])
 
   useEffect(() => {
     if (!activeChatId) {

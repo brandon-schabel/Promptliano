@@ -16,7 +16,23 @@ import { Theme } from '@promptliano/schemas'
 import { useAppSettings } from '@/hooks/use-kv-local-storage'
 import { MCPGlobalConfigEditor } from '@/components/settings/mcp-global-config-editor'
 import { ServerConfiguration } from '@/components/settings/server-configuration'
-import { ArrowRight, Cloud, Database, FileJson, Terminal, Zap, Router, Bug, Cpu } from 'lucide-react'
+import { UserManagement } from '@/components/settings/user-management'
+import {
+  ArrowRight,
+  Cloud,
+  Database,
+  FileJson,
+  Terminal,
+  Zap,
+  Router,
+  Bug,
+  Cpu,
+  LogOut,
+  User as UserIcon,
+  ShieldCheck
+} from 'lucide-react'
+import { useAuth } from '@/contexts/auth-context'
+import { Alert, AlertDescription } from '@promptliano/ui'
 
 type ThemeOption = {
   label: string
@@ -37,6 +53,7 @@ export function SettingsPage() {
   const search = Route.useSearch()
   const navigate = useNavigate()
   const [settings, updateSettings] = useAppSettings()
+  const { logout, user, isLoading: authLoading } = useAuth()
   const {
     useSpacebarToSelectAutocomplete: spacebarToSelectAutocomplete = true,
     hideInformationalTooltips,
@@ -107,14 +124,75 @@ export function SettingsPage() {
         }}
         className='w-full'
       >
-        <TabsList className='grid w-full grid-cols-4'>
+        <TabsList className='grid w-full grid-cols-5'>
           <TabsTrigger value='general'>General</TabsTrigger>
           <TabsTrigger value='server'>Server</TabsTrigger>
           <TabsTrigger value='global-mcp'>Global MCP</TabsTrigger>
+          <TabsTrigger value='users'>Users</TabsTrigger>
           <TabsTrigger value='dev'>Dev</TabsTrigger>
         </TabsList>
 
         <TabsContent value='general' className='space-y-6'>
+          <Card>
+            <CardHeader>
+              <CardTitle>Account</CardTitle>
+              <CardDescription>Manage your account and authentication</CardDescription>
+            </CardHeader>
+            <CardContent className='space-y-6'>
+              {authLoading ? (
+                <div className='flex items-center justify-center py-8'>
+                  <div className='flex items-center gap-2 text-muted-foreground'>
+                    <div className='h-5 w-5 animate-spin rounded-full border-2 border-current border-t-transparent' />
+                    <span>Loading account information...</span>
+                  </div>
+                </div>
+              ) : user ? (
+                <div className='space-y-4'>
+                  <div className='flex items-center gap-4 p-4 rounded-lg border bg-muted/30'>
+                    <div className='flex items-center justify-center h-12 w-12 rounded-full bg-primary/10 flex-shrink-0'>
+                      <UserIcon className='h-6 w-6 text-primary' />
+                    </div>
+                    <div className='flex-1 min-w-0'>
+                      <p className='text-sm font-medium'>Logged in as</p>
+                      <p className='text-lg font-semibold truncate'>{user.username}</p>
+                      <div className='flex items-center gap-2 mt-1'>
+                        <ShieldCheck className='h-4 w-4 text-muted-foreground' />
+                        <span className='text-sm text-muted-foreground capitalize'>{user.role}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <Alert>
+                    <AlertDescription className='text-xs'>
+                      Logging out will clear your session and require you to sign in again with your username and
+                      password.
+                    </AlertDescription>
+                  </Alert>
+
+                  <Button
+                    variant='destructive'
+                    onClick={() => logout()}
+                    className='w-full'
+                    data-testid='settings-logout-button'
+                  >
+                    <LogOut className='mr-2 h-4 w-4' />
+                    Logout
+                  </Button>
+                </div>
+              ) : (
+                <div className='flex flex-col items-center justify-center py-8 text-center'>
+                  <div className='p-3 bg-muted rounded-full mb-4'>
+                    <UserIcon className='h-8 w-8 text-muted-foreground' />
+                  </div>
+                  <p className='text-sm text-muted-foreground mb-4'>Not logged in</p>
+                  <Button asChild>
+                    <Link to='/login'>Sign In</Link>
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader>
               <CardTitle>LLM Provider Configuration</CardTitle>
@@ -280,6 +358,10 @@ export function SettingsPage() {
           <MCPGlobalConfigEditor />
         </TabsContent>
 
+        <TabsContent value='users' className='space-y-6'>
+          <UserManagement />
+        </TabsContent>
+
         <TabsContent value='dev' className='space-y-6'>
           <Card>
             <CardHeader>
@@ -379,8 +461,8 @@ export function SettingsPage() {
                   </div>
                   {!drizzleEnvEnabled && (
                     <p className='text-xs text-muted-foreground pl-11'>
-                      Enable by setting <code>DEVTOOLS_ENABLE_DRIZZLE_STUDIO=true</code> in <code>.env</code> then restart dev
-                      server.
+                      Enable by setting <code>DEVTOOLS_ENABLE_DRIZZLE_STUDIO=true</code> in <code>.env</code> then
+                      restart dev server.
                     </p>
                   )}
 
@@ -418,8 +500,8 @@ export function SettingsPage() {
                   </div>
                   {!mcpInspectorEnvEnabled && (
                     <p className='text-xs text-muted-foreground pl-11'>
-                      Enable by setting <code>DEVTOOLS_ENABLE_MCP_INSPECTOR=true</code> in <code>.env</code> then restart dev
-                      server.
+                      Enable by setting <code>DEVTOOLS_ENABLE_MCP_INSPECTOR=true</code> in <code>.env</code> then
+                      restart dev server.
                     </p>
                   )}
                 </div>

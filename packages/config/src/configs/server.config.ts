@@ -48,8 +48,8 @@ export const serverConfig: ServerConfig = {
       `https://${getEnvVar('DOMAIN', 'localhost')}`
     ],
     allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    credentials: true,
-    allowHeaders: ['Content-Type', 'Authorization', 'Cookie']
+    credentials: true, // ✅ Allow cookies in CORS requests
+    allowHeaders: ['Content-Type', 'Authorization', 'Cookie', 'X-CSRF-Token'] // ✅ Include CSRF token header
   },
 
   // Environment-specific
