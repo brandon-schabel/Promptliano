@@ -63,6 +63,15 @@ export interface DirectorySelectionResult {
 }
 
 /**
+ * Normalizes a directory path to be relative (removes leading slash)
+ * "/src/auth" -> "src/auth"
+ * "src/auth" -> "src/auth"
+ */
+function normalizeDirectoryPath(path: string): string {
+  return path.startsWith('/') ? path.slice(1) : path
+}
+
+/**
  * Formats file tree for AI consumption
  * Converts hierarchical tree to compact list format
  */
@@ -210,8 +219,11 @@ export async function selectRelevantDirectories(
     const filteredSelections = result.object.directories.filter((dir) => dir.confidence >= minConfidence)
 
     return {
-      selectedDirectories: filteredSelections.map((dir) => dir.path),
-      allSelections: result.object.directories,
+      selectedDirectories: filteredSelections.map((dir) => normalizeDirectoryPath(dir.path)),
+      allSelections: result.object.directories.map((dir) => ({
+        ...dir,
+        path: normalizeDirectoryPath(dir.path)
+      })),
       metadata: {
         totalDirectories,
         aiModel: modelOptions.model,
@@ -223,20 +235,25 @@ export async function selectRelevantDirectories(
     console.error('[DirectorySelector] AI directory selection failed:', error)
 
     // Fallback: return root-level directories
+    // Filter by minConfidence (fallback uses 0.5, so if minConfidence > 0.5, return empty)
+    const fallbackConfidence = 0.5
     const fallbackDirs: string[] = []
-    if (fileTree.children) {
+
+    if (fallbackConfidence >= minConfidence && fileTree.children) {
       for (const child of fileTree.children) {
         if (child.type === 'directory') {
-          fallbackDirs.push(child.path || child.name)
+          fallbackDirs.push(normalizeDirectoryPath(child.path || child.name))
         }
       }
     }
 
+    const selectedFallbackDirs = fallbackDirs.slice(0, maxDirectories)
+
     return {
-      selectedDirectories: fallbackDirs.slice(0, maxDirectories),
-      allSelections: fallbackDirs.slice(0, maxDirectories).map((path) => ({
+      selectedDirectories: selectedFallbackDirs,
+      allSelections: selectedFallbackDirs.map((path) => ({
         path,
-        confidence: 0.5,
+        confidence: fallbackConfidence,
         reason: 'Fallback: root-level directory'
       })),
       metadata: {

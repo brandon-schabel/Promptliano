@@ -25,6 +25,8 @@ import { processManagementRoutes } from './routes/process-management-routes'
 import { copilotProxyRoutes } from './routes/copilot-proxy-routes'
 import { copilotEmbedRoutes } from './routes/copilot-embed-routes'
 import { crawlingRoutes } from './routes/crawling-routes'
+import { deepResearchRoutes } from './routes/deep-research-routes'
+import { crawlDebugRoutes } from './routes/crawl-debug-routes'
 import { initCopilotEmbed, parseCopilotEmbedConfig } from './integrations/copilot-embed'
 // import { mcpConfigRoutes } from './routes/mcp-config-routes-factory'
 // Legacy provider key routes (supports /api/keys and /api/providers/health)
@@ -121,6 +123,7 @@ app.use(
       '/api/auth/status',    // Public endpoint
       '/api/health',         // Public endpoint
       '/api/csrf-token',     // CSRF token endpoint itself
+      '/api/research',       // Deep Research endpoints
     ]
   })
 )
@@ -392,6 +395,8 @@ app.route('/', processManagementRoutes)
 app.route('/', copilotProxyRoutes)
 app.route('/', copilotEmbedRoutes)
 app.route('/', crawlingRoutes)
+app.route('/', deepResearchRoutes)
+app.route('/', crawlDebugRoutes)
 
 // NOTE: These route files have been replaced by generated routes:
 // - chatRoutes -> /api/chats CRUD via generated routes
@@ -519,6 +524,8 @@ app.get('/doc', async (c) => {
   tryRegister('processManagementRoutes', (a) => a.route('/', processManagementRoutes))
   tryRegister('copilotProxyRoutes', (a) => a.route('/', copilotProxyRoutes))
   tryRegister('copilotEmbedRoutes', (a) => a.route('/', copilotEmbedRoutes))
+  tryRegister('deepResearchRoutes', (a) => a.route('/', deepResearchRoutes))
+  tryRegister('crawlDebugRoutes', (a) => a.route('/', crawlDebugRoutes))
   // tryRegister('mcpConfigRoutes', (a) => a.route('/', mcpConfigRoutes)) // TODO: Define mcpConfigRoutes or remove
   tryRegister('modelConfigRoutes', (a) => a.route('/', modelConfigRoutes))
 

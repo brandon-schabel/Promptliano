@@ -6,7 +6,6 @@ import { mcpService } from '@promptliano/services'
 import { ApiError } from '@promptliano/shared'
 import { CONSOLIDATED_TOOLS } from '../mcp/tools'
 import { createStandardResponses, successResponse } from '../utils/route-helpers'
-import type { APIProviders } from '@promptliano/database'
 
 // Define Groq remote MCP tools based on Groq documentation
 const GROQ_REMOTE_TOOLS = [

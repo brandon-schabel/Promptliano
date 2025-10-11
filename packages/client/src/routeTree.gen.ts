@@ -17,12 +17,15 @@ import { Route as ProjectsRouteImport } from './routes/projects'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as HealthRouteImport } from './routes/health'
 import { Route as DevSwaggerRouteImport } from './routes/dev-swagger'
+import { Route as DevMermaidRouteImport } from './routes/dev-mermaid'
 import { Route as DevMcpRouteImport } from './routes/dev-mcp'
 import { Route as DevDrizzleRouteImport } from './routes/dev-drizzle'
+import { Route as DeepResearchRouteImport } from './routes/deep-research'
 import { Route as ChatRouteImport } from './routes/chat'
 import { Route as AssetsRouteImport } from './routes/assets'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as QueueDashboardQueueIdRouteImport } from './routes/queue-dashboard.$queueId'
+import { Route as DeepResearchResearchIdRouteImport } from './routes/deep-research_.$researchId'
 
 const SetupRoute = SetupRouteImport.update({
   id: '/setup',
@@ -64,6 +67,11 @@ const DevSwaggerRoute = DevSwaggerRouteImport.update({
   path: '/dev-swagger',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DevMermaidRoute = DevMermaidRouteImport.update({
+  id: '/dev-mermaid',
+  path: '/dev-mermaid',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DevMcpRoute = DevMcpRouteImport.update({
   id: '/dev-mcp',
   path: '/dev-mcp',
@@ -72,6 +80,11 @@ const DevMcpRoute = DevMcpRouteImport.update({
 const DevDrizzleRoute = DevDrizzleRouteImport.update({
   id: '/dev-drizzle',
   path: '/dev-drizzle',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DeepResearchRoute = DeepResearchRouteImport.update({
+  id: '/deep-research',
+  path: '/deep-research',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ChatRoute = ChatRouteImport.update({
@@ -94,13 +107,20 @@ const QueueDashboardQueueIdRoute = QueueDashboardQueueIdRouteImport.update({
   path: '/queue-dashboard/$queueId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DeepResearchResearchIdRoute = DeepResearchResearchIdRouteImport.update({
+  id: '/deep-research_/$researchId',
+  path: '/deep-research/$researchId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/assets': typeof AssetsRoute
   '/chat': typeof ChatRoute
+  '/deep-research': typeof DeepResearchRoute
   '/dev-drizzle': typeof DevDrizzleRoute
   '/dev-mcp': typeof DevMcpRoute
+  '/dev-mermaid': typeof DevMermaidRoute
   '/dev-swagger': typeof DevSwaggerRoute
   '/health': typeof HealthRoute
   '/login': typeof LoginRoute
@@ -109,14 +129,17 @@ export interface FileRoutesByFullPath {
   '/providers': typeof ProvidersRoute
   '/settings': typeof SettingsRoute
   '/setup': typeof SetupRoute
+  '/deep-research/$researchId': typeof DeepResearchResearchIdRoute
   '/queue-dashboard/$queueId': typeof QueueDashboardQueueIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/assets': typeof AssetsRoute
   '/chat': typeof ChatRoute
+  '/deep-research': typeof DeepResearchRoute
   '/dev-drizzle': typeof DevDrizzleRoute
   '/dev-mcp': typeof DevMcpRoute
+  '/dev-mermaid': typeof DevMermaidRoute
   '/dev-swagger': typeof DevSwaggerRoute
   '/health': typeof HealthRoute
   '/login': typeof LoginRoute
@@ -125,6 +148,7 @@ export interface FileRoutesByTo {
   '/providers': typeof ProvidersRoute
   '/settings': typeof SettingsRoute
   '/setup': typeof SetupRoute
+  '/deep-research/$researchId': typeof DeepResearchResearchIdRoute
   '/queue-dashboard/$queueId': typeof QueueDashboardQueueIdRoute
 }
 export interface FileRoutesById {
@@ -132,8 +156,10 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/assets': typeof AssetsRoute
   '/chat': typeof ChatRoute
+  '/deep-research': typeof DeepResearchRoute
   '/dev-drizzle': typeof DevDrizzleRoute
   '/dev-mcp': typeof DevMcpRoute
+  '/dev-mermaid': typeof DevMermaidRoute
   '/dev-swagger': typeof DevSwaggerRoute
   '/health': typeof HealthRoute
   '/login': typeof LoginRoute
@@ -142,6 +168,7 @@ export interface FileRoutesById {
   '/providers': typeof ProvidersRoute
   '/settings': typeof SettingsRoute
   '/setup': typeof SetupRoute
+  '/deep-research_/$researchId': typeof DeepResearchResearchIdRoute
   '/queue-dashboard/$queueId': typeof QueueDashboardQueueIdRoute
 }
 export interface FileRouteTypes {
@@ -150,8 +177,10 @@ export interface FileRouteTypes {
     | '/'
     | '/assets'
     | '/chat'
+    | '/deep-research'
     | '/dev-drizzle'
     | '/dev-mcp'
+    | '/dev-mermaid'
     | '/dev-swagger'
     | '/health'
     | '/login'
@@ -160,14 +189,17 @@ export interface FileRouteTypes {
     | '/providers'
     | '/settings'
     | '/setup'
+    | '/deep-research/$researchId'
     | '/queue-dashboard/$queueId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/assets'
     | '/chat'
+    | '/deep-research'
     | '/dev-drizzle'
     | '/dev-mcp'
+    | '/dev-mermaid'
     | '/dev-swagger'
     | '/health'
     | '/login'
@@ -176,14 +208,17 @@ export interface FileRouteTypes {
     | '/providers'
     | '/settings'
     | '/setup'
+    | '/deep-research/$researchId'
     | '/queue-dashboard/$queueId'
   id:
     | '__root__'
     | '/'
     | '/assets'
     | '/chat'
+    | '/deep-research'
     | '/dev-drizzle'
     | '/dev-mcp'
+    | '/dev-mermaid'
     | '/dev-swagger'
     | '/health'
     | '/login'
@@ -192,6 +227,7 @@ export interface FileRouteTypes {
     | '/providers'
     | '/settings'
     | '/setup'
+    | '/deep-research_/$researchId'
     | '/queue-dashboard/$queueId'
   fileRoutesById: FileRoutesById
 }
@@ -199,8 +235,10 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AssetsRoute: typeof AssetsRoute
   ChatRoute: typeof ChatRoute
+  DeepResearchRoute: typeof DeepResearchRoute
   DevDrizzleRoute: typeof DevDrizzleRoute
   DevMcpRoute: typeof DevMcpRoute
+  DevMermaidRoute: typeof DevMermaidRoute
   DevSwaggerRoute: typeof DevSwaggerRoute
   HealthRoute: typeof HealthRoute
   LoginRoute: typeof LoginRoute
@@ -209,6 +247,7 @@ export interface RootRouteChildren {
   ProvidersRoute: typeof ProvidersRoute
   SettingsRoute: typeof SettingsRoute
   SetupRoute: typeof SetupRoute
+  DeepResearchResearchIdRoute: typeof DeepResearchResearchIdRoute
   QueueDashboardQueueIdRoute: typeof QueueDashboardQueueIdRoute
 }
 
@@ -270,6 +309,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DevSwaggerRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/dev-mermaid': {
+      id: '/dev-mermaid'
+      path: '/dev-mermaid'
+      fullPath: '/dev-mermaid'
+      preLoaderRoute: typeof DevMermaidRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/dev-mcp': {
       id: '/dev-mcp'
       path: '/dev-mcp'
@@ -282,6 +328,13 @@ declare module '@tanstack/react-router' {
       path: '/dev-drizzle'
       fullPath: '/dev-drizzle'
       preLoaderRoute: typeof DevDrizzleRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/deep-research': {
+      id: '/deep-research'
+      path: '/deep-research'
+      fullPath: '/deep-research'
+      preLoaderRoute: typeof DeepResearchRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/chat': {
@@ -312,6 +365,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof QueueDashboardQueueIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/deep-research_/$researchId': {
+      id: '/deep-research_/$researchId'
+      path: '/deep-research/$researchId'
+      fullPath: '/deep-research/$researchId'
+      preLoaderRoute: typeof DeepResearchResearchIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -319,8 +379,10 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AssetsRoute: AssetsRoute,
   ChatRoute: ChatRoute,
+  DeepResearchRoute: DeepResearchRoute,
   DevDrizzleRoute: DevDrizzleRoute,
   DevMcpRoute: DevMcpRoute,
+  DevMermaidRoute: DevMermaidRoute,
   DevSwaggerRoute: DevSwaggerRoute,
   HealthRoute: HealthRoute,
   LoginRoute: LoginRoute,
@@ -329,6 +391,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProvidersRoute: ProvidersRoute,
   SettingsRoute: SettingsRoute,
   SetupRoute: SetupRoute,
+  DeepResearchResearchIdRoute: DeepResearchResearchIdRoute,
   QueueDashboardQueueIdRoute: QueueDashboardQueueIdRoute,
 }
 export const routeTree = rootRouteImport

@@ -278,6 +278,57 @@ async function ensureSchemaUpgrades() {
       console.warn('⚠️ Failed to ensure chats.project_id nullability:', e)
     }
 
+    // Ensure research_records.project_id is nullable (decouple research from projects)
+    try {
+      const researchCols = rawDb.query(`PRAGMA table_info(research_records)`).all() as Array<{
+        name: string
+        notnull: number
+      }>
+      const researchProjectCol = researchCols.find((c) => c.name === 'project_id')
+      if (researchProjectCol && researchProjectCol.notnull === 1) {
+        console.error('🔧 Updating research_records.project_id to be NULLABLE (decouple from projects)')
+        rawDb.exec('PRAGMA foreign_keys=off')
+        rawDb.exec('BEGIN TRANSACTION')
+        rawDb.exec(
+          'CREATE TABLE `research_records_new` (\n' +
+            '  `id` integer PRIMARY KEY NOT NULL,\n' +
+            '  `project_id` integer,\n' +
+            '  `topic` text NOT NULL,\n' +
+            '  `description` text,\n' +
+            '  `status` text DEFAULT \'initializing\' NOT NULL,\n' +
+            '  `total_sources` integer DEFAULT 0,\n' +
+            '  `processed_sources` integer DEFAULT 0,\n' +
+            '  `sections_total` integer DEFAULT 0,\n' +
+            '  `sections_completed` integer DEFAULT 0,\n' +
+            '  `max_sources` integer DEFAULT 10,\n' +
+            '  `max_depth` integer DEFAULT 3,\n' +
+            '  `strategy` text DEFAULT \'balanced\' NOT NULL,\n' +
+            '  `metadata` text DEFAULT \'{}\',\n' +
+            '  `created_at` integer NOT NULL,\n' +
+            '  `updated_at` integer NOT NULL,\n' +
+            '  `completed_at` integer,\n' +
+            '  FOREIGN KEY (`project_id`) REFERENCES `projects`(`id`) ON UPDATE no action ON DELETE cascade\n' +
+            ')'
+        )
+        rawDb.exec(
+          'INSERT INTO `research_records_new` ' +
+            '(`id`, `project_id`, `topic`, `description`, `status`, `total_sources`, `processed_sources`, ' +
+            '`sections_total`, `sections_completed`, `max_sources`, `max_depth`, `strategy`, `metadata`, ' +
+            '`created_at`, `updated_at`, `completed_at`) ' +
+            'SELECT `id`, `project_id`, `topic`, `description`, `status`, `total_sources`, `processed_sources`, ' +
+            '`sections_total`, `sections_completed`, `max_sources`, `max_depth`, `strategy`, `metadata`, ' +
+            '`created_at`, `updated_at`, `completed_at` FROM `research_records`'
+        )
+        rawDb.exec('DROP TABLE `research_records`')
+        rawDb.exec('ALTER TABLE `research_records_new` RENAME TO `research_records`')
+        rawDb.exec('COMMIT')
+        rawDb.exec('PRAGMA foreign_keys=on')
+        console.error('✅ research_records.project_id is now nullable')
+      }
+    } catch (e) {
+      console.warn('⚠️ Failed to ensure research_records.project_id nullability:', e)
+    }
+
     if (!hasIndex('files_checksum_idx')) {
       try {
         rawDb.exec('CREATE INDEX IF NOT EXISTS `files_checksum_idx` ON `files` (`checksum`)')

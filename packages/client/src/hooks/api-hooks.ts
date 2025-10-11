@@ -785,6 +785,623 @@ export function useValidateMarkdownFile() {
   })
 }
 
+/**
+ * Mermaid Diagram Operations
+ * AI-powered mermaid diagram fixing and optimization
+ */
+
+export function useFixMermaidDiagram() {
+  const client = useApiClient()
+
+  return useMutation({
+    mutationFn: async ({
+      mermaidCode,
+      error,
+      userIntent,
+      options
+    }: {
+      mermaidCode: string
+      error?: string
+      userIntent?: string
+      options?: any
+    }) => {
+      if (!client) throw new Error('API client not initialized')
+
+      // Call the AI mermaid fix endpoint
+      const response = await fetch(`${SERVER_HTTP_ENDPOINT}/api/ai/mermaid/fix`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          mermaidCode,
+          error,
+          userIntent,
+          options
+        }),
+        credentials: 'include'
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to fix mermaid diagram')
+      }
+
+      const result = await response.json()
+      return result.data // { fixedCode, explanation, diagramType }
+    },
+    onSuccess: (data) => {
+      if (data.explanation) {
+        toast.success(`Fixed: ${data.explanation}`)
+      } else {
+        toast.success('Diagram fixed successfully')
+      }
+    },
+    onError: (error: any) => {
+      console.error('Failed to fix mermaid diagram:', error)
+      toast.error(error.message || 'Failed to fix mermaid diagram')
+    }
+  })
+}
+
+// ============================================================================
+// DEEP RESEARCH HOOKS - Comprehensive research automation
+// ============================================================================
+
+/**
+ * Deep Research Operations
+ * AI-powered research automation with document generation
+ */
+
+// Query keys for Deep Research
+export const RESEARCH_KEYS = {
+  all: ['research'] as const,
+  lists: () => [...RESEARCH_KEYS.all, 'list'] as const,
+  list: (filters?: any) => [...RESEARCH_KEYS.all, 'list', filters] as const,
+  detail: (id: number) => [...RESEARCH_KEYS.all, 'detail', id] as const,
+  sources: (id: number) => [...RESEARCH_KEYS.all, 'sources', id] as const,
+  sections: (id: number) => [...RESEARCH_KEYS.all, 'sections', id] as const,
+  progress: (id: number) => [...RESEARCH_KEYS.all, 'progress', id] as const,
+  crawlProgress: (id: number) => [...RESEARCH_KEYS.all, 'crawl-progress', id] as const
+}
+
+export function useResearchRecords() {
+  const client = useApiClient()
+
+  return useQuery({
+    queryKey: RESEARCH_KEYS.lists(),
+    queryFn: async () => {
+      if (!client) throw new Error('API client not initialized')
+      const response = await fetch(`${SERVER_HTTP_ENDPOINT}/api/research`, {
+        credentials: 'include'
+      })
+      if (!response.ok) throw new Error('Failed to fetch research records')
+      const result = await response.json()
+      return result?.data || []
+    },
+    staleTime: 30 * 1000 // Research data is volatile
+  })
+}
+
+export function useResearchRecord(id: number | undefined) {
+  const client = useApiClient()
+
+  return useQuery({
+    queryKey: RESEARCH_KEYS.detail(id!),
+    queryFn: async () => {
+      if (!client) throw new Error('API client not initialized')
+      const response = await fetch(`${SERVER_HTTP_ENDPOINT}/api/research/${id}`, {
+        credentials: 'include'
+      })
+      if (!response.ok) throw new Error('Failed to fetch research record')
+      const result = await response.json()
+      return result
+    },
+    enabled: !!id && id > 0,
+    staleTime: 5 * 60 * 1000 // 5 minutes
+  })
+}
+
+export function useCreateResearch() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (data: {
+      projectId?: number
+      topic: string
+      description?: string
+      maxSources?: number
+      strategy?: 'fast' | 'balanced' | 'thorough'
+    }) => {
+      const response = await fetch(`${SERVER_HTTP_ENDPOINT}/api/research`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+        credentials: 'include'
+      })
+      if (!response.ok) throw new Error('Failed to create research')
+      const result = await response.json()
+      return result?.data
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: RESEARCH_KEYS.all })
+      toast.success('Research session created')
+    },
+    onError: (error: any) => {
+      toast.error(error.message || 'Failed to create research')
+    }
+  })
+}
+
+export function useStartResearch() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (data: {
+      projectId?: number
+      topic: string
+      description?: string
+      maxSources?: number
+      strategy?: 'fast' | 'balanced' | 'thorough'
+      searchQueries?: string[]
+      modelConfig?: {
+        provider?: string
+        model?: string
+        temperature?: number
+        maxTokens?: number
+      }
+      // Crawl mode options
+      enableCrawling?: boolean
+      crawlSeedUrl?: string
+      crawlMaxDepth?: number
+      crawlMaxPages?: number
+      crawlRelevanceThreshold?: number
+    }) => {
+      const response = await fetch(`${SERVER_HTTP_ENDPOINT}/api/research/start`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+        credentials: 'include'
+      })
+      if (!response.ok) throw new Error('Failed to start research')
+      const result = await response.json()
+      return result?.data
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: RESEARCH_KEYS.all })
+      toast.success('Research session started')
+    },
+    onError: (error: any) => {
+      toast.error(error.message || 'Failed to start research')
+    }
+  })
+}
+
+export function useUpdateResearch() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: { topic?: string; description?: string; status?: string } }) => {
+      const response = await fetch(`${SERVER_HTTP_ENDPOINT}/api/research/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+        credentials: 'include'
+      })
+      if (!response.ok) throw new Error('Failed to update research')
+      const result = await response.json()
+      return result?.data
+    },
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: RESEARCH_KEYS.detail(id) })
+      queryClient.invalidateQueries({ queryKey: RESEARCH_KEYS.lists() })
+      toast.success('Research updated')
+    },
+    onError: (error: any) => {
+      toast.error(error.message || 'Failed to update research')
+    }
+  })
+}
+
+export function useDeleteResearch() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (id: number) => {
+      const response = await fetch(`${SERVER_HTTP_ENDPOINT}/api/research/${id}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      })
+      if (!response.ok) throw new Error('Failed to delete research')
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: RESEARCH_KEYS.all })
+      toast.success('Research deleted')
+    },
+    onError: (error: any) => {
+      toast.error(error.message || 'Failed to delete research')
+    }
+  })
+}
+
+export function useResearchSources(researchId: number | undefined) {
+  return useQuery({
+    queryKey: RESEARCH_KEYS.sources(researchId!),
+    queryFn: async () => {
+      const response = await fetch(`${SERVER_HTTP_ENDPOINT}/api/research/${researchId}/sources`, {
+        credentials: 'include'
+      })
+      if (!response.ok) throw new Error('Failed to fetch sources')
+      const result = await response.json()
+      return result
+    },
+    enabled: !!researchId && researchId > 0,
+    staleTime: 5 * 60 * 1000 // 5 minutes
+  })
+}
+
+export function useAddSource() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async ({ researchId, url, sourceType }: { researchId: number; url: string; sourceType?: string }) => {
+      const response = await fetch(`${SERVER_HTTP_ENDPOINT}/api/research/${researchId}/sources`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url, sourceType }),
+        credentials: 'include'
+      })
+      if (!response.ok) throw new Error('Failed to add source')
+      const result = await response.json()
+      return result?.data
+    },
+    onSuccess: (_, { researchId }) => {
+      queryClient.invalidateQueries({ queryKey: RESEARCH_KEYS.sources(researchId) })
+      toast.success('Source added')
+    },
+    onError: (error: any) => {
+      toast.error(error.message || 'Failed to add source')
+    }
+  })
+}
+
+export function useProcessSource() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (sourceId: number) => {
+      const response = await fetch(`${SERVER_HTTP_ENDPOINT}/api/research/sources/${sourceId}/process`, {
+        method: 'POST',
+        credentials: 'include'
+      })
+      if (!response.ok) throw new Error('Failed to process source')
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: RESEARCH_KEYS.all })
+      toast.success('Source processing started')
+    },
+    onError: (error: any) => {
+      toast.error(error.message || 'Failed to process source')
+    }
+  })
+}
+
+export function useSourceProcessedData(sourceId: number | undefined) {
+  return useQuery({
+    queryKey: [...RESEARCH_KEYS.all, 'source-processed-data', sourceId],
+    queryFn: async () => {
+      const response = await fetch(`${SERVER_HTTP_ENDPOINT}/api/research/sources/${sourceId}/processed-data`, {
+        credentials: 'include'
+      })
+      if (!response.ok) throw new Error('Failed to fetch processed data')
+      const result = await response.json()
+      return result
+    },
+    enabled: !!sourceId && sourceId > 0,
+    staleTime: 5 * 60 * 1000 // 5 minutes
+  })
+}
+
+export function useResearchSections(researchId: number | undefined) {
+  return useQuery({
+    queryKey: RESEARCH_KEYS.sections(researchId!),
+    queryFn: async () => {
+      const response = await fetch(`${SERVER_HTTP_ENDPOINT}/api/research/${researchId}/sections`, {
+        credentials: 'include'
+      })
+      if (!response.ok) throw new Error('Failed to fetch sections')
+      const result = await response.json()
+      return result
+    },
+    enabled: !!researchId && researchId > 0,
+    staleTime: 5 * 60 * 1000 // 5 minutes
+  })
+}
+
+export function useGenerateOutline() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async ({ researchId, sectionsCount, depth }: { researchId: number; sectionsCount?: number; depth?: number }) => {
+      const response = await fetch(`${SERVER_HTTP_ENDPOINT}/api/research/${researchId}/outline`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sectionsCount, depth }),
+        credentials: 'include'
+      })
+      if (!response.ok) throw new Error('Failed to generate outline')
+      const result = await response.json()
+      return result?.data
+    },
+    onSuccess: (_, { researchId }) => {
+      queryClient.invalidateQueries({ queryKey: RESEARCH_KEYS.sections(researchId) })
+      toast.success('Outline generated')
+    },
+    onError: (error: any) => {
+      toast.error(error.message || 'Failed to generate outline')
+    }
+  })
+}
+
+export function useBuildSection() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async ({ sectionId, userContext }: { sectionId: number; userContext?: string }) => {
+      const response = await fetch(`${SERVER_HTTP_ENDPOINT}/api/research/sections/${sectionId}/build`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sectionId, userContext }),
+        credentials: 'include'
+      })
+      if (!response.ok) throw new Error('Failed to build section')
+      const result = await response.json()
+      return result?.data
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: RESEARCH_KEYS.all })
+      toast.success('Section built')
+    },
+    onError: (error: any) => {
+      toast.error(error.message || 'Failed to build section')
+    }
+  })
+}
+
+export function useUpdateSection() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async ({ sectionId, data }: { sectionId: number; data: any }) => {
+      const response = await fetch(`${SERVER_HTTP_ENDPOINT}/api/research/sections/${sectionId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+        credentials: 'include'
+      })
+      if (!response.ok) throw new Error('Failed to update section')
+      const result = await response.json()
+      return result?.data
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: RESEARCH_KEYS.all })
+      toast.success('Section updated')
+    },
+    onError: (error: any) => {
+      toast.error(error.message || 'Failed to update section')
+    }
+  })
+}
+
+// Enhanced progress hook with intelligent polling
+export function useResearchProgress(researchId: number | undefined, options?: { enabled?: boolean }) {
+  return useQuery({
+    queryKey: RESEARCH_KEYS.progress(researchId!),
+    queryFn: async () => {
+      const response = await fetch(`${SERVER_HTTP_ENDPOINT}/api/research/${researchId}/progress`, {
+        credentials: 'include'
+      })
+      if (!response.ok) throw new Error('Failed to fetch progress')
+      const result = await response.json()
+      return result
+    },
+    enabled: !!researchId && researchId > 0 && (options?.enabled !== false),
+    refetchInterval: (query) => {
+      // Stop polling when research reaches terminal status
+      const data = query.state.data as any
+      if (!data?.data) return false
+      const status = data.data.status
+      return ['complete', 'failed'].includes(status) ? false : 4000 // 4 seconds
+    },
+    staleTime: 2000, // Consider data stale after 2 seconds
+    gcTime: 10 * 60 * 1000 // Cache for 10 minutes
+  })
+}
+
+/**
+ * Execute workflow for a research session
+ */
+export function useExecuteWorkflow() {
+  const queryClient = useQueryClient()
+  const client = useApiClient()
+
+  return useMutation({
+    mutationFn: async ({
+      researchId,
+      options
+    }: {
+      researchId: number
+      options?: { skipGathering?: boolean; skipProcessing?: boolean; skipBuilding?: boolean }
+    }) => {
+      if (!client) throw new Error('API client not initialized')
+      return await client.typeSafeClient.createResearchByIdExecute(researchId, { options: options || {} })
+    },
+    onSuccess: (_, variables) => {
+      // Invalidate research and progress queries
+      queryClient.invalidateQueries({ queryKey: RESEARCH_KEYS.detail(variables.researchId) })
+      queryClient.invalidateQueries({ queryKey: RESEARCH_KEYS.progress(variables.researchId) })
+      queryClient.invalidateQueries({ queryKey: ['workflow-status', variables.researchId] })
+      toast.success('Workflow execution started')
+    },
+    onError: (error: any) => {
+      toast.error(error.message || 'Failed to execute workflow')
+    }
+  })
+}
+
+/**
+ * Resume failed/stopped workflow
+ */
+export function useResumeWorkflow() {
+  const queryClient = useQueryClient()
+  const client = useApiClient()
+
+  return useMutation({
+    mutationFn: async (researchId: number) => {
+      if (!client) throw new Error('API client not initialized')
+      return await client.typeSafeClient.createResearchByIdResume(researchId)
+    },
+    onSuccess: (_, researchId) => {
+      queryClient.invalidateQueries({ queryKey: RESEARCH_KEYS.detail(researchId) })
+      queryClient.invalidateQueries({ queryKey: RESEARCH_KEYS.progress(researchId) })
+      queryClient.invalidateQueries({ queryKey: ['workflow-status', researchId] })
+      toast.success('Workflow resumed')
+    },
+    onError: (error: any) => {
+      toast.error(error.message || 'Failed to resume workflow')
+    }
+  })
+}
+
+/**
+ * Stop automatic workflow execution
+ */
+export function useStopWorkflow() {
+  const queryClient = useQueryClient()
+  const client = useApiClient()
+
+  return useMutation({
+    mutationFn: async (researchId: number) => {
+      if (!client) throw new Error('API client not initialized')
+      return await client.typeSafeClient.createResearchByIdStop(researchId)
+    },
+    onSuccess: (_, researchId) => {
+      queryClient.invalidateQueries({ queryKey: RESEARCH_KEYS.detail(researchId) })
+      queryClient.invalidateQueries({ queryKey: RESEARCH_KEYS.progress(researchId) })
+      queryClient.invalidateQueries({ queryKey: ['workflow-status', researchId] })
+      toast.success('Workflow stopped')
+    },
+    onError: (error: any) => {
+      toast.error(error.message || 'Failed to stop workflow')
+    }
+  })
+}
+
+/**
+ * Get detailed workflow status with action availability
+ */
+export function useWorkflowStatus(researchId: number | undefined) {
+  const client = useApiClient()
+
+  return useQuery({
+    queryKey: ['workflow-status', researchId],
+    queryFn: async () => {
+      if (!client) throw new Error('API client not initialized')
+      return await client.typeSafeClient.getResearchByIdWorkflowStatus(researchId!)
+    },
+    enabled: !!researchId && researchId > 0,
+    refetchInterval: (query) => {
+      // Auto-refresh every 5 seconds while workflow is active
+      const data = query.state.data as any
+      const status = data?.data?.status
+      if (['gathering', 'processing', 'building'].includes(status || '')) {
+        return 5000
+      }
+      return false
+    },
+    staleTime: 2000 // Consider data stale after 2 seconds
+  })
+}
+
+export function useExportDocument() {
+  return useMutation({
+    mutationFn: async ({ researchId, format, includeToc, includeReferences }: {
+      researchId: number
+      format: 'markdown' | 'pdf' | 'html' | 'docx'
+      includeToc?: boolean
+      includeReferences?: boolean
+    }) => {
+      const response = await fetch(`${SERVER_HTTP_ENDPOINT}/api/research/${researchId}/export`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ format, includeToc, includeReferences }),
+        credentials: 'include'
+      })
+      if (!response.ok) throw new Error('Failed to export document')
+      const result = await response.json()
+
+      // Download the exported content
+      if (result?.data?.content) {
+        const blob = new Blob([result.data.content], {
+          type: format === 'markdown' ? 'text/markdown' : 'application/octet-stream'
+        })
+        const url = URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        link.href = url
+        link.download = result.data.filename || `research-export.${format}`
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        URL.revokeObjectURL(url)
+      }
+
+      return result?.data
+    },
+    onSuccess: () => {
+      toast.success('Document exported successfully')
+    },
+    onError: (error: any) => {
+      toast.error(error.message || 'Failed to export document')
+    }
+  })
+}
+
+/**
+ * Get crawl progress for a research session with web crawling enabled
+ * Polls every 3 seconds while crawling is active
+ */
+export function useCrawlProgress(researchId: number | undefined, options?: { enabled?: boolean }) {
+  return useQuery({
+    queryKey: RESEARCH_KEYS.crawlProgress(researchId!),
+    queryFn: async () => {
+      const response = await fetch(`${SERVER_HTTP_ENDPOINT}/api/research/${researchId}/crawl-progress`, {
+        credentials: 'include'
+      })
+      if (!response.ok) throw new Error('Failed to fetch crawl progress')
+      const result = await response.json()
+      return result
+    },
+    enabled: !!researchId && researchId > 0 && (options?.enabled !== false),
+    refetchInterval: (query) => {
+      // Poll every 3 seconds if crawling is active
+      const data = query.state.data as any
+      if (!data?.data?.crawlEnabled) return false
+
+      // Stop polling if we have reached max pages or no pending URLs
+      const progress = data.data.progress
+      const config = data.data.config
+      if (!progress || !config) return false
+
+      const reachedMaxPages = progress.urlsCrawled >= config.maxPages
+      const noPendingUrls = progress.urlsPending === 0
+
+      return (reachedMaxPages || noPendingUrls) ? false : 3000 // 3 seconds
+    },
+    staleTime: 2000, // Consider data stale after 2 seconds
+    gcTime: 10 * 60 * 1000 // Cache for 10 minutes
+  })
+}
+
 // ============================================================================
 // BACKWARD COMPATIBILITY ALIASES
 // ============================================================================

@@ -26,7 +26,10 @@ export * from './mcp-execution-repository' // Exports MCP tracking repositories
 export * from './process-repository'
 
 // Web crawling repositories
-export * from './crawling-repository'
+export * from './crawl-repository'
+
+// Deep Research repositories
+export * from './research-repository'
 
 // Unified storage service (for backward compatibility)
 export * from './storage-service'

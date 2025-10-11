@@ -227,13 +227,16 @@ export class ErrorFactory {
 
   /**
    * Rate limit exceeded error
+   * @param message - Optional custom message
+   * @param retryAfter - Optional retry after duration in seconds
    */
-  static rateLimitExceeded(limit: number, window: string, retryAfter?: number): ApiError {
-    return new ApiError(429, `Rate limit exceeded: ${limit} requests per ${window}`, 'RATE_LIMIT_EXCEEDED', {
-      limit,
-      window,
-      retryAfter
-    })
+  static rateLimitExceeded(message?: string, retryAfter?: number): ApiError {
+    return new ApiError(
+      429,
+      message || 'Too many requests. Please try again later.',
+      'RATE_LIMIT_EXCEEDED',
+      { retryable: true, retryAfter }
+    )
   }
 
   /**

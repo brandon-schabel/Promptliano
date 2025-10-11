@@ -79,6 +79,9 @@ export * from './src/provider-testing.schemas'
 // Web Crawling Schemas
 export * from './src/crawling.schemas'
 
+// Deep Research Schemas
+export * from './src/deep-research.schemas'
+
 // Legacy Model Configuration (TODO: Move to @promptliano/config)
 export * from './src/constants/models-temp-not-allowed'
 

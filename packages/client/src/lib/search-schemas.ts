@@ -144,6 +144,21 @@ export function mergeSearchSchemas<T extends z.ZodObject<any>, U extends z.ZodOb
   return schema1.merge(schema2) as any
 }
 
+// Deep Research page search schema
+export const deepResearchSearchSchema = z.object({
+  search: z.string().catch('').optional(),
+  filter: z.enum(['all', 'active', 'complete']).catch('all').optional()
+})
+
+// Deep Research detail view search schema
+export const deepResearchDetailSearchSchema = z.object({
+  tab: z.enum(['overview', 'sources', 'sections', 'document', 'debug']).catch('overview').optional()
+})
+
+// Type exports
+export type DeepResearchSearch = z.infer<typeof deepResearchSearchSchema>
+export type DeepResearchDetailSearch = z.infer<typeof deepResearchDetailSearchSchema>
+
 // Default search params to strip from URLs (when they match these values)
 export const defaultSearchParams = {
   tab: '',
@@ -151,5 +166,7 @@ export const defaultSearchParams = {
   prefill: false,
   status: 'open',
   priority: 'normal',
-  type: 'image'
+  type: 'image',
+  search: '',
+  filter: 'all'
 } as const

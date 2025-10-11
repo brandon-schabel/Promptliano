@@ -71,8 +71,7 @@ export function createRateLimiter(config: RateLimitConfig) {
       c.header('X-RateLimit-Reset', record.resetAt.toString())
 
       throw ErrorFactory.rateLimitExceeded(
-        config.maxRequests,
-        `${config.windowMs / 1000 / 60} minutes`,
+        config.message || `Rate limit exceeded: ${config.maxRequests} requests per ${config.windowMs / 1000 / 60} minutes`,
         retryAfter
       )
     }
@@ -97,8 +96,7 @@ export function createRateLimiter(config: RateLimitConfig) {
       c.header('Retry-After', retryAfter.toString())
 
       throw ErrorFactory.rateLimitExceeded(
-        config.maxRequests,
-        `${config.windowMs / 1000 / 60} minutes`,
+        config.message || `Rate limit exceeded: ${config.maxRequests} requests per ${config.windowMs / 1000 / 60} minutes`,
         retryAfter
       )
     }

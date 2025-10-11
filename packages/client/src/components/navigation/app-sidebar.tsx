@@ -22,6 +22,7 @@ import {
   Cloud,
   Database,
   FileJson,
+  FileText,
   Terminal,
   LogOut,
   User
@@ -82,6 +83,14 @@ const baseNavigationSections = [
         icon: LightbulbIcon,
         routeIds: ['/prompts'],
         testId: 'sidebar-nav-prompts'
+      },
+      {
+        id: 'deep-research',
+        title: 'Deep Research',
+        href: '/deep-research',
+        icon: FileText,
+        routeIds: ['/deep-research'],
+        testId: 'sidebar-nav-deep-research'
       },
       {
         id: 'providers',

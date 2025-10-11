@@ -1,7 +1,7 @@
 import path from 'node:path'
 import type { File } from '@promptliano/database'
 import { getProjectFiles, getProjectById } from '../project-service'
-import { ErrorFactory } from '@promptliano/shared'
+import { ErrorFactory } from '@promptliano/shared/src/error/error-factory'
 
 /**
  * Partial file content with metadata
@@ -175,7 +175,7 @@ export async function fetchPartialFilesFromDirectories(
   // Get project details for root path validation
   const project = await getProjectById(projectId)
   if (!project) {
-    throw ErrorFactory.notFound('Project', projectId)
+    throw ErrorFactory.notFound('Project', String(projectId))
   }
 
   const projectRoot = project.path

@@ -368,7 +368,7 @@ export function useAIChat({
   }, [chatId])
 
   // Custom fetch with CSRF token injection
-  const fetchWithCsrf = useCallback(async (url: RequestInfo | URL, init?: RequestInit) => {
+  const fetchWithCsrf = useCallback(async (url: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
     // Get CSRF token from cookie
     const getCsrfToken = () => {
       const cookies = document.cookie.split(';')
@@ -389,7 +389,7 @@ export function useAIChat({
       headers,
       credentials: 'include' // Include cookies
     })
-  }, [])
+  }, []) as typeof fetch
 
   const transport = useMemo(
     () =>

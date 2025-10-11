@@ -437,36 +437,77 @@ export { taskService as ticketTaskService } from './src/task-service'
 // Web Crawling Services
 export * from './src/crawling'
 
-// Crawl Service (in-memory)
+// Deep Research Service
 export {
-  createCrawlService,
-  crawlService,
-  crawlWebpage,
-  crawlWebsite,
-  searchCached,
-  getCrawlHistory,
-  checkRobotsTxt,
-  clearCrawlCache,
-  type CrawlService,
-  type CrawlResult,
-  type CrawlWebsiteOptions,
-  type CrawlWebpageOptions,
-  type CachedCrawl,
-  type SearchCachedOptions,
-  type CrawlHistory,
-  type RobotsTxtCheck
-} from './src/crawl-service'
+  createDeepResearchService,
+  deepResearchService,
+  createResearch,
+  getResearchById,
+  getAllResearch,
+  updateResearch,
+  deleteResearch,
+  startResearch,
+  addSource,
+  processSource,
+  generateOutline,
+  buildSection,
+  exportDocument,
+  getProgress,
+  type DeepResearchService
+} from './src/deep-research-service'
 
-// Crawling Service (database-integrated)
+// Research Workflow Orchestration Service
 export {
-  createCrawlingService,
-  crawlingService,
-  crawlUrl,
-  crawlWebsite as crawlWebsiteDb,
-  getCachedByUrlHash,
-  searchCachedContent,
-  getCrawlHistory as getCrawlHistoryDb,
-  getDomainStats,
-  getRobotsTxt,
-  type CrawlingService
-} from './src/crawling-service'
+  createResearchWorkflowService,
+  researchWorkflowService,
+  executeWorkflow,
+  resumeWorkflow,
+  stopWorkflow,
+  getProgress as getWorkflowProgress,
+  type ResearchWorkflowService,
+  type WorkflowProgress,
+  type WorkflowOptions
+} from './src/research-workflow-service'
+
+// Web Crawling Service (Comprehensive)
+export {
+  createWebCrawlingService,
+  webCrawlingService,
+  startCrawl,
+  processUrl,
+  extractLinks,
+  fetchRobotsTxt,
+  isUrlAllowed,
+  processHtmlContent,
+  getCrawlProgress,
+  executeCrawl,
+  pauseCrawl,
+  resumeCrawl,
+  cancelCrawl,
+  type WebCrawlingService,
+  type CrawlOptions,
+  type CrawlProgress,
+  type CrawlSession
+} from './src/web-crawling-service'
+
+// AI Link Relevance Service
+export {
+  createAiLinkRelevanceService,
+  aiLinkRelevanceService,
+  type AiLinkRelevanceServiceDeps,
+  type LinkRelevanceOptions,
+  type LinkRelevanceResult,
+  type BatchRelevanceResult
+} from './src/ai-link-relevance-service'
+
+// Crawl Debug Service
+export {
+  createCrawlDebugService,
+  crawlDebugService,
+  type CrawlDebugService,
+  type CrawlDebugEvent,
+  type EventCategory,
+  type EventLevel,
+  type EventFilters,
+  type CrawlDebugStats
+} from './src/crawl-debug-service'

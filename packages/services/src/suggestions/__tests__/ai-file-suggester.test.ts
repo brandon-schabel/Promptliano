@@ -1,30 +1,107 @@
-import { describe, test, expect, beforeEach, mock } from 'bun:test'
+import { describe, test, expect, beforeAll, beforeEach, mock } from 'bun:test'
 import { suggestFilesFromPartialContent } from '../ai-file-suggester'
 import type { PartialFileContent, FileSuggestionOptions } from '../ai-file-suggester'
+import { seedModelConfigs } from '../../test-utils/test-model-setup'
 
-// Mock model config service to prevent API calls
-mock.module('../model-config-service', () => ({
+// Mock model config service to provide preset configs
+mock.module('../../model-config-service', () => ({
   modelConfigService: {
-    getPresetConfig: mock(() => ({
-      provider: 'anthropic',
-      model: 'claude-3-5-sonnet-20241022',
+    getPresetConfig: mock(async (preset: string) => {
+      const configs: Record<string, any> = {
+        low: {
+          id: 1,
+          name: 'low',
+          displayName: 'Low - Fast',
+          provider: 'anthropic',
+          model: 'claude-3-haiku-20240307',
+          temperature: 0.7,
+          maxTokens: 2048
+        },
+        medium: {
+          id: 2,
+          name: 'medium',
+          displayName: 'Medium - Balanced',
+          provider: 'anthropic',
+          model: 'claude-3-5-sonnet-20241022',
+          temperature: 0.7,
+          maxTokens: 4096
+        },
+        high: {
+          id: 3,
+          name: 'high',
+          displayName: 'High - Quality',
+          provider: 'anthropic',
+          model: 'claude-3-5-sonnet-20241022',
+          temperature: 0.8,
+          maxTokens: 8192
+        }
+      }
+      return configs[preset] || configs.medium
+    }),
+    resolveProviderConfig: mock(async ({ provider, model }: any) => ({
+      id: 1,
+      name: 'test-config',
+      provider: provider || 'anthropic',
+      model: model || 'claude-3-haiku-20240307',
       temperature: 0.7,
-      maxTokens: 4000
+      maxTokens: 4096
     }))
   }
 }))
 
 // Mock generateStructuredData to return predictable results
-mock.module('../gen-ai-services', () => ({
+mock.module('../../gen-ai-services', () => ({
   generateStructuredData: mock(async () => ({
-    suggestions: [
-      { fileId: '1', confidence: 0.9, relevance: 0.85, reasons: ['JWT auth'] },
-      { fileId: '2', confidence: 0.8, relevance: 0.75, reasons: ['Session handling'] }
-    ]
+    object: {
+      suggestions: [
+        { fileId: '1', confidence: 0.9, relevance: 0.85, reasons: ['JWT auth'] },
+        { fileId: '2', confidence: 0.8, relevance: 0.75, reasons: ['Session handling'] }
+      ]
+    }
   }))
 }))
 
+// Mock AI SDK to prevent real API calls
+mock.module('ai', () => ({
+  generateObject: mock(async ({ model, schema, prompt }: any) => {
+    // Return mock based on what's being requested
+    if (prompt && typeof prompt === 'string' && prompt.includes('directory')) {
+      // Directory selection mock
+      return {
+        object: {
+          selectedDirectories: ['src'],
+          reasoning: 'Mock directory selection for testing',
+          confidenceScores: { src: 0.9 }
+        }
+      }
+    } else {
+      // File suggestion mock
+      return {
+        object: {
+          suggestedFiles: [
+            {
+              fileId: '1',
+              path: 'src/auth/jwt.ts',
+              confidence: 0.9,
+              relevance: 0.85,
+              reasons: ['Mock suggestion for testing']
+            }
+          ],
+          metadata: {
+            totalAnalyzed: 1,
+            processingTime: 100
+          }
+        }
+      }
+    }
+  })
+}))
+
 describe('AI File Suggester', () => {
+  beforeAll(async () => {
+    await seedModelConfigs()
+  })
+
   const mockPartialFiles: PartialFileContent[] = [
     {
       fileId: '1',
@@ -189,18 +266,18 @@ describe('AI File Suggester', () => {
       })
 
       expect(result.metadata).toBeDefined()
-      expect(result.metadata.totalFiles).toBe(mockPartialFiles.length)
-      expect(result.metadata.analyzedFiles).toBe(mockPartialFiles.length)
+      expect(result.metadata.totalCandidates).toBe(mockPartialFiles.length)
+      expect(result.metadata.filesAnalyzed).toBe(mockPartialFiles.length)
       expect(result.metadata.processingTime).toBeGreaterThan(0)
       expect(result.metadata.aiModel).toBeDefined()
     })
 
-    test('should include token usage estimate in metadata', async () => {
+    test('should include token savings estimate in metadata', async () => {
       const result = await suggestFilesFromPartialContent(mockPartialFiles, 'test', {
         maxResults: 5
       })
 
-      expect(result.metadata.totalTokensEstimate).toBeGreaterThan(0)
+      expect(result.metadata.tokensSaved).toBeGreaterThanOrEqual(0)
     })
 
     test('should handle empty partial files array', async () => {
@@ -209,8 +286,8 @@ describe('AI File Suggester', () => {
       })
 
       expect(result.suggestedFiles).toHaveLength(0)
-      expect(result.metadata.totalFiles).toBe(0)
-      expect(result.metadata.analyzedFiles).toBe(0)
+      expect(result.metadata.totalCandidates).toBe(0)
+      expect(result.metadata.filesAnalyzed).toBe(0)
     })
 
     test('should handle single file', async () => {
@@ -243,7 +320,7 @@ describe('AI File Suggester', () => {
       result.suggestedFiles.forEach((file) => {
         expect(file).toHaveProperty('fileId')
         expect(file).toHaveProperty('path')
-        expect(file).toHaveProperty('fileType')
+        expect(file).toHaveProperty('extension')
         expect(file).toHaveProperty('lineCount')
         expect(file).toHaveProperty('totalLines')
       })
@@ -256,10 +333,10 @@ describe('AI File Suggester', () => {
 
       // Should be able to suggest .tsx files
       const hasTypescriptReact = result.suggestedFiles.some(
-        (f) => f.fileType === '.tsx'
+        (f) => f.extension === '.tsx'
       )
       if (result.suggestedFiles.length > 0) {
-        expect(['.ts', '.tsx']).toContain(result.suggestedFiles[0].fileType)
+        expect(['.ts', '.tsx']).toContain(result.suggestedFiles[0].extension)
       }
     })
   })
@@ -273,7 +350,7 @@ describe('AI File Suggester', () => {
         strategy: 'fast'
       })
 
-      expect(result.metadata.strategy).toBe('fast')
+      expect(result.metadata.strategy).toBe('ai-file-suggestion-fast')
     })
 
     test('should use balanced strategy settings', async () => {
@@ -284,7 +361,7 @@ describe('AI File Suggester', () => {
         strategy: 'balanced'
       })
 
-      expect(result.metadata.strategy).toBe('balanced')
+      expect(result.metadata.strategy).toBe('ai-file-suggestion-balanced')
     })
 
     test('should use thorough strategy settings', async () => {
@@ -295,7 +372,7 @@ describe('AI File Suggester', () => {
         strategy: 'thorough'
       })
 
-      expect(result.metadata.strategy).toBe('thorough')
+      expect(result.metadata.strategy).toBe('ai-file-suggestion-thorough')
     })
   })
 

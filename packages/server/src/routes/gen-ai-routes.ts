@@ -1,6 +1,6 @@
 import { createRoute, z } from '@hono/zod-openapi'
 
-import { ApiError } from '@promptliano/shared'
+import { ApiError, ErrorFactory } from '@promptliano/shared'
 import { ApiErrorResponseSchema, OperationSuccessResponseSchema } from '@promptliano/schemas'
 import { createStandardResponses, successResponse } from '../utils/route-helpers'
 import { ModelsQuerySchema } from '@promptliano/schemas'
@@ -11,7 +11,9 @@ import {
   AiGenerateStructuredResponseSchema,
   type StructuredDataSchemaConfig,
   ModelsListResponseSchema,
-  structuredDataSchemas
+  structuredDataSchemas,
+  MermaidFixRequestSchema,
+  MermaidFixResponseSchema
 } from '@promptliano/schemas'
 
 import { OpenAPIHono } from '@hono/zod-openapi'
@@ -294,6 +296,22 @@ const generateStructuredRoute = createRoute({
   responses: createStandardResponses(AiGenerateStructuredResponseSchema)
 })
 
+const fixMermaidRoute = createRoute({
+  method: 'post',
+  path: '/api/ai/mermaid/fix',
+  tags: ['AI'],
+  summary: 'Fix and optimize mermaid diagram code',
+  description: 'Uses AI to fix syntax errors and optimize mermaid diagram code structure',
+  request: {
+    body: {
+      content: { 'application/json': { schema: MermaidFixRequestSchema } },
+      required: true,
+      description: 'Mermaid code to fix along with optional error message and user intent'
+    }
+  },
+  responses: createStandardResponses(MermaidFixResponseSchema)
+})
+
 const postAiGenerateTextRoute = createRoute({
   method: 'post',
   path: '/api/ai/generate/text',
@@ -374,7 +392,7 @@ export const genAiRoutes = new OpenAPIHono()
 
     if (!tool) {
       await suite.cleanup()
-      throw new ApiError(404, `Unknown MCP tool: ${resolvedToolId}`, 'MCP_TOOL_NOT_FOUND')
+      throw ErrorFactory.notFound('MCP tool', resolvedToolId)
     }
 
     const inferredArguments = body.arguments ??
@@ -384,7 +402,7 @@ export const genAiRoutes = new OpenAPIHono()
 
     if (typeof tool.execute !== 'function') {
       await suite.cleanup()
-      throw new ApiError(500, `MCP tool '${resolvedToolId}' cannot be executed`, 'MCP_TOOL_EXECUTION_ERROR')
+      throw ErrorFactory.operationFailed('MCP tool execution', resolvedToolId)
     }
 
     let execution: unknown
@@ -609,7 +627,7 @@ export const genAiRoutes = new OpenAPIHono()
       return c.json(successResponse(allProviders), 200)
     } catch (error) {
       console.error('Failed to fetch providers:', error)
-      throw new ApiError(500, 'Failed to fetch providers', 'PROVIDERS_FETCH_ERROR')
+      throw ErrorFactory.operationFailed('fetch providers')
     }
   })
   .openapi(generateStreamRoute, async (c) => {
@@ -646,10 +664,10 @@ export const genAiRoutes = new OpenAPIHono()
     const config: StructuredDataSchemaConfig<z.ZodTypeAny> =
       structuredDataSchemas[schemaKey as keyof typeof structuredDataSchemas]
     if (!config) {
-      throw new ApiError(
-        400,
-        `Invalid schemaKey provided: ${schemaKey}. Valid keys are: ${Object.keys(structuredDataSchemas).join(', ')}`,
-        'INVALID_SCHEMA_KEY'
+      throw ErrorFactory.invalidParam(
+        'schemaKey',
+        `one of: ${Object.keys(structuredDataSchemas).join(', ')}`,
+        schemaKey
       )
     }
 
@@ -666,6 +684,47 @@ export const genAiRoutes = new OpenAPIHono()
     })
 
     return c.json(successResponse({ output: result.object }), 200)
+  })
+  .openapi(fixMermaidRoute, async (c) => {
+    const body = c.req.valid('json')
+    const { mermaidCode, error, userIntent, options } = body
+
+    // Get the mermaid fixer configuration from structured schemas
+    const config = structuredDataSchemas.mermaidFixer
+    if (!config) {
+      throw ErrorFactory.missingRequired('mermaid fixer configuration', 'structured data schema')
+    }
+
+    // Build the input for the AI
+    let userInput = `Mermaid Code:\n\`\`\`\n${mermaidCode}\n\`\`\``
+
+    if (error) {
+      userInput += `\n\nError Message:\n${error}`
+    }
+
+    if (userIntent) {
+      userInput += `\n\nUser Intent:\n${userIntent}`
+    }
+
+    const finalPrompt = config.promptTemplate?.replace('{userInput}', userInput) ?? userInput
+    const finalModel = options?.model ?? config.modelSettings?.model ?? 'gpt-4o'
+    const finalOptions = { ...config.modelSettings, ...options, model: finalModel }
+    const finalSystemPrompt = config.systemPrompt
+
+    logger.info('Fixing mermaid diagram', {
+      codeLength: mermaidCode.length,
+      hasError: !!error,
+      hasUserIntent: !!userIntent
+    })
+
+    const result = await generateStructuredData({
+      prompt: finalPrompt,
+      schema: config.schema,
+      options: finalOptions,
+      systemMessage: finalSystemPrompt
+    })
+
+    return c.json(successResponse(result.object), 200)
   })
   .openapi(getModelsRoute, async (c) => {
     const { provider } = c.req.valid('query')
