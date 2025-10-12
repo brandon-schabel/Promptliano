@@ -314,7 +314,7 @@ export function CrawlDebugPanel({ researchId, className }: CrawlDebugPanelProps)
                 <p className="text-sm">Try adjusting your filters or start a new crawl</p>
               </div>
             ) : (
-              <ScrollArea className="h-[400px] w-full rounded-md border">
+              <ScrollArea className="h-[400px] w-full rounded-md border border-border">
                 <div className="space-y-2 p-4">
                   {events.map((event: DebugEvent) => (
                     <DebugEventCard key={event.id} event={event} />
@@ -347,7 +347,7 @@ export function CrawlDebugPanel({ researchId, className }: CrawlDebugPanelProps)
                 <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
               </div>
             ) : (
-              <ScrollArea className="h-[400px] w-full rounded-md border">
+              <ScrollArea className="h-[400px] w-full rounded-md border border-border">
                 <div className="space-y-1 p-2">
                   {recentEvents.length === 0 ? (
                     <div className="text-center py-12 text-muted-foreground">

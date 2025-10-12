@@ -93,7 +93,6 @@
 }
 
 * {
-  @apply border-border;
   scrollbar-width: thin;
   scrollbar-color: hsl(var(--muted-foreground)) hsl(var(--muted));
 }
@@ -204,9 +203,6 @@ body {
 }
 
 @layer base {
-  * {
-    @apply border-border;
-  }
   body {
     @apply bg-background text-foreground;
   }

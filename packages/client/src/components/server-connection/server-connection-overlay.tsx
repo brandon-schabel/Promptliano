@@ -52,7 +52,7 @@ export function ServerConnectionOverlay() {
           <CardDescription className='text-base text-muted-foreground'>{statusMessage}</CardDescription>
         </CardHeader>
         <CardContent className='space-y-6'>
-          <div className='space-y-2 rounded-lg border border-border bg-muted/30 p-4 text-sm text-muted-foreground'>
+          <div className='space-y-2 rounded-lg border bg-muted/30 p-4 text-sm text-muted-foreground'>
             <div className='flex items-center justify-between'>
               <span className='font-medium text-foreground'>Last checked</span>
               <span>{lastCheckedLabel}</span>

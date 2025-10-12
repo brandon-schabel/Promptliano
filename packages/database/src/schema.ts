@@ -4,7 +4,7 @@
  * Achieves 100% type safety and 6-20x performance improvement
  */
 
-import { sqliteTable, integer, text, index, real } from 'drizzle-orm/sqlite-core'
+import { sqliteTable, integer, text, index, real, uniqueIndex } from 'drizzle-orm/sqlite-core'
 import { relations, sql } from 'drizzle-orm'
 import { createInsertSchema, createSelectSchema } from './schema-factory'
 import { z } from '@hono/zod-openapi'
@@ -1975,7 +1975,8 @@ export const researchSourcesRelations = relations(researchSources, ({ one, many 
     fields: [researchSources.researchId],
     references: [researchRecords.id]
   }),
-  processedData: many(researchProcessedData)
+  processedData: many(researchProcessedData),
+  links: many(researchSourceLinks)
 }))
 
 export const researchProcessedDataRelations = relations(researchProcessedData, ({ one }) => ({
@@ -2100,3 +2101,47 @@ export type MCPServerConfiguration = McpServerConfig
 
 // Re-export important types that are already defined as interfaces above
 // (GitFileStatus, GitCommitAuthor, ImportInfo, ExportInfo, FileRelationship, RelevanceWeights are already exported)
+
+export const researchSourceLinks = sqliteTable(
+  'research_source_links',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    sourceId: integer('source_id')
+      .notNull()
+      .references(() => researchSources.id, { onDelete: 'cascade' }),
+    url: text('url').notNull(),
+    title: text('title'),
+    status: text('status', { enum: ['pending', 'crawled', 'failed'] }).notNull().default('pending'),
+    depth: integer('depth'),
+    parentUrl: text('parent_url'),
+    relevanceScore: real('relevance_score'),
+    tokenCount: integer('token_count'),
+    discoveredAt: integer('discovered_at', { mode: 'number' })
+      .notNull(),
+    crawlSessionId: text('crawl_session_id'),
+    createdAt: integer('created_at', { mode: 'number' })
+      .notNull(),
+    updatedAt: integer('updated_at', { mode: 'number' })
+      .notNull()
+  },
+  table => ({
+    sourceDiscoveredAtIdx: index('research_source_links_source_discovered_idx').on(
+      table.sourceId,
+      table.discoveredAt
+    ),
+    sourceUrlUnique: uniqueIndex('research_source_links_source_url_idx').on(table.sourceId, table.url)
+  })
+)
+
+export const researchSourceLinksRelations = relations(researchSourceLinks, ({ one }) => ({
+  source: one(researchSources, {
+    fields: [researchSourceLinks.sourceId],
+    references: [researchSources.id]
+  })
+}))
+
+export const insertResearchSourceLinkSchema = createInsertSchema(researchSourceLinks).openapi('InsertResearchSourceLink')
+export const selectResearchSourceLinkSchema = createSelectSchema(researchSourceLinks).openapi('ResearchSourceLink')
+
+export type ResearchSourceLink = typeof researchSourceLinks.$inferSelect
+export type InsertResearchSourceLink = typeof researchSourceLinks.$inferInsert

@@ -194,14 +194,14 @@ export function TestimonialsCarousel() {
             {/* Navigation buttons */}
             <button
               onClick={handlePrevious}
-              className='absolute left-0 top-1/2 -translate-y-1/2 -translate-x-12 p-2 rounded-full bg-background/80 border border-border hover:bg-muted transition-colors'
+              className='absolute left-0 top-1/2 -translate-y-1/2 -translate-x-12 p-2 rounded-full bg-background/80 border hover:bg-muted transition-colors'
               aria-label='Previous testimonial'
             >
               <ChevronLeft className='h-5 w-5' />
             </button>
             <button
               onClick={handleNext}
-              className='absolute right-0 top-1/2 -translate-y-1/2 translate-x-12 p-2 rounded-full bg-background/80 border border-border hover:bg-muted transition-colors'
+              className='absolute right-0 top-1/2 -translate-y-1/2 translate-x-12 p-2 rounded-full bg-background/80 border hover:bg-muted transition-colors'
               aria-label='Next testimonial'
             >
               <ChevronRight className='h-5 w-5' />

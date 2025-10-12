@@ -227,7 +227,7 @@ export function SetupWizard() {
               }}
               className={cn(
                 'p-4 rounded-lg border-2 transition-all capitalize',
-                selectedOS === os ? 'border-primary bg-primary/10' : 'border-border hover:border-primary/50'
+                selectedOS === os ? 'border-primary bg-primary/10' : 'hover:border-primary/50'
               )}
             >
               {os === 'macos' ? 'macOS' : os}
@@ -255,7 +255,7 @@ export function SetupWizard() {
               }}
               className={cn(
                 'p-4 rounded-lg border-2 transition-all',
-                selectedEditor === key ? 'border-primary bg-primary/10' : 'border-border hover:border-primary/50'
+                selectedEditor === key ? 'border-primary bg-primary/10' : 'hover:border-primary/50'
               )}
             >
               {name}

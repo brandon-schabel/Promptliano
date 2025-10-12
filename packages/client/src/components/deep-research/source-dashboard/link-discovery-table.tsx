@@ -97,7 +97,26 @@ export interface Link {
   parentUrl?: string
   relevanceScore?: number
   tokenCount?: number
-  contentPreview?: string
+  crawlSessionId?: string
+  createdAt: number
+  updatedAt: number
+}
+
+// Helper type to adapt API payloads safely
+type ApiLink = {
+  id: number
+  sourceId: number
+  url: string
+  title?: string | null
+  depth?: number | null
+  discoveredAt: number
+  status: 'pending' | 'crawled' | 'failed'
+  parentUrl?: string | null
+  relevanceScore?: number | null
+  tokenCount?: number | null
+  crawlSessionId?: string | null
+  createdAt: number
+  updatedAt: number
 }
 
 export type SortableColumn = 'discoveredAt' | 'url' | 'depth' | 'relevanceScore' | 'title' | 'status'
@@ -239,7 +258,24 @@ export function LinkDiscoveryTable({
   })
 
   const paginationData = useMemo(() => data?.data?.pagination, [data])
-  const links = useMemo(() => data?.data?.links || [], [data])
+  const links = useMemo<Link[]>(() => {
+    const rawLinks: ApiLink[] = data?.data?.links || []
+
+    return rawLinks.map((link) => ({
+      id: link.id,
+      url: link.url,
+      title: link.title ?? undefined,
+      depth: typeof link.depth === 'number' ? link.depth : 0,
+      discoveredAt: new Date(link.discoveredAt).toISOString(),
+      status: link.status,
+      parentUrl: link.parentUrl ?? undefined,
+      relevanceScore: link.relevanceScore ?? undefined,
+      tokenCount: link.tokenCount ?? undefined,
+      crawlSessionId: link.crawlSessionId ?? undefined,
+      createdAt: link.createdAt,
+      updatedAt: link.updatedAt
+    }))
+  }, [data])
   const totalCount = useMemo(() => {
     if (paginationData?.total !== undefined) return paginationData.total
     if (data?.data?.total !== undefined) return data.data.total

@@ -201,3 +201,11 @@ body {
     color: hsl(var(--foreground));
   }
 }
+
+@layer base {
+  *,
+  ::before,
+  ::after {
+    border-color: hsl(var(--border));
+  }
+}

@@ -457,12 +457,14 @@ export const SourceDashboardResponseSchema = z.object({
  */
 export const SourceLinksQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
-  limit: z.coerce.number().int().min(1).max(100).default(20),
-  sortBy: z.enum(['discoveredAt', 'url', 'depth', 'relevanceScore']).default('discoveredAt').optional(),
+  limit: z.coerce.number().int().min(1).max(200).default(100),
+  sortBy: z.enum(['discoveredAt', 'depth', 'relevanceScore']).default('discoveredAt').optional(),
   sortOrder: z.enum(['asc', 'desc']).default('desc').optional(),
   status: z.enum(['pending', 'crawled', 'failed', 'all']).default('all').optional(),
   minDepth: z.coerce.number().int().min(0).optional(),
-  maxDepth: z.coerce.number().int().min(0).optional()
+  maxDepth: z.coerce.number().int().min(0).optional(),
+  search: z.string().max(500).optional(),
+  crawlSessionId: z.string().optional()
 }).openapi('SourceLinksQuery')
 
 /**
@@ -474,14 +476,19 @@ export const SourceLinksResponseSchema = z.object({
   data: z.object({
     sourceId: z.number().int().positive(),
     links: z.array(z.object({
+      id: z.number().int().positive(),
+      sourceId: z.number().int().positive(),
       url: z.string(),
       discoveredAt: z.number(),
-      depth: z.number().int().min(0),
+      depth: z.number().int().min(0).optional(),
       status: z.enum(['pending', 'crawled', 'failed']),
       title: z.string().optional(),
-      relevanceScore: z.number().min(0).max(1).optional(),
+      relevanceScore: z.number().min(0).max(1).nullable().optional(),
+      tokenCount: z.number().int().min(0).nullable().optional(),
       parentUrl: z.string().optional(),
-      errorMessage: z.string().optional()
+      crawlSessionId: z.string().optional(),
+      createdAt: z.number(),
+      updatedAt: z.number()
     })),
     pagination: z.object({
       page: z.number().int().min(1),

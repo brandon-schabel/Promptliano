@@ -52,6 +52,9 @@ module.exports = {
         md: 'calc(var(--radius) - 2px)',
         sm: 'calc(var(--radius) - 4px)'
       },
+      borderColor: {
+        DEFAULT: 'hsl(var(--border) / <alpha-value>)'
+      },
       colors: {
         background: 'hsl(var(--background))',
         foreground: 'hsl(var(--foreground))',

@@ -384,7 +384,7 @@ export function PortTable({ projectId, className }: PortTableProps) {
         </div>
       </div>
 
-      <div className='rounded-md border'>
+      <div className='rounded-md border border-border'>
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (

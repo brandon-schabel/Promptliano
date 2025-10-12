@@ -37,11 +37,7 @@ import {
 import { toast } from 'sonner'
 
 // Import utilities
-import {
-  parseMermaidError,
-  validateMermaidSyntax,
-  type ParsedMermaidError
-} from './mermaid-error-parser'
+import { parseMermaidError, validateMermaidSyntax, type ParsedMermaidError } from './mermaid-error-parser'
 import {
   exportMermaidToSvg,
   exportMermaidToPng,
@@ -77,7 +73,11 @@ export interface MermaidViewerProps {
   enableAiFix?: boolean
 
   /** Custom AI fix handler (if not provided, will be a no-op) */
-  onAiFix?: (code: string, error?: string, userIntent?: string) => Promise<{
+  onAiFix?: (
+    code: string,
+    error?: string,
+    userIntent?: string
+  ) => Promise<{
     fixedCode: string
     explanation?: string
   }>
@@ -324,9 +324,9 @@ export function MermaidViewer({
   const renderPreview = () => {
     if (!code.trim()) {
       return (
-        <div className="flex items-center justify-center h-full text-muted-foreground">
-          <div className="text-center">
-            <Info className="w-12 h-12 mx-auto mb-2 opacity-50" />
+        <div className='flex items-center justify-center h-full text-muted-foreground'>
+          <div className='text-center'>
+            <Info className='w-12 h-12 mx-auto mb-2 opacity-50' />
             <p>Enter mermaid code to see preview</p>
           </div>
         </div>
@@ -337,7 +337,7 @@ export function MermaidViewer({
       <div
         key={`preview-${view}`}
         ref={previewRef}
-        className="w-full h-full overflow-auto p-4 flex items-center justify-center"
+        className='w-full h-full overflow-auto p-4 flex items-center justify-center'
       />
     )
   }
@@ -347,117 +347,88 @@ export function MermaidViewer({
     if (!showToolbar) return null
 
     return (
-      <div className="flex items-center gap-2 p-2 border-b bg-muted/30">
+      <div className='flex items-center gap-2 p-2 border-b bg-muted/30'>
         {/* View mode tabs */}
-        <div className="flex items-center gap-1 mr-auto">
+        <div className='flex items-center gap-1 mr-auto'>
           <Button
             variant={view === 'code' ? 'default' : 'ghost'}
-            size="sm"
+            size='sm'
             onClick={() => setView('code')}
-            title="Code only"
+            title='Code only'
           >
-            <Code2 className="h-4 w-4 mr-1" />
+            <Code2 className='h-4 w-4 mr-1' />
             Code
           </Button>
           <Button
             variant={view === 'preview' ? 'default' : 'ghost'}
-            size="sm"
+            size='sm'
             onClick={() => setView('preview')}
-            title="Preview only"
+            title='Preview only'
           >
-            <Eye className="h-4 w-4 mr-1" />
+            <Eye className='h-4 w-4 mr-1' />
             Preview
           </Button>
           <Button
             variant={view === 'split' ? 'default' : 'ghost'}
-            size="sm"
+            size='sm'
             onClick={() => setView('split')}
-            title="Side by side"
+            title='Side by side'
           >
-            <SplitSquareVertical className="h-4 w-4 mr-1" />
+            <SplitSquareVertical className='h-4 w-4 mr-1' />
             Split
           </Button>
         </div>
 
-        <Separator orientation="vertical" className="h-6" />
+        <Separator orientation='vertical' className='h-6' />
 
         {/* Actions */}
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleCopy}
-          title="Copy code"
-        >
-          {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+        <Button variant='ghost' size='sm' onClick={handleCopy} title='Copy code'>
+          {copied ? <Check className='h-4 w-4' /> : <Copy className='h-4 w-4' />}
         </Button>
 
         {enableAiFix && onAiFix && renderError && (
-          <Button
-            variant="default"
-            size="sm"
-            onClick={handleAiFix}
-            disabled={isFixing}
-            title="Fix with AI"
-          >
-            {isFixing ? (
-              <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-            ) : (
-              <Wand2 className="h-4 w-4 mr-1" />
-            )}
+          <Button variant='default' size='sm' onClick={handleAiFix} disabled={isFixing} title='Fix with AI'>
+            {isFixing ? <Loader2 className='h-4 w-4 mr-1 animate-spin' /> : <Wand2 className='h-4 w-4 mr-1' />}
             Fix
           </Button>
         )}
 
         {onSave && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleSave}
-            title="Save diagram"
-          >
-            <FileDown className="h-4 w-4 mr-1" />
+          <Button variant='ghost' size='sm' onClick={handleSave} title='Save diagram'>
+            <FileDown className='h-4 w-4 mr-1' />
             Save
           </Button>
         )}
 
-        <Separator orientation="vertical" className="h-6" />
+        <Separator orientation='vertical' className='h-6' />
 
         {/* Export buttons */}
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleSvgExport}
-          title="Export as SVG"
-        >
-          <Download className="h-4 w-4 mr-1" />
+        <Button variant='ghost' size='sm' onClick={handleSvgExport} title='Export as SVG'>
+          <Download className='h-4 w-4 mr-1' />
           SVG
         </Button>
 
         <Popover>
           <PopoverTrigger asChild>
-            <Button
-              variant="ghost"
-              size="sm"
-              title="Export as PNG"
-            >
-              <ImageIcon className="h-4 w-4 mr-1" />
+            <Button variant='ghost' size='sm' title='Export as PNG'>
+              <ImageIcon className='h-4 w-4 mr-1' />
               PNG
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-80">
-            <div className="space-y-4">
-              <h4 className="font-medium">PNG Export Settings</h4>
+          <PopoverContent className='w-80'>
+            <div className='space-y-4'>
+              <h4 className='font-medium'>PNG Export Settings</h4>
 
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Size Preset</label>
-                <div className="grid grid-cols-2 gap-2">
+              <div className='space-y-2'>
+                <label className='text-sm font-medium'>Size Preset</label>
+                <div className='grid grid-cols-2 gap-2'>
                   {(Object.keys(EXPORT_SIZE_PRESETS) as ExportSizePreset[]).map((preset) => (
                     <Button
                       key={preset}
                       variant={pngExportSize === preset ? 'default' : 'outline'}
-                      size="sm"
+                      size='sm'
                       onClick={() => setPngExportSize(preset)}
-                      className="justify-start"
+                      className='justify-start'
                     >
                       {EXPORT_SIZE_PRESETS[preset].label}
                     </Button>
@@ -466,37 +437,34 @@ export function MermaidViewer({
               </div>
 
               {pngExportSize === 'custom' && (
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Custom Size</label>
-                  <div className="flex items-center gap-2">
+                <div className='space-y-2'>
+                  <label className='text-sm font-medium'>Custom Size</label>
+                  <div className='flex items-center gap-2'>
                     <input
-                      type="number"
+                      type='number'
                       value={customPngSize.width}
                       onChange={(e) =>
                         setCustomPngSize((prev) => ({ ...prev, width: parseInt(e.target.value) || 1920 }))
                       }
-                      className="flex-1 px-2 py-1 border rounded text-sm"
-                      placeholder="Width"
+                      className='flex-1 px-2 py-1 border rounded text-sm'
+                      placeholder='Width'
                     />
                     <span>×</span>
                     <input
-                      type="number"
+                      type='number'
                       value={customPngSize.height}
                       onChange={(e) =>
                         setCustomPngSize((prev) => ({ ...prev, height: parseInt(e.target.value) || 1080 }))
                       }
-                      className="flex-1 px-2 py-1 border rounded text-sm"
-                      placeholder="Height"
+                      className='flex-1 px-2 py-1 border rounded text-sm'
+                      placeholder='Height'
                     />
                   </div>
                 </div>
               )}
 
-              <Button
-                onClick={handlePngExport}
-                className="w-full"
-              >
-                <Download className="h-4 w-4 mr-2" />
+              <Button onClick={handlePngExport} className='w-full'>
+                <Download className='h-4 w-4 mr-2' />
                 Export PNG
               </Button>
             </div>
@@ -505,8 +473,8 @@ export function MermaidViewer({
 
         {/* Status indicators */}
         {renderError && (
-          <Badge variant="destructive" className="ml-2">
-            <AlertCircle className="h-3 w-3 mr-1" />
+          <Badge variant='destructive' className='ml-2'>
+            <AlertCircle className='h-3 w-3 mr-1' />
             Error
           </Badge>
         )}
@@ -519,17 +487,13 @@ export function MermaidViewer({
     if (!renderError) return null
 
     return (
-      <Alert variant="destructive" className="m-4">
-        <AlertCircle className="h-4 w-4" />
+      <Alert variant='destructive' className='m-4'>
+        <AlertCircle className='h-4 w-4' />
         <AlertDescription>
-          <div className="space-y-1">
-            <p className="font-medium">{renderError.message}</p>
-            {renderError.suggestion && (
-              <p className="text-sm opacity-90">{renderError.suggestion}</p>
-            )}
-            {renderError.line && (
-              <p className="text-xs opacity-75">Line {renderError.line}</p>
-            )}
+          <div className='space-y-1'>
+            <p className='font-medium'>{renderError.message}</p>
+            {renderError.suggestion && <p className='text-sm opacity-90'>{renderError.suggestion}</p>}
+            {renderError.line && <p className='text-xs opacity-75'>Line {renderError.line}</p>}
           </div>
         </AlertDescription>
       </Alert>
@@ -540,40 +504,40 @@ export function MermaidViewer({
     <div className={cn('flex flex-col h-full border rounded-lg bg-background', className)}>
       {renderToolbar()}
 
-      <div className="flex-1 overflow-hidden">
+      <div className='flex-1 overflow-hidden'>
         {view === 'code' && (
-          <div className="h-full p-4">
+          <div className='h-full p-4'>
             <Textarea
               ref={textareaRef}
               value={code}
               onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => handleCodeChange(e.target.value)}
-              className="font-mono text-sm h-full resize-none"
-              placeholder="Enter mermaid code here..."
+              className='font-mono text-sm h-full resize-none'
+              placeholder='Enter mermaid code here...'
               disabled={!editable}
             />
           </div>
         )}
 
         {view === 'preview' && (
-          <div className="h-full">
+          <div className='h-full'>
             {renderErrorAlert()}
             {renderPreview()}
           </div>
         )}
 
         {view === 'split' && (
-          <div className="flex h-full">
-            <div className="flex-1 border-r p-4">
+          <div className='flex h-full'>
+            <div className='flex-1 border-r p-4'>
               <Textarea
                 ref={textareaRef}
                 value={code}
                 onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => handleCodeChange(e.target.value)}
-                className="font-mono text-sm h-full resize-none"
-                placeholder="Enter mermaid code here..."
+                className='font-mono text-sm h-full resize-none'
+                placeholder='Enter mermaid code here...'
                 disabled={!editable}
               />
             </div>
-            <div className="flex-1">
+            <div className='flex-1'>
               {renderErrorAlert()}
               {renderPreview()}
             </div>

@@ -127,7 +127,7 @@ export function Header() {
                 stiffness: 300,
                 duration: 0.4
               }}
-              className='fixed inset-y-0 right-0 w-full max-w-sm bg-background/95 backdrop-blur-xl z-50 md:hidden border-l border-border shadow-2xl'
+              className='fixed inset-y-0 right-0 w-full max-w-sm bg-background/95 backdrop-blur-xl z-50 md:hidden border-l shadow-2xl'
             >
               <div className='flex flex-col h-full'>
                 <div className='flex items-center justify-between p-4 border-b'>

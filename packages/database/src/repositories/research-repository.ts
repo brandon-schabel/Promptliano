@@ -20,10 +20,18 @@ import {
   type ResearchDocumentSection,
   type InsertResearchDocumentSection,
   type ResearchExport,
-  type InsertResearchExport
+  type InsertResearchExport,
+  researchSourceLinks,
+  type ResearchSourceLink,
+  type InsertResearchSourceLink
 } from '../schema'
 import { createBaseRepository, extendRepository } from './base-repository'
 import { researchCrawlHelpers } from './research-crawl-helpers'
+import {
+  researchSourceLinksRepository,
+  type SourceLinkPaginationParams,
+  type SourceLinkFilters
+} from './research-source-link-repository'
 
 // =============================================================================
 // Research Record Repository
@@ -90,9 +98,40 @@ export const researchRecordRepository = extendRepository(baseResearchRecordRepo,
 
 const baseResearchSourceRepo = createBaseRepository(researchSources, undefined, undefined, 'ResearchSource')
 
+function createResearchSourceRepositoryWithDb(dbInstance: typeof db) {
+  const scopedBase = createBaseRepository(researchSources, dbInstance, undefined, 'ResearchSource')
+  return extendRepository(scopedBase, {
+    ...researchCrawlHelpers,
+    async getByResearch(researchId: number): Promise<ResearchSource[]> {
+      return dbInstance
+        .select()
+        .from(researchSources)
+        .where(eq(researchSources.researchId, researchId))
+        .orderBy(asc(researchSources.createdAt))
+    },
+    async getByStatus(researchId: number, status: ResearchSource['status']): Promise<ResearchSource[]> {
+      return dbInstance
+        .select()
+        .from(researchSources)
+        .where(and(eq(researchSources.researchId, researchId), eq(researchSources.status, status)))
+    },
+    async getPendingSources(researchId: number): Promise<ResearchSource[]> {
+      return dbInstance
+        .select()
+        .from(researchSources)
+        .where(and(eq(researchSources.researchId, researchId), eq(researchSources.status, 'pending')))
+        .orderBy(asc(researchSources.createdAt))
+    }
+  })
+}
+
 export const researchSourceRepository = extendRepository(baseResearchSourceRepo, {
   // Include all crawl helper methods
   ...researchCrawlHelpers,
+
+  withDb(dbInstance: typeof db) {
+    return createResearchSourceRepositoryWithDb(dbInstance)
+  },
 
   /**
    * Get all sources for a research session
@@ -436,3 +475,21 @@ export const researchExportRepository = extendRepository(baseResearchExportRepo,
     return result.changes || 0
   }
 })
+
+export const researchSourceLinkRepository = {
+  ...researchSourceLinksRepository,
+  insertMany: (
+    links: InsertResearchSourceLink[],
+    dbInstance: typeof db = db
+  ) => researchSourceLinksRepository.insertMany(links, dbInstance),
+  getPaginated: (
+    params: SourceLinkPaginationParams,
+    dbInstance: typeof db = db
+  ) => researchSourceLinksRepository.getPaginated(params, dbInstance),
+  deleteBySource: (sourceId: number, dbInstance: typeof db = db) =>
+    researchSourceLinksRepository.deleteBySource(sourceId, dbInstance),
+  getSourceSummary: (sourceId: number, dbInstance: typeof db = db) =>
+    researchSourceLinksRepository.getSourceSummary(sourceId, dbInstance)
+}
+
+export type { ResearchSourceLink, InsertResearchSourceLink, SourceLinkPaginationParams, SourceLinkFilters }

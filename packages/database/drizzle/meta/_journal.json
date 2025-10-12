@@ -64,6 +64,13 @@
       "when": 1760154838000,
       "tag": "0008_add_research_metadata",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1760280636391,
+      "tag": "0009_flowery_chamber",
+      "breakpoints": true
     }
   ]
 }

@@ -360,10 +360,10 @@ const ReasoningSection: React.FC<{
           </span>
         </ReasoningTrigger>
       </div>
-      <ReasoningContent className='border-t border-amber-200/60 px-3 py-2 font-mono text-[11px] text-amber-900 whitespace-pre-wrap break-words dark:border-amber-500/30 dark:text-amber-100 sm:text-xs'>
+      <ReasoningContent className='border-t border-amber-500/30 px-3 py-2 font-mono text-[11px] text-amber-900 whitespace-pre-wrap break-words dark:border-amber-500/50 dark:text-amber-100 sm:text-xs'>
         {hasReasoning ? text : 'No reasoning provided.'}
       </ReasoningContent>
-      <div className='flex justify-end border-t border-amber-200/60 px-3 py-2 dark:border-amber-500/30'>
+      <div className='flex justify-end border-t border-amber-500/30 px-3 py-2 dark:border-amber-500/50'>
         <Button
           variant='ghost'
           size='sm'
@@ -2127,7 +2127,7 @@ function ChatPage() {
                           handleOpenSystemPromptDialog()
                         }
                       }}
-                      className='group flex flex-1 items-center gap-2 rounded-lg border border-border/40 bg-background/60 px-2 py-0.5 text-[11px] shadow-sm transition-all duration-150 hover:border-border focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-1 cursor-pointer'
+                      className='group flex flex-1 items-center gap-2 rounded-lg border border-border/40 bg-background/60 px-2 py-0.5 text-[11px] shadow-sm transition-all duration-150 hover:focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-1 cursor-pointer'
                     >
                       <div className='flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground'>
                         <span>System Prompt</span>

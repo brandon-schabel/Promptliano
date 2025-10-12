@@ -110,9 +110,7 @@ export function VideoDemos() {
             onClick={() => setSelectedCategory(category.id)}
             className={cn(
               'px-4 py-2 rounded-lg border transition-all flex items-center gap-2',
-              selectedCategory === category.id
-                ? 'border-primary bg-primary/10 text-primary'
-                : 'border-border hover:border-primary/50'
+              selectedCategory === category.id ? 'border-primary bg-primary/10 text-primary' : 'hover:border-primary/50'
             )}
           >
             {category.icon}
@@ -206,7 +204,7 @@ export function VideoDemos() {
                 </div>
                 <button
                   onClick={() => setSelectedVideo(null)}
-                  className='px-4 py-2 border border-border rounded-lg hover:bg-primary/10 transition-colors'
+                  className='px-4 py-2 border rounded-lg hover:bg-primary/10 transition-colors'
                 >
                   Close
                 </button>

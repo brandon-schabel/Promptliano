@@ -101,13 +101,13 @@ export function CodeTerminal({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
       className={cn(
-        'overflow-hidden rounded-lg border border-border bg-card/95 backdrop-blur-sm shadow-xl',
+        'overflow-hidden rounded-lg border bg-card/95 backdrop-blur-sm shadow-xl',
         isFullscreen && 'fixed inset-4 z-50',
         className
       )}
     >
       {/* Terminal Header */}
-      <div className='flex items-center justify-between border-b border-border bg-muted/50 px-4 py-2'>
+      <div className='flex items-center justify-between border-b bg-muted/50 px-4 py-2'>
         <div className='flex items-center gap-2'>
           <div className='flex gap-1.5'>
             <div className='h-3 w-3 rounded-full bg-red-500' />
@@ -219,10 +219,10 @@ export function CodeBlock({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className={cn('overflow-hidden rounded-lg border border-border bg-card', className)}
+      className={cn('overflow-hidden rounded-lg border bg-card', className)}
     >
       {/* Header */}
-      <div className='flex items-center justify-between border-b border-border bg-muted/50 px-4 py-2'>
+      <div className='flex items-center justify-between border-b bg-muted/50 px-4 py-2'>
         <div className='flex items-center gap-2 text-sm text-muted-foreground'>
           {filename && <span>{filename}</span>}
           <span className='text-xs opacity-70'>{language}</span>

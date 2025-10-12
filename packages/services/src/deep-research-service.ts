@@ -39,7 +39,9 @@ import {
   type InsertResearchDocumentSection,
   type ResearchExport,
   type InsertResearchExport,
-  type ResearchSourceMetadata
+  type ResearchSourceMetadata,
+  researchSourceLinkRepository,
+  type SourceLinkPaginationParams
 } from '@promptliano/database'
 import { z } from 'zod'
 import { generateStructuredData, genTextStream, type AiSdkCompatibleOptions } from './gen-ai-services'
@@ -1126,6 +1128,13 @@ export function createDeepResearchService(deps: DeepResearchServiceDeps = {}) {
         ...options,
         recrawl: true
       })
+    },
+
+    /**
+     * Fetch paginated links for a research source
+     */
+    async getSourceLinks(params: SourceLinkPaginationParams) {
+      return researchSourceLinkRepository.getPaginated(params)
     }
   }
 
@@ -1189,5 +1198,6 @@ export const {
   generateOutline,
   buildSection,
   exportDocument,
-  getProgress
+  getProgress,
+  getSourceLinks
 } = deepResearchService

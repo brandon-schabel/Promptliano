@@ -45,10 +45,6 @@
 }
 
 @layer base {
-  * {
-    @apply border-border;
-  }
-
   html {
     @apply antialiased;
     overflow-x: hidden;

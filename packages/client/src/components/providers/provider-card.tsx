@@ -95,7 +95,7 @@ export function ProviderCard({
     if (isConnected) return 'text-green-500 bg-green-500/10 border-green-500/30'
     if (health?.status === 'degraded') return 'text-yellow-500 bg-yellow-500/10 border-yellow-500/30'
     if (health?.status === 'unhealthy') return 'text-red-500 bg-red-500/10 border-red-500/30'
-    return 'text-gray-500 bg-gray-500/10 border-gray-500/30'
+    return 'text-gray-500 bg-gray-500/10 border-border'
   }
 
   const getStatusIcon = () => {

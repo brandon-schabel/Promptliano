@@ -208,7 +208,7 @@ export function LinkDiscoveryTableFilters({
                       className={cn(
                         'w-full flex items-center gap-2 px-3 py-2 rounded-md border transition-all',
                         'hover:shadow-sm',
-                        isSelected ? status.color : 'bg-background border-border hover:border-foreground/20'
+                        isSelected ? status.color : 'bg-background hover:border-foreground/20'
                       )}
                     >
                       <div

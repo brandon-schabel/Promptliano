@@ -46,7 +46,8 @@ import {
   selectResearchSourceSchema,
   selectResearchDocumentSectionSchema,
   selectResearchExportSchema,
-  selectResearchProcessedDataSchema
+  selectResearchProcessedDataSchema,
+  researchSourceLinkRepository
 } from '@promptliano/database'
 import { ApiError } from '@promptliano/shared'
 
@@ -987,84 +988,29 @@ deepResearchRoutes
       )
     }
 
-    // Parse metadata - use type assertion for dynamic metadata access
-    const metadata = (typeof source.metadata === 'object' && source.metadata ? source.metadata : {}) as any
-    const allLinks = metadata.linkDiscoveryTimeline?.recentDiscoveries || []
-
-    // Apply filters
-    let filteredLinks = [...allLinks]
-
-    if (query.status && query.status !== 'all') {
-      // For now, we'll mark all discovered links as 'crawled'
-      // In a real implementation, you'd check against actual crawl results
-      filteredLinks = filteredLinks.filter(() => query.status === 'crawled')
-    }
-
-    if (query.minDepth !== undefined) {
-      filteredLinks = filteredLinks.filter((link: any) => link.depth >= query.minDepth!)
-    }
-
-    if (query.maxDepth !== undefined) {
-      filteredLinks = filteredLinks.filter((link: any) => link.depth <= query.maxDepth!)
-    }
-
-    // Apply sorting
-    const sortBy = query.sortBy || 'discoveredAt'
-    const sortOrder = query.sortOrder || 'desc'
-
-    filteredLinks.sort((a: any, b: any) => {
-      let comparison = 0
-      switch (sortBy) {
-        case 'discoveredAt':
-          comparison = a.discoveredAt - b.discoveredAt
-          break
-        case 'url':
-          comparison = a.url.localeCompare(b.url)
-          break
-        case 'depth':
-          comparison = a.depth - b.depth
-          break
-        case 'relevanceScore':
-          comparison = (a.relevanceScore || 0) - (b.relevanceScore || 0)
-          break
+    const result = await researchSourceLinkRepository.getPaginated({
+      sourceId: id,
+      page: query.page ?? undefined,
+      limit: query.limit ?? undefined,
+      sortBy: query.sortBy ?? undefined,
+      sortOrder: query.sortOrder ?? undefined,
+      filters: {
+        status:
+          query.status === undefined || query.status === 'all'
+            ? undefined
+            : [query.status],
+        minDepth: query.minDepth,
+        maxDepth: query.maxDepth,
+        search: query.search,
+        crawlSessionId: query.crawlSessionId
       }
-      return sortOrder === 'asc' ? comparison : -comparison
     })
-
-    // Calculate pagination
-    const page = query.page || 1
-    const limit = query.limit || 20
-    const total = filteredLinks.length
-    const totalPages = Math.ceil(total / limit)
-    const startIndex = (page - 1) * limit
-    const endIndex = startIndex + limit
-
-    const paginatedLinks = filteredLinks.slice(startIndex, endIndex).map((link: any) => ({
-      url: link.url,
-      discoveredAt: link.discoveredAt,
-      depth: link.depth,
-      status: 'crawled' as const,
-      title: link.title,
-      relevanceScore: link.relevanceScore,
-      parentUrl: link.parentUrl,
-      errorMessage: undefined
-    }))
 
     return c.json(
       successResponse({
         sourceId: id,
-        links: paginatedLinks,
-        pagination: {
-          page,
-          limit,
-          total,
-          totalPages,
-          hasMore: page < totalPages
-        },
-        summary: {
-          totalDiscovered: metadata.linkDiscoveryTimeline?.totalLinksDiscoveredSession || total,
-          windowSize: metadata.linkDiscoveryTimeline?.recentDiscoveries?.length || total
-        }
+        links: result.links,
+        pagination: result.pagination
       }),
       200
     )

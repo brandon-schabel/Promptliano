@@ -64,7 +64,7 @@ export function MCPInfoPopover({ provider, projectId, onClose }: MCPInfoPopoverP
 
   return (
     <div className='flex max-h-[70vh] min-h-[12rem] w-full flex-col'>
-      <div className='flex items-center justify-between border-b border-border px-4 py-3'>
+      <div className='flex items-center justify-between border-b px-4 py-3'>
         <div>
           <h4 className='text-sm font-semibold'>Active MCP Servers</h4>
           <p className='text-xs text-muted-foreground'>
@@ -91,7 +91,7 @@ export function MCPInfoPopover({ provider, projectId, onClose }: MCPInfoPopoverP
                     key={mcp.name}
                     className={cn(
                       'rounded-lg border p-3 transition-colors',
-                      mcp.enabled ? 'border-primary/20 bg-primary/5' : 'border-border bg-muted/30'
+                      mcp.enabled ? 'border-primary/20 bg-primary/5' : 'bg-muted/30'
                     )}
                   >
                     <div className='flex items-center justify-between'>
@@ -126,7 +126,7 @@ export function MCPInfoPopover({ provider, projectId, onClose }: MCPInfoPopoverP
 
                     {/* Expandable Tool List */}
                     {isExpanded && (
-                      <div className='mt-3 border-t border-border pt-3'>
+                      <div className='mt-3 border-t pt-3'>
                         <div className='space-y-2'>
                           {mcp.tools.map((tool, idx) => (
                             <div key={`${tool.name}-${idx}`} className='flex items-start gap-2 text-xs'>
@@ -157,7 +157,7 @@ export function MCPInfoPopover({ provider, projectId, onClose }: MCPInfoPopoverP
 
           {/* Disabled MCPs (collapsed) */}
           {disabledMCPs.length > 0 && (
-            <div className='border-t border-border pt-3 text-xs text-muted-foreground'>
+            <div className='border-t pt-3 text-xs text-muted-foreground'>
               <details>
                 <summary className='cursor-pointer transition-colors hover:text-foreground'>
                   {disabledMCPs.length} inactive MCP{disabledMCPs.length > 1 ? 's' : ''}
@@ -176,7 +176,7 @@ export function MCPInfoPopover({ provider, projectId, onClose }: MCPInfoPopoverP
 
           {/* Provider Context */}
           {data.provider && (
-            <div className='border-t border-border pt-3 text-xs text-muted-foreground'>
+            <div className='border-t pt-3 text-xs text-muted-foreground'>
               Current provider: <span className='font-medium'>{data.provider}</span>
             </div>
           )}

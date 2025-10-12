@@ -39,7 +39,7 @@ const ArchitectureDiagram = () => (
   <div className='flex flex-col items-center gap-4 p-4 max-w-full'>
     {/* Your Development Environment */}
     <div className='w-full max-w-2xl'>
-      <div className='border-2 border-border rounded-lg p-4 bg-card/50'>
+      <div className='border-2 rounded-lg p-4 bg-card/50'>
         <h3 className='text-center font-semibold mb-4'>Your Development Environment</h3>
         <div className='grid grid-cols-2 md:grid-cols-4 gap-2'>
           <div className='border border-border/50 rounded p-2 text-center text-sm'>VS Code</div>
@@ -73,7 +73,7 @@ const ArchitectureDiagram = () => (
 
     {/* Core Services */}
     <div className='w-full max-w-2xl'>
-      <div className='border-2 border-border rounded-lg p-4 bg-card/50'>
+      <div className='border-2 rounded-lg p-4 bg-card/50'>
         <h3 className='text-center font-semibold mb-4'>Core Services</h3>
         <div className='grid grid-cols-2 md:grid-cols-4 gap-2'>
           <div className='border border-border/50 rounded p-2 text-center text-sm'>Project Manager</div>

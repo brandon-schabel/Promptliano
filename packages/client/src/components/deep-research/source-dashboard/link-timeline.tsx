@@ -87,9 +87,9 @@ export function LinkTimeline({ links, linkDiscoveryRate, isLive, className }: Li
   if (links.length === 0) {
     return (
       <div className={cn('rounded-lg border bg-card p-8 text-center', className)}>
-        <Link2 className="mx-auto h-12 w-12 text-muted-foreground opacity-50 mb-4" />
-        <p className="text-sm text-muted-foreground">No links discovered yet</p>
-        <p className="text-xs text-muted-foreground mt-1">Links will appear here as they are found</p>
+        <Link2 className='mx-auto h-12 w-12 text-muted-foreground opacity-50 mb-4' />
+        <p className='text-sm text-muted-foreground'>No links discovered yet</p>
+        <p className='text-xs text-muted-foreground mt-1'>Links will appear here as they are found</p>
       </div>
     )
   }
@@ -97,25 +97,25 @@ export function LinkTimeline({ links, linkDiscoveryRate, isLive, className }: Li
   return (
     <div className={cn('space-y-4', className)}>
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <h3 className="text-lg font-semibold">Link Timeline</h3>
-          <Badge variant="outline" className="font-normal">
+      <div className='flex items-center justify-between'>
+        <div className='flex items-center gap-2'>
+          <h3 className='text-lg font-semibold'>Link Timeline</h3>
+          <Badge variant='outline' className='font-normal'>
             {links.length} links
           </Badge>
         </div>
-        <div className="flex items-center gap-3">
+        <div className='flex items-center gap-3'>
           {linkDiscoveryRate !== undefined && (
-            <div className="text-sm text-muted-foreground">
-              <Activity className="inline h-4 w-4 mr-1" />
+            <div className='text-sm text-muted-foreground'>
+              <Activity className='inline h-4 w-4 mr-1' />
               {linkDiscoveryRate.toFixed(1)} links/min
             </div>
           )}
           {isLive && (
-            <div className="flex items-center gap-1.5 text-sm text-green-600 font-medium">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500" />
+            <div className='flex items-center gap-1.5 text-sm text-green-600 font-medium'>
+              <span className='relative flex h-2 w-2'>
+                <span className='animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75' />
+                <span className='relative inline-flex rounded-full h-2 w-2 bg-green-500' />
               </span>
               Live
             </div>
@@ -124,8 +124,8 @@ export function LinkTimeline({ links, linkDiscoveryRate, isLive, className }: Li
       </div>
 
       {/* Timeline */}
-      <ScrollArea className="h-[600px] rounded-lg border bg-card">
-        <div className="p-4 space-y-2">
+      <ScrollArea className='h-[600px] rounded-lg border bg-card'>
+        <div className='p-4 space-y-2'>
           {links.map((link, index) => (
             <LinkTimelineItem
               key={`${link.url}-${index}`}
@@ -171,7 +171,7 @@ function LinkTimelineItem({
         isExpanded && 'shadow-lg border-primary'
       )}
       onClick={onToggleExpand}
-      role="button"
+      role='button'
       tabIndex={0}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
@@ -181,18 +181,18 @@ function LinkTimelineItem({
       }}
       aria-expanded={isExpanded}
     >
-      <div className="flex items-start gap-3">
+      <div className='flex items-start gap-3'>
         {/* Status Icon */}
         <div className={cn('rounded-full p-2 flex-shrink-0', statusConfig.bgColor)}>
-          <StatusIcon className={cn('h-4 w-4', statusConfig.color)} aria-hidden="true" />
+          <StatusIcon className={cn('h-4 w-4', statusConfig.color)} aria-hidden='true' />
         </div>
 
         {/* Content */}
-        <div className="flex-1 min-w-0 space-y-2">
+        <div className='flex-1 min-w-0 space-y-2'>
           {/* URL and Title */}
           <div>
             {link.title && (
-              <p className="font-medium text-sm mb-1 truncate" title={link.title}>
+              <p className='font-medium text-sm mb-1 truncate' title={link.title}>
                 {link.title}
               </p>
             )}
@@ -201,33 +201,33 @@ function LinkTimelineItem({
                 <TooltipTrigger asChild>
                   <a
                     href={link.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-sm text-blue-600 hover:underline flex items-center gap-1 truncate group"
+                    target='_blank'
+                    rel='noopener noreferrer'
+                    className='text-sm text-blue-600 hover:underline flex items-center gap-1 truncate group'
                     onClick={(e) => e.stopPropagation()}
                   >
-                    <span className="truncate">{displayUrl}</span>
-                    <ExternalLink className="h-3 w-3 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <span className='truncate'>{displayUrl}</span>
+                    <ExternalLink className='h-3 w-3 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity' />
                   </a>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p className="max-w-md break-all">{link.url}</p>
+                  <p className='max-w-md break-all'>{link.url}</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
           </div>
 
           {/* Metadata Row */}
-          <div className="flex items-center gap-2 flex-wrap">
-            <Badge variant="outline" className="text-xs">
+          <div className='flex items-center gap-2 flex-wrap'>
+            <Badge variant='outline' className='text-xs'>
               Depth {link.depth}
             </Badge>
-            <Badge variant={link.status === 'crawled' ? 'default' : 'secondary'} className="text-xs">
+            <Badge variant={link.status === 'crawled' ? 'default' : 'secondary'} className='text-xs'>
               {statusConfig.label}
             </Badge>
-            <span className="text-xs text-muted-foreground">{timeAgo}</span>
+            <span className='text-xs text-muted-foreground'>{timeAgo}</span>
             {link.relevanceScore !== undefined && (
-              <Badge variant="secondary" className="text-xs">
+              <Badge variant='secondary' className='text-xs'>
                 {(link.relevanceScore * 100).toFixed(0)}% relevant
               </Badge>
             )}
@@ -236,36 +236,34 @@ function LinkTimelineItem({
           {/* Expanded Details */}
           {isExpanded ? (
             <div
-              className="pt-2 border-t space-y-2 animate-in fade-in slide-in-from-top-1"
+              className='pt-2 border-t space-y-2 animate-in fade-in slide-in-from-top-1'
               onClick={(e) => e.stopPropagation()}
             >
               {link.parentUrl ? (
-                <div className="text-xs">
-                  <span className="text-muted-foreground">Discovered from:</span>
+                <div className='text-xs'>
+                  <span className='text-muted-foreground'>Discovered from:</span>
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <a
                           href={link.parentUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="ml-1 text-blue-600 hover:underline truncate inline-block max-w-[300px] align-bottom"
+                          target='_blank'
+                          rel='noopener noreferrer'
+                          className='ml-1 text-blue-600 hover:underline truncate inline-block max-w-[300px] align-bottom'
                         >
                           {link.parentUrl}
                         </a>
                       </TooltipTrigger>
                       <TooltipContent>
-                        <p className="max-w-md break-all">{link.parentUrl}</p>
+                        <p className='max-w-md break-all'>{link.parentUrl}</p>
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
                 </div>
               ) : null}
-              <div className="text-xs text-muted-foreground">
+              <div className='text-xs text-muted-foreground'>
                 <span>Discovered:</span>
-                <span className="ml-1 font-mono">
-                  {new Date(link.discoveredAt).toLocaleString()}
-                </span>
+                <span className='ml-1 font-mono'>{new Date(link.discoveredAt).toLocaleString()}</span>
               </div>
             </div>
           ) : null}
@@ -285,33 +283,31 @@ export function CompactLinkTimeline({
   const displayLinks = links.slice(0, maxItems)
 
   return (
-    <div className="space-y-2">
+    <div className='space-y-2'>
       {displayLinks.map((link, index) => {
         const statusConfig = STATUS_CONFIG[link.status]
         const StatusIcon = statusConfig.icon
 
         return (
-          <div key={`${link.url}-${index}`} className="flex items-center gap-2 text-sm">
+          <div key={`${link.url}-${index}`} className='flex items-center gap-2 text-sm'>
             <StatusIcon className={cn('h-4 w-4 flex-shrink-0', statusConfig.color)} />
             <a
               href={link.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-blue-600 hover:underline truncate flex-1"
+              target='_blank'
+              rel='noopener noreferrer'
+              className='text-blue-600 hover:underline truncate flex-1'
               title={link.url}
             >
               {link.url}
             </a>
-            <Badge variant="outline" className="text-xs flex-shrink-0">
+            <Badge variant='outline' className='text-xs flex-shrink-0'>
               D{link.depth}
             </Badge>
           </div>
         )
       })}
       {links.length > maxItems && (
-        <p className="text-xs text-muted-foreground text-center pt-2">
-          +{links.length - maxItems} more links
-        </p>
+        <p className='text-xs text-muted-foreground text-center pt-2'>+{links.length - maxItems} more links</p>
       )}
     </div>
   )

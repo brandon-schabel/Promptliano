@@ -85,7 +85,7 @@ export function PromptInputAttachment({
 
   return (
     <div
-      className={cn("group relative h-14 w-14 rounded-md border", className)}
+      className={cn("group relative h-14 w-14 rounded-md border border-border", className)}
       key={data.id}
       {...props}
     >

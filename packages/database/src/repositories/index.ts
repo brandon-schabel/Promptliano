@@ -30,6 +30,7 @@ export * from './crawl-repository'
 
 // Deep Research repositories
 export * from './research-repository'
+export * from './research-source-link-repository'
 
 // Unified storage service (for backward compatibility)
 export * from './storage-service'

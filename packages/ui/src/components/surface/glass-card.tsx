@@ -18,7 +18,7 @@ const glassCardVariants = cva('relative overflow-hidden rounded-lg transition-al
       xl: 'backdrop-blur-xl'
     },
     border: {
-      true: 'border border-white/10',
+      true: 'border border-border/10',
       false: ''
     },
     glow: {
@@ -82,7 +82,7 @@ const FloatingGlass = React.forwardRef<HTMLDivElement, FloatingGlassProps>(
       <div
         ref={ref}
         className={cn(
-          'relative overflow-hidden rounded-lg bg-card/20 backdrop-blur-lg border border-white/10',
+          'relative overflow-hidden rounded-lg bg-card/20 backdrop-blur-lg border border-border/10',
           'animate-float shadow-xl hover:shadow-2xl transition-shadow duration-300',
           className
         )}
@@ -107,7 +107,7 @@ const glassPanelVariants = cva('backdrop-blur-md rounded-lg p-6', {
       strong: 'bg-background/20'
     },
     border: {
-      true: 'border border-white/10',
+      true: 'border border-border/10',
       false: ''
     }
   },

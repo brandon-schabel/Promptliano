@@ -59,25 +59,14 @@ export function MessageHistoryPopover({
   return (
     <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
-        <Button
-          variant='ghost'
-          size='sm'
-          className={cn(
-            'h-auto gap-2 px-3 py-1.5 hover:bg-muted/50',
-            className
-          )}
-        >
+        <Button variant='ghost' size='sm' className={cn('h-auto gap-2 px-3 py-1.5 hover:bg-muted/50', className)}>
           {/* Single Line Compact Preview */}
           <div className='flex items-center gap-2.5'>
             <MessageSquareText className='h-3.5 w-3.5 text-muted-foreground flex-shrink-0' />
             <span className='text-xs font-medium text-muted-foreground whitespace-nowrap'>
               {currentValue} of {messages.length}
             </span>
-            <Progress
-              value={progressPercentage}
-              variant='fullness'
-              className='h-1 w-20'
-            />
+            <Progress value={progressPercentage} variant='fullness' className='h-1 w-20' />
             <div className='flex items-center gap-1'>
               <FormatTokenCount tokenContent={tokenStats.totalTokens} />
               <span className='text-[10px] text-muted-foreground'>tokens</span>

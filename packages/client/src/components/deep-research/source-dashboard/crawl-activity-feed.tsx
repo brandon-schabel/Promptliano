@@ -126,29 +126,29 @@ export function CrawlActivityFeed({
   return (
     <div className={cn('space-y-3', className)}>
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <h3 className="text-lg font-semibold">Live Activity</h3>
-          <Badge variant="default" className="flex items-center gap-1">
-            <Activity className="h-3 w-3 animate-pulse" />
+      <div className='flex items-center justify-between'>
+        <div className='flex items-center gap-2'>
+          <h3 className='text-lg font-semibold'>Live Activity</h3>
+          <Badge variant='default' className='flex items-center gap-1'>
+            <Activity className='h-3 w-3 animate-pulse' />
             Active
           </Badge>
         </div>
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <TrendingUp className="h-4 w-4" />
+        <div className='flex items-center gap-2 text-sm text-muted-foreground'>
+          <TrendingUp className='h-4 w-4' />
           <span>{activities.length} recent events</span>
         </div>
       </div>
 
       {/* Activity Feed */}
-      <ScrollArea className="h-[500px] rounded-lg border bg-card p-4" ref={scrollAreaRef}>
+      <ScrollArea className='h-[500px] rounded-lg border bg-card p-4' ref={scrollAreaRef}>
         {activities.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
-            <Activity className="mx-auto h-8 w-8 mb-2 opacity-50 animate-pulse" />
-            <p className="text-sm">Waiting for crawl activity...</p>
+          <div className='text-center py-8 text-muted-foreground'>
+            <Activity className='mx-auto h-8 w-8 mb-2 opacity-50 animate-pulse' />
+            <p className='text-sm'>Waiting for crawl activity...</p>
           </div>
         ) : (
-          <div className="space-y-2">
+          <div className='space-y-2'>
             {activities.map((activity, index) => (
               <ActivityItem key={activity.id} activity={activity} isNew={index < 3} />
             ))}
@@ -157,12 +157,12 @@ export function CrawlActivityFeed({
       </ScrollArea>
 
       {/* Footer Status */}
-      <div className="flex items-center justify-between text-xs text-muted-foreground px-2">
+      <div className='flex items-center justify-between text-xs text-muted-foreground px-2'>
         <span>Current depth: {currentDepth}</span>
-        <span className="flex items-center gap-1">
-          <span className="relative flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500" />
+        <span className='flex items-center gap-1'>
+          <span className='relative flex h-2 w-2'>
+            <span className='animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75' />
+            <span className='relative inline-flex rounded-full h-2 w-2 bg-green-500' />
           </span>
           Updates in real-time
         </span>
@@ -189,35 +189,33 @@ function ActivityItem({ activity, isNew }: { activity: ActivityEvent; isNew: boo
     >
       {/* Icon */}
       <div className={cn('rounded-full p-2 flex-shrink-0', config.bgColor)}>
-        <Icon className={cn('h-4 w-4', config.color)} aria-hidden="true" />
+        <Icon className={cn('h-4 w-4', config.color)} aria-hidden='true' />
       </div>
 
       {/* Content */}
-      <div className="flex-1 min-w-0 space-y-1">
-        <div className="flex items-center gap-2">
-          <span className="font-medium text-sm">{config.label}</span>
-          <span className="text-xs text-muted-foreground">{timeAgo}</span>
+      <div className='flex-1 min-w-0 space-y-1'>
+        <div className='flex items-center gap-2'>
+          <span className='font-medium text-sm'>{config.label}</span>
+          <span className='text-xs text-muted-foreground'>{timeAgo}</span>
         </div>
 
         {/* Activity-specific content */}
         {activity.type === 'link_discovered' && activity.data.url && (
-          <p className="text-sm text-blue-600 truncate" title={activity.data.url}>
+          <p className='text-sm text-blue-600 truncate' title={activity.data.url}>
             {activity.data.url}
           </p>
         )}
 
         {activity.type === 'page_crawled' && activity.data.url && (
-          <p className="text-sm text-muted-foreground truncate">Successfully crawled page</p>
+          <p className='text-sm text-muted-foreground truncate'>Successfully crawled page</p>
         )}
 
         {activity.type === 'error_occurred' && activity.data.message && (
-          <p className="text-sm text-red-600">{activity.data.message}</p>
+          <p className='text-sm text-red-600'>{activity.data.message}</p>
         )}
 
         {activity.type === 'depth_completed' && activity.data.depth !== undefined && (
-          <p className="text-sm text-muted-foreground">
-            Completed crawling at depth {activity.data.depth}
-          </p>
+          <p className='text-sm text-muted-foreground'>Completed crawling at depth {activity.data.depth}</p>
         )}
       </div>
     </div>
@@ -227,37 +225,31 @@ function ActivityItem({ activity, isNew }: { activity: ActivityEvent; isNew: boo
 /**
  * Compact version for smaller displays
  */
-export function CompactActivityFeed({
-  activities,
-  maxItems = 10
-}: {
-  activities: ActivityEvent[]
-  maxItems?: number
-}) {
+export function CompactActivityFeed({ activities, maxItems = 10 }: { activities: ActivityEvent[]; maxItems?: number }) {
   const displayActivities = activities.slice(0, maxItems)
 
   return (
-    <div className="space-y-1">
+    <div className='space-y-1'>
       {displayActivities.map((activity) => {
         const config = ACTIVITY_CONFIG[activity.type]
         const Icon = config.icon
 
         return (
-          <div key={activity.id} className="flex items-center gap-2 text-sm">
+          <div key={activity.id} className='flex items-center gap-2 text-sm'>
             <Icon className={cn('h-4 w-4 flex-shrink-0', config.color)} />
-            <span className="flex-1 truncate text-muted-foreground">
+            <span className='flex-1 truncate text-muted-foreground'>
               {config.label}
               {activity.data.url && `: ${activity.data.url}`}
               {activity.data.message && `: ${activity.data.message}`}
             </span>
-            <span className="text-xs text-muted-foreground flex-shrink-0">
+            <span className='text-xs text-muted-foreground flex-shrink-0'>
               {formatDistanceToNow(new Date(activity.timestamp), { addSuffix: true })}
             </span>
           </div>
         )
       })}
       {activities.length > maxItems && (
-        <p className="text-xs text-muted-foreground text-center pt-2">
+        <p className='text-xs text-muted-foreground text-center pt-2'>
           +{activities.length - maxItems} more activities
         </p>
       )}
@@ -268,12 +260,7 @@ export function CompactActivityFeed({
 /**
  * Activity feed with statistics
  */
-export function ActivityFeedWithStats({
-  isActive,
-  recentLinks,
-  recentErrors,
-  currentDepth
-}: CrawlActivityFeedProps) {
+export function ActivityFeedWithStats({ isActive, recentLinks, recentErrors, currentDepth }: CrawlActivityFeedProps) {
   const stats = {
     totalActivities: recentLinks.length + recentErrors.length,
     linksDiscovered: recentLinks.length,
@@ -285,24 +272,24 @@ export function ActivityFeedWithStats({
   }
 
   return (
-    <div className="space-y-4">
+    <div className='space-y-4'>
       {/* Stats Header */}
-      <div className="grid grid-cols-4 gap-4">
-        <div className="text-center p-3 rounded-lg border bg-card">
-          <p className="text-2xl font-bold">{stats.totalActivities}</p>
-          <p className="text-xs text-muted-foreground">Total Events</p>
+      <div className='grid grid-cols-4 gap-4'>
+        <div className='text-center p-3 rounded-lg border bg-card'>
+          <p className='text-2xl font-bold'>{stats.totalActivities}</p>
+          <p className='text-xs text-muted-foreground'>Total Events</p>
         </div>
-        <div className="text-center p-3 rounded-lg border bg-card">
-          <p className="text-2xl font-bold text-blue-600">{stats.linksDiscovered}</p>
-          <p className="text-xs text-muted-foreground">Links</p>
+        <div className='text-center p-3 rounded-lg border bg-card'>
+          <p className='text-2xl font-bold text-blue-600'>{stats.linksDiscovered}</p>
+          <p className='text-xs text-muted-foreground'>Links</p>
         </div>
-        <div className="text-center p-3 rounded-lg border bg-card">
-          <p className="text-2xl font-bold text-red-600">{stats.errors}</p>
-          <p className="text-xs text-muted-foreground">Errors</p>
+        <div className='text-center p-3 rounded-lg border bg-card'>
+          <p className='text-2xl font-bold text-red-600'>{stats.errors}</p>
+          <p className='text-xs text-muted-foreground'>Errors</p>
         </div>
-        <div className="text-center p-3 rounded-lg border bg-card">
-          <p className="text-2xl font-bold text-green-600">{stats.successRate}%</p>
-          <p className="text-xs text-muted-foreground">Success</p>
+        <div className='text-center p-3 rounded-lg border bg-card'>
+          <p className='text-2xl font-bold text-green-600'>{stats.successRate}%</p>
+          <p className='text-xs text-muted-foreground'>Success</p>
         </div>
       </div>
 

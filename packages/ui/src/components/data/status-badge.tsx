@@ -37,7 +37,7 @@ const defaultStatusConfigs: Record<string, Record<string, StatusConfig>> = {
       label: 'Open',
       color: 'text-blue-700 dark:text-blue-400',
       bgColor: 'bg-blue-500/10',
-      borderColor: 'border-blue-200 dark:border-blue-800'
+      borderColor: 'border-blue-500/30 dark:border-blue-500/50'
     },
     in_progress: {
       variant: 'default',
@@ -45,7 +45,7 @@ const defaultStatusConfigs: Record<string, Record<string, StatusConfig>> = {
       label: 'In Progress',
       color: 'text-yellow-700 dark:text-yellow-400',
       bgColor: 'bg-yellow-500/10',
-      borderColor: 'border-yellow-200 dark:border-yellow-800',
+      borderColor: 'border-yellow-500/30 dark:border-yellow-500/50',
       animate: true
     },
     closed: {
@@ -54,7 +54,7 @@ const defaultStatusConfigs: Record<string, Record<string, StatusConfig>> = {
       label: 'Closed',
       color: 'text-green-700 dark:text-green-400',
       bgColor: 'bg-green-500/10',
-      borderColor: 'border-green-200 dark:border-green-800'
+      borderColor: 'border-green-500/30 dark:border-green-500/50'
     },
     cancelled: {
       variant: 'outline',
@@ -62,7 +62,7 @@ const defaultStatusConfigs: Record<string, Record<string, StatusConfig>> = {
       label: 'Cancelled',
       color: 'text-gray-700 dark:text-gray-400',
       bgColor: 'bg-gray-500/10',
-      borderColor: 'border-gray-200 dark:border-gray-800'
+      borderColor: 'border-border'
     }
   },
   task: {
@@ -260,7 +260,7 @@ const priorityConfigs: Record<Priority, StatusConfig> = {
     label: 'Low',
     color: 'text-green-700 dark:text-green-400',
     bgColor: 'bg-green-500/10',
-    borderColor: 'border-green-200 dark:border-green-800'
+    borderColor: 'border-green-500/30 dark:border-green-500/50'
   },
   normal: {
     variant: 'secondary',
@@ -268,7 +268,7 @@ const priorityConfigs: Record<Priority, StatusConfig> = {
     label: 'Normal',
     color: 'text-blue-700 dark:text-blue-400',
     bgColor: 'bg-blue-500/10',
-    borderColor: 'border-blue-200 dark:border-blue-800'
+    borderColor: 'border-blue-500/30 dark:border-blue-500/50'
   },
   high: {
     variant: 'default',
@@ -276,7 +276,7 @@ const priorityConfigs: Record<Priority, StatusConfig> = {
     label: 'High',
     color: 'text-orange-700 dark:text-orange-400',
     bgColor: 'bg-orange-500/10',
-    borderColor: 'border-orange-200 dark:border-orange-800'
+    borderColor: 'border-orange-500/30 dark:border-orange-500/50'
   },
   urgent: {
     variant: 'destructive',

@@ -6,29 +6,9 @@ import { Input } from '@promptliano/ui'
 import { Label } from '@promptliano/ui'
 import { Badge } from '@promptliano/ui'
 import { Switch } from '@promptliano/ui'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle
-} from '@promptliano/ui'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow
-} from '@promptliano/ui'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from '@promptliano/ui'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@promptliano/ui'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@promptliano/ui'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@promptliano/ui'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -191,9 +171,9 @@ export function UserManagement() {
           <CardDescription>Manage application users (admin only)</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center justify-center py-8">
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <Loader2 className="h-5 w-5 animate-spin" />
+          <div className='flex items-center justify-center py-8'>
+            <div className='flex items-center gap-2 text-muted-foreground'>
+              <Loader2 className='h-5 w-5 animate-spin' />
               <span>Loading users...</span>
             </div>
           </div>
@@ -205,28 +185,28 @@ export function UserManagement() {
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
+        <div className='flex items-center justify-between'>
           <div>
             <CardTitle>User Management</CardTitle>
             <CardDescription>Manage application users and their roles</CardDescription>
           </div>
           <Button onClick={() => setShowCreateDialog(true)}>
-            <Plus className="mr-2 h-4 w-4" />
+            <Plus className='mr-2 h-4 w-4' />
             Add User
           </Button>
         </div>
       </CardHeader>
       <CardContent>
         {users.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-8 text-center">
-            <UserCog className="h-12 w-12 text-muted-foreground mb-4" />
-            <p className="text-muted-foreground">No users found</p>
-            <Button variant="outline" onClick={() => setShowCreateDialog(true)} className="mt-4">
+          <div className='flex flex-col items-center justify-center py-8 text-center'>
+            <UserCog className='h-12 w-12 text-muted-foreground mb-4' />
+            <p className='text-muted-foreground'>No users found</p>
+            <Button variant='outline' onClick={() => setShowCreateDialog(true)} className='mt-4'>
               Create First User
             </Button>
           </div>
         ) : (
-          <div className="rounded-md border">
+          <div className='rounded-md border border-border'>
             <Table>
               <TableHeader>
                 <TableRow>
@@ -235,52 +215,50 @@ export function UserManagement() {
                   <TableHead>Role</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Created</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead className='text-right'>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {users.map((user) => (
                   <TableRow key={user.id}>
-                    <TableCell className="font-medium">
+                    <TableCell className='font-medium'>
                       {user.username}
                       {user.id === currentUser?.id && (
-                        <Badge variant="outline" className="ml-2">
+                        <Badge variant='outline' className='ml-2'>
                           You
                         </Badge>
                       )}
                     </TableCell>
                     <TableCell>{user.email || '-'}</TableCell>
                     <TableCell>
-                      <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>
-                        {user.role}
-                      </Badge>
+                      <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>{user.role}</Badge>
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center gap-2">
+                      <div className='flex items-center gap-2'>
                         {user.isActive ? (
                           <>
-                            <CheckCircle2 className="h-4 w-4 text-green-600" />
-                            <span className="text-sm">Active</span>
+                            <CheckCircle2 className='h-4 w-4 text-green-600' />
+                            <span className='text-sm'>Active</span>
                           </>
                         ) : (
                           <>
-                            <AlertCircle className="h-4 w-4 text-muted-foreground" />
-                            <span className="text-sm text-muted-foreground">Inactive</span>
+                            <AlertCircle className='h-4 w-4 text-muted-foreground' />
+                            <span className='text-sm text-muted-foreground'>Inactive</span>
                           </>
                         )}
                       </div>
                     </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
+                    <TableCell className='text-sm text-muted-foreground'>
                       {new Date(user.createdAt).toLocaleDateString()}
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className='text-right'>
                       <Button
-                        variant="ghost"
-                        size="sm"
+                        variant='ghost'
+                        size='sm'
                         onClick={() => setUserToDelete(user)}
                         disabled={user.id === currentUser?.id}
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Trash2 className='h-4 w-4' />
                       </Button>
                     </TableCell>
                   </TableRow>
@@ -293,7 +271,7 @@ export function UserManagement() {
 
       {/* Create User Dialog */}
       <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className='sm:max-w-md'>
           <DialogHeader>
             <DialogTitle>Create New User</DialogTitle>
             <DialogDescription>
@@ -301,97 +279,84 @@ export function UserManagement() {
             </DialogDescription>
           </DialogHeader>
 
-          <form onSubmit={handleSubmit(handleCreateUser)} className="space-y-4">
+          <form onSubmit={handleSubmit(handleCreateUser)} className='space-y-4'>
             {/* Username */}
-            <div className="space-y-2">
-              <Label htmlFor="create-username">
-                Username <span className="text-destructive">*</span>
+            <div className='space-y-2'>
+              <Label htmlFor='create-username'>
+                Username <span className='text-destructive'>*</span>
               </Label>
-              <Input
-                id="create-username"
-                {...register('username')}
-                placeholder="johndoe"
-                disabled={isSubmitting}
-              />
-              {errors.username && (
-                <p className="text-xs text-destructive">{errors.username.message}</p>
-              )}
+              <Input id='create-username' {...register('username')} placeholder='johndoe' disabled={isSubmitting} />
+              {errors.username && <p className='text-xs text-destructive'>{errors.username.message}</p>}
             </div>
 
             {/* Email */}
-            <div className="space-y-2">
-              <Label htmlFor="create-email">Email (optional)</Label>
+            <div className='space-y-2'>
+              <Label htmlFor='create-email'>Email (optional)</Label>
               <Input
-                id="create-email"
-                type="email"
+                id='create-email'
+                type='email'
                 {...register('email')}
-                placeholder="user@example.com"
+                placeholder='user@example.com'
                 disabled={isSubmitting}
               />
-              {errors.email && (
-                <p className="text-xs text-destructive">{errors.email.message}</p>
-              )}
+              {errors.email && <p className='text-xs text-destructive'>{errors.email.message}</p>}
             </div>
 
             {/* Role */}
-            <div className="space-y-2">
-              <Label htmlFor="create-role">Role</Label>
+            <div className='space-y-2'>
+              <Label htmlFor='create-role'>Role</Label>
               <Select {...register('role')} disabled={isSubmitting}>
-                <SelectTrigger id="create-role">
-                  <SelectValue placeholder="Select role" />
+                <SelectTrigger id='create-role'>
+                  <SelectValue placeholder='Select role' />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="user">User</SelectItem>
-                  <SelectItem value="admin">Admin</SelectItem>
+                  <SelectItem value='user'>User</SelectItem>
+                  <SelectItem value='admin'>Admin</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             {/* Password Toggle */}
-            <div className="flex items-center justify-between space-x-2 rounded-lg border p-3">
-              <div className="space-y-0.5">
-                <Label htmlFor="create-enablePassword" className="font-medium">
+            <div className='flex items-center justify-between space-x-2 rounded-lg border p-3'>
+              <div className='space-y-0.5'>
+                <Label htmlFor='create-enablePassword' className='font-medium'>
                   Set Password
                 </Label>
-                <p className="text-xs text-muted-foreground">
-                  Require password for this user
-                </p>
+                <p className='text-xs text-muted-foreground'>Require password for this user</p>
               </div>
-              <Switch id="create-enablePassword" {...register('enablePassword')} disabled={isSubmitting} />
+              <Switch id='create-enablePassword' {...register('enablePassword')} disabled={isSubmitting} />
             </div>
 
             {/* Password Fields */}
             {enablePassword && (
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="create-password">
-                    Password <span className="text-destructive">*</span>
+              <div className='space-y-4'>
+                <div className='space-y-2'>
+                  <Label htmlFor='create-password'>
+                    Password <span className='text-destructive'>*</span>
                   </Label>
                   <Input
-                    id="create-password"
-                    type="password"
+                    id='create-password'
+                    type='password'
                     {...register('password')}
-                    placeholder="Enter password"
+                    placeholder='Enter password'
                     disabled={isSubmitting}
                   />
-                  {errors.password && (
-                    <p className="text-xs text-destructive">{errors.password.message}</p>
-                  )}
+                  {errors.password && <p className='text-xs text-destructive'>{errors.password.message}</p>}
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="create-confirmPassword">
-                    Confirm Password <span className="text-destructive">*</span>
+                <div className='space-y-2'>
+                  <Label htmlFor='create-confirmPassword'>
+                    Confirm Password <span className='text-destructive'>*</span>
                   </Label>
                   <Input
-                    id="create-confirmPassword"
-                    type="password"
+                    id='create-confirmPassword'
+                    type='password'
                     {...register('confirmPassword')}
-                    placeholder="Confirm password"
+                    placeholder='Confirm password'
                     disabled={isSubmitting}
                   />
                   {errors.confirmPassword && (
-                    <p className="text-xs text-destructive">{errors.confirmPassword.message}</p>
+                    <p className='text-xs text-destructive'>{errors.confirmPassword.message}</p>
                   )}
                 </div>
               </div>
@@ -399,8 +364,8 @@ export function UserManagement() {
 
             <DialogFooter>
               <Button
-                type="button"
-                variant="outline"
+                type='button'
+                variant='outline'
                 onClick={() => {
                   setShowCreateDialog(false)
                   reset()
@@ -409,8 +374,8 @@ export function UserManagement() {
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              <Button type='submit' disabled={isSubmitting}>
+                {isSubmitting && <Loader2 className='mr-2 h-4 w-4 animate-spin' />}
                 Create User
               </Button>
             </DialogFooter>
@@ -424,7 +389,8 @@ export function UserManagement() {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete User</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete user <strong>{userToDelete?.username}</strong>? This action cannot be undone.
+              Are you sure you want to delete user <strong>{userToDelete?.username}</strong>? This action cannot be
+              undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -435,7 +401,7 @@ export function UserManagement() {
                   handleDeleteUser(userToDelete)
                 }
               }}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className='bg-destructive text-destructive-foreground hover:bg-destructive/90'
             >
               Delete
             </AlertDialogAction>

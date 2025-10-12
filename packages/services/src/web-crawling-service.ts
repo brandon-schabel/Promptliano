@@ -33,14 +33,16 @@ import {
   domainRepository,
   urlRepository,
   crawledContentRepository,
-  researchSourceRepository as dbResearchSourceRepository,
+  researchSourceRepository,
+  researchSourceLinkRepository,
   crawlUtils,
   type Domain,
   type Url,
   type CrawledContent,
   type InsertDomain,
   type InsertUrl,
-  type InsertCrawledContent
+  type InsertCrawledContent,
+  type UpdateCrawledContent
 } from '@promptliano/database'
 import { ApiError } from '@promptliano/shared'
 
@@ -83,7 +85,8 @@ export interface WebCrawlingServiceDeps {
   domainRepository?: typeof domainRepository
   urlRepository?: typeof urlRepository
   contentRepository?: typeof crawledContentRepository
-  researchSourceRepository?: typeof import('@promptliano/database').researchSourceRepository
+  researchSourceRepository?: typeof researchSourceRepository
+  researchSourceLinkRepository?: typeof researchSourceLinkRepository
   logger?: ReturnType<typeof createServiceLogger>
 }
 
@@ -446,7 +449,8 @@ export function createWebCrawlingService(deps: WebCrawlingServiceDeps = {}) {
     domainRepository: domainRepo = domainRepository,
     urlRepository: urlRepo = urlRepository,
     contentRepository: contentRepo = crawledContentRepository,
-    researchSourceRepository: researchSourceRepo = dbResearchSourceRepository,
+    researchSourceRepository: researchSourceRepo = researchSourceRepository,
+    researchSourceLinkRepository: researchSourceLinkRepo = researchSourceLinkRepository,
     logger = createServiceLogger('WebCrawlingService')
   } = deps
 

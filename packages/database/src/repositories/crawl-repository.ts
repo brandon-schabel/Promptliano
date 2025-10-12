@@ -313,7 +313,7 @@ export const urlRepository = {
   ): Promise<Url[]> {
     let condition = eq(urls.crawlSessionId, crawlSessionId)
     if (typeof cursorId === 'number') {
-      condition = and(condition, gt(urls.id, cursorId))
+      condition = and(condition, gt(urls.id, cursorId))!
     }
 
     return await db

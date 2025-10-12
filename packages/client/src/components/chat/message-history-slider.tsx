@@ -45,10 +45,10 @@ export function MessageHistorySlider({
   return (
     <div className={cn('space-y-3', className)}>
       {/* Slider Control */}
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <label className="text-sm font-medium">Message History</label>
-          <span className="text-sm text-muted-foreground">
+      <div className='space-y-2'>
+        <div className='flex items-center justify-between'>
+          <label className='text-sm font-medium'>Message History</label>
+          <span className='text-sm text-muted-foreground'>
             {currentValue} of {messages.length} messages
           </span>
         </div>
@@ -59,40 +59,40 @@ export function MessageHistorySlider({
           min={1}
           max={messages.length || 1}
           step={1}
-          className="w-full"
+          className='w-full'
         />
       </div>
 
       {/* Token Statistics */}
-      <div className="grid grid-cols-3 gap-4 rounded-lg border bg-muted/30 p-3 text-sm">
-        <div className="space-y-1">
-          <div className="text-muted-foreground">History</div>
-          <div className="flex items-center gap-2">
+      <div className='grid grid-cols-3 gap-4 rounded-lg border bg-muted/30 p-3 text-sm'>
+        <div className='space-y-1'>
+          <div className='text-muted-foreground'>History</div>
+          <div className='flex items-center gap-2'>
             <FormatTokenCount tokenContent={tokenStats.messagesTokens} />
-            <span className="text-xs text-muted-foreground">tokens</span>
+            <span className='text-xs text-muted-foreground'>tokens</span>
           </div>
         </div>
 
-        <div className="space-y-1">
-          <div className="text-muted-foreground">New Input</div>
-          <div className="flex items-center gap-2">
+        <div className='space-y-1'>
+          <div className='text-muted-foreground'>New Input</div>
+          <div className='flex items-center gap-2'>
             <FormatTokenCount tokenContent={tokenStats.inputTokens} />
-            <span className="text-xs text-muted-foreground">tokens</span>
+            <span className='text-xs text-muted-foreground'>tokens</span>
           </div>
         </div>
 
-        <div className="space-y-1">
-          <div className="text-muted-foreground">Total Context</div>
-          <div className="flex items-center gap-2">
+        <div className='space-y-1'>
+          <div className='text-muted-foreground'>Total Context</div>
+          <div className='flex items-center gap-2'>
             <FormatTokenCount tokenContent={tokenStats.totalTokens} />
-            <span className="text-xs text-muted-foreground">tokens</span>
+            <span className='text-xs text-muted-foreground'>tokens</span>
           </div>
         </div>
       </div>
 
       {/* Context Window Warning */}
       {tokenStats.totalTokens > 8000 && (
-        <div className="rounded-lg border border-yellow-500/50 bg-yellow-500/10 p-2 text-xs text-yellow-600 dark:text-yellow-400">
+        <div className='rounded-lg border border-yellow-500/50 bg-yellow-500/10 p-2 text-xs text-yellow-600 dark:text-yellow-400'>
           ⚠️ Large context window may increase response time and cost
         </div>
       )}

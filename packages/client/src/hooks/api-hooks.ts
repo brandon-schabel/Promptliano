@@ -1544,8 +1544,7 @@ export function useSourceLinks(
     minDepth?: number
     maxDepth?: number
     search?: string
-    from?: string
-    to?: string
+    crawlSessionId?: string
   }
 ) {
   return useQuery({
@@ -1560,8 +1559,7 @@ export function useSourceLinks(
       if (params?.minDepth !== undefined) searchParams.set('minDepth', params.minDepth.toString())
       if (params?.maxDepth !== undefined) searchParams.set('maxDepth', params.maxDepth.toString())
       if (params?.search) searchParams.set('search', params.search)
-      if (params?.from) searchParams.set('from', params.from)
-      if (params?.to) searchParams.set('to', params.to)
+      if (params?.crawlSessionId) searchParams.set('crawlSessionId', params.crawlSessionId)
 
       const response = await fetch(
         `${SERVER_HTTP_ENDPOINT}/api/research/sources/${sourceId}/links?${searchParams.toString()}`,
