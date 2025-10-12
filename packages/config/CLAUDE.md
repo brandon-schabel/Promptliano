@@ -312,7 +312,7 @@ export const ServerConfigSchema = z.object({
   security: z.object({
     cors: z.object({
       enabled: z.boolean().default(true),
-      origins: z.array(z.string()).default(['http://localhost:1420']),
+      origins: z.array(z.string()).default(['http://localhost:5173']),
       credentials: z.boolean().default(true)
     }),
     encryption: z.object({

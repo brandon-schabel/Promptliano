@@ -2,8 +2,14 @@ import React, { createContext, useContext, useEffect, useState, useCallback, use
 import { createPromptlianoClient, PromptlianoClient } from '@promptliano/api-client'
 import { useGetAppSettings, useSetKvValue } from '@/hooks/use-kv-local-storage'
 import { toast } from 'sonner'
-
-export type ConnectionStatus = 'connected' | 'connecting' | 'disconnected' | 'error'
+import { useQueryClient } from '@tanstack/react-query'
+import {
+  CONNECTION_QUERY_KEY,
+  HEALTH_CHECK_INTERVAL_MS,
+  ConnectionSnapshot,
+  ConnectionStatus,
+  createConnectionSnapshot
+} from '@/lib/system/connection-status'
 
 export interface SavedServer {
   name: string
@@ -41,6 +47,7 @@ interface PromptlianoClientProviderProps {
 export function PromptlianoClientProvider({ children }: PromptlianoClientProviderProps) {
   const [appSettings] = useGetAppSettings()
   const { mutate: updateAppSettings } = useSetKvValue('appSettings')
+  const queryClient = useQueryClient()
 
   const defaultServerUrl =
     typeof window !== 'undefined'
@@ -57,12 +64,31 @@ export function PromptlianoClientProvider({ children }: PromptlianoClientProvide
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const reconnectAttemptsRef = useRef(0)
   const connectionStatusRef = useRef<ConnectionStatus>('disconnected')
+  const connectionErrorRef = useRef<string | null>(null)
+  const lastCheckedAtRef = useRef<number | null>(null)
+  const lastSuccessfulConnectionAtRef = useRef<number | null>(null)
   const maxReconnectAttempts = 5 // Circuit breaker threshold
 
   // Update connection status ref whenever state changes
   useEffect(() => {
     connectionStatusRef.current = connectionStatus
   }, [connectionStatus])
+
+  useEffect(() => {
+    connectionErrorRef.current = connectionError
+  }, [connectionError])
+
+  useEffect(() => {
+    queryClient.setQueryData(
+      CONNECTION_QUERY_KEY,
+      createConnectionSnapshot(
+        connectionStatus,
+        connectionError,
+        lastCheckedAtRef.current,
+        lastSuccessfulConnectionAtRef.current
+      )
+    )
+  }, [connectionStatus, connectionError, queryClient])
 
   // Test connection to a specific URL
   const testConnection = useCallback(async (url: string): Promise<boolean> => {
@@ -114,20 +140,45 @@ export function PromptlianoClientProvider({ children }: PromptlianoClientProvide
             clearInterval(healthCheckIntervalRef.current)
           }
 
-          healthCheckIntervalRef.current = setInterval(async () => {
-            const healthy = await testConnection(url)
-            // Use ref to get current connection status
+          const runHealthCheck = async () => {
+            lastCheckedAtRef.current = Date.now()
+            let healthy = false
+            try {
+              healthy = await testConnection(url)
+            } catch (checkError) {
+              console.error('Health check failed:', checkError)
+            }
+            if (healthy) {
+              lastSuccessfulConnectionAtRef.current = Date.now()
+            }
+
+            queryClient.setQueryData(
+              CONNECTION_QUERY_KEY,
+              createConnectionSnapshot(
+                healthy ? 'connected' : connectionStatusRef.current,
+                healthy ? null : connectionError,
+                lastCheckedAtRef.current,
+                lastSuccessfulConnectionAtRef.current
+              )
+            )
+
             if (!healthy && connectionStatusRef.current === 'connected') {
               setConnectionStatus('disconnected')
               setConnectionError('Lost connection to server')
-              // Attempt to reconnect
               scheduleReconnect()
             } else if (healthy && connectionStatusRef.current === 'disconnected') {
-              // Automatically reconnect if server is back
               setConnectionStatus('connected')
               setConnectionError(null)
             }
-          }, 30000) // Check every 30 seconds
+          }
+
+          healthCheckIntervalRef.current = setInterval(() => {
+            runHealthCheck().catch((error) => {
+              console.error('Health check interval failed:', error)
+            })
+          }, 12000) // Check every 12 seconds by default
+
+          await runHealthCheck()
 
           return true
         } else {

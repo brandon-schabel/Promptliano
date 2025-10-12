@@ -155,9 +155,28 @@ export const deepResearchDetailSearchSchema = z.object({
   tab: z.enum(['overview', 'sources', 'sections', 'document', 'debug']).catch('overview').optional()
 })
 
+// Source Dashboard search schema with table state
+export const sourceDashboardSearchSchema = z.object({
+  tab: z.enum(['overview', 'links', 'content', 'errors']).catch('overview').optional(),
+  // Pagination
+  page: z.coerce.number().min(1).catch(1).optional(),
+  limit: z.coerce.number().min(10).max(100).catch(20).optional(),
+  // Sorting
+  sortBy: z.enum(['discoveredAt', 'url', 'depth', 'relevanceScore', 'title', 'status']).catch('discoveredAt').optional(),
+  sortOrder: z.enum(['asc', 'desc']).catch('desc').optional(),
+  // Filters
+  status: z.string().optional().catch(undefined),
+  search: z.string().optional().catch(undefined),
+  minDepth: z.coerce.number().catch(undefined).optional(),
+  maxDepth: z.coerce.number().catch(undefined).optional(),
+  from: z.string().optional().catch(undefined),
+  to: z.string().optional().catch(undefined)
+})
+
 // Type exports
 export type DeepResearchSearch = z.infer<typeof deepResearchSearchSchema>
 export type DeepResearchDetailSearch = z.infer<typeof deepResearchDetailSearchSchema>
+export type SourceDashboardSearch = z.infer<typeof sourceDashboardSearchSchema>
 
 // Default search params to strip from URLs (when they match these values)
 export const defaultSearchParams = {

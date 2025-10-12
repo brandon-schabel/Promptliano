@@ -12,6 +12,8 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import type { AuthStatusResponse } from '@promptliano/api-client'
 import { normalizeAuthStatus } from '@/routes/__root'
+import { CONNECTION_QUERY_KEY, ConnectionSnapshot, createConnectionSnapshot } from '@/lib/system/connection-status'
+import { isNetworkError, getNetworkErrorMessage, withTimeout } from '@/lib/system/network'
 import { toast } from 'sonner'
 import { Loader2, LogIn, AlertCircle } from 'lucide-react'
 import { useState } from 'react'
@@ -164,53 +166,60 @@ export const Route = createFileRoute('/login')({
   validateSearch: zodValidator(loginSearchSchema),
   beforeLoad: async ({ context }) => {
     try {
-      // Use cached FULL auth status from root route (ZERO API calls!)
+      const connectionSnapshot = context.queryClient.getQueryData<ConnectionSnapshot>(CONNECTION_QUERY_KEY)
+      if (connectionSnapshot && connectionSnapshot.status !== 'connected') {
+        return { connection: connectionSnapshot }
+      }
+
       const cachedStatus = context.queryClient.getQueryData(['auth', 'full-status'])
       let fullStatus: AuthStatusResponse | undefined = cachedStatus ? normalizeAuthStatus(cachedStatus) : undefined
 
       if (!fullStatus) {
-        console.log('[Login] No cached auth status found, fetching fresh status')
         try {
-          const response = await context.authClient.getAuthStatus()
+          const response = await withTimeout(context.authClient.getAuthStatus(), 8000)
           fullStatus = normalizeAuthStatus(response)
           context.queryClient.setQueryData(['auth', 'full-status'], fullStatus)
+          context.queryClient.setQueryData(
+            CONNECTION_QUERY_KEY,
+            createConnectionSnapshot('connected', null, Date.now(), Date.now())
+          )
         } catch (error) {
-          console.error('[Login] Failed to fetch auth status, redirecting to setup for safety', error)
-          throw redirect({ to: '/setup' })
+          if (isNetworkError(error)) {
+            const snapshot = createConnectionSnapshot('disconnected', getNetworkErrorMessage(error), Date.now(), null)
+            context.queryClient.setQueryData(CONNECTION_QUERY_KEY, snapshot)
+            return { connection: snapshot }
+          }
+          throw error
         }
       }
 
       const authStatus = fullStatus.data
 
       if (authStatus.needsSetup === true) {
-        console.log('[Login] Setup needed (from cache), redirecting to /setup')
         throw redirect({
           to: '/setup'
         })
       }
 
-      // Check if user is already authenticated
       try {
-        const userResponse = await context.authClient.getCurrentUser()
+        const userResponse = await withTimeout(context.authClient.getCurrentUser(), 8000)
         if (userResponse.data?.user) {
-          console.log('[Login] User already authenticated, redirecting to /projects')
           throw redirect({ to: '/projects' })
         }
       } catch (error) {
-        // Not authenticated - allow login page to render
-        console.log('[Login] User not authenticated, showing login page')
+        if (isNetworkError(error)) {
+          const snapshot = createConnectionSnapshot('disconnected', getNetworkErrorMessage(error), Date.now(), null)
+          context.queryClient.setQueryData(CONNECTION_QUERY_KEY, snapshot)
+          return { connection: snapshot }
+        }
       }
 
-      // Password is always required - no need to return auth settings
-      return {}
+      return { connection: createConnectionSnapshot('connected', null, Date.now(), Date.now()) }
     } catch (error) {
-      // If error is a redirect, rethrow it
       if (isRedirect(error)) {
         throw error
       }
 
-      // On other errors, redirect to setup (fail closed)
-      console.error('[Login] Error checking auth status:', error)
       throw redirect({
         to: '/setup'
       })

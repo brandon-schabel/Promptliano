@@ -21,11 +21,13 @@ export * from './generated'
 // Re-export specialized hooks from domain-specific modules
 export { useBrowseDirectory } from './api/browse-directory-hooks'
 
+import React from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useApiClient } from './api/use-api-client'
 import { toast } from 'sonner'
 import { SERVER_HTTP_ENDPOINT } from '@/constants/server-constants'
 import { PROJECT_ENHANCED_KEYS, PROMPT_ENHANCED_KEYS, invalidateWithRelationships } from './generated/query-keys'
+import { POLLING_CONFIG } from '@/lib/constants'
 import type {
   OptimizePromptRequest,
   MarkdownImportRequest,
@@ -311,15 +313,15 @@ export function useGetProjectPrompts(projectId: number) {
       // Ensure data matches expected Prompt schema format
       return Array.isArray(data)
         ? data.map((item: any) => ({
-            id: item.id,
-            projectId: item.projectId || projectId,
-            title: item.title || item.name || '',
-            content: item.content || '',
-            description: item.description || null,
-            tags: Array.isArray(item.tags) ? item.tags : [],
-            createdAt: item.createdAt || item.created || Date.now(),
-            updatedAt: item.updatedAt || item.updated || Date.now()
-          }))
+          id: item.id,
+          projectId: item.projectId || projectId,
+          title: item.title || item.name || '',
+          content: item.content || '',
+          description: item.description || null,
+          tags: Array.isArray(item.tags) ? item.tags : [],
+          createdAt: item.createdAt || item.created || Date.now(),
+          updatedAt: item.updatedAt || item.updated || Date.now()
+        }))
         : []
     },
     enabled: !!client && !!projectId && projectId !== -1,
@@ -1399,6 +1401,181 @@ export function useCrawlProgress(researchId: number | undefined, options?: { ena
     },
     staleTime: 2000, // Consider data stale after 2 seconds
     gcTime: 10 * 60 * 1000 // Cache for 10 minutes
+  })
+}
+
+/**
+ * Source Dashboard Operations
+ * Real-time monitoring of individual source crawling and processing
+ */
+
+// Query keys for Source Dashboard
+export const SOURCE_KEYS = {
+  all: ['sources'] as const,
+  dashboard: (sourceId: number) => [...SOURCE_KEYS.all, 'dashboard', sourceId] as const,
+  linksRoot: (sourceId: number) => [...SOURCE_KEYS.all, 'links', sourceId] as const,
+  links: (sourceId: number, params?: any) => [...SOURCE_KEYS.all, 'links', sourceId, params] as const
+}
+
+/**
+ * Start or recrawl a specific source
+ */
+export function useStartSourceCrawl() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async ({
+      sourceId,
+      researchId,
+      options
+    }: {
+      sourceId: number
+      researchId?: number
+      options?: {
+        depthOverride?: number
+        maxPagesOverride?: number
+        maxLinks?: number
+        recrawl?: boolean
+        sameDomainOnly?: boolean
+      }
+    }) => {
+      const response = await fetch(`${SERVER_HTTP_ENDPOINT}/api/research/sources/${sourceId}/crawl`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(options ?? {}),
+        credentials: 'include'
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to start crawl')
+      }
+
+      const result = await response.json().catch(() => ({}))
+      return result?.data ?? result
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: SOURCE_KEYS.dashboard(variables.sourceId) })
+      queryClient.invalidateQueries({ queryKey: SOURCE_KEYS.linksRoot(variables.sourceId), exact: false })
+
+      if (variables.researchId) {
+        queryClient.invalidateQueries({ queryKey: RESEARCH_KEYS.sources(variables.researchId), exact: false })
+      }
+
+      toast.success('Crawl started')
+    },
+    onError: (error: any) => {
+      toast.error(error.message || 'Failed to start crawl')
+    }
+  })
+}
+
+/**
+ * Get comprehensive dashboard data for a specific source
+ * Includes crawl status, metadata, statistics, and real-time progress
+ * With smart exponential backoff on errors
+ */
+export function useSourceDashboard(
+  sourceId: number | undefined,
+  options?: {
+    refetchInterval?: number | ((data: any) => number | false)
+    enabled?: boolean
+  }
+) {
+  const errorCountRef = React.useRef(0)
+  const lastSuccessRef = React.useRef(Date.now())
+
+  return useQuery({
+    queryKey: SOURCE_KEYS.dashboard(sourceId!),
+    queryFn: async () => {
+      const response = await fetch(`${SERVER_HTTP_ENDPOINT}/api/research/sources/${sourceId}/dashboard`, {
+        credentials: 'include'
+      })
+      if (!response.ok) throw new Error('Failed to fetch source dashboard')
+      const result = await response.json()
+
+      // Reset error count on success
+      errorCountRef.current = 0
+      lastSuccessRef.current = Date.now()
+
+      return result
+    },
+    enabled: !!sourceId && sourceId > 0 && (options?.enabled ?? true),
+    refetchInterval: options?.refetchInterval ?? ((query) => {
+      const data = query.state.data as any
+      const status = data?.data?.crawlStatus?.status
+      const isActive = status === 'active' || status === 'queued'
+
+      if (!isActive) return false
+
+      // Handle errors with exponential backoff
+      if (query.state.error) {
+        errorCountRef.current++
+        if (errorCountRef.current >= POLLING_CONFIG.MAX_RETRIES) {
+          console.warn('Max polling retries reached, stopping polling')
+          return false
+        }
+
+        const backoff = Math.min(
+          POLLING_CONFIG.BASE_INTERVAL_MS * Math.pow(POLLING_CONFIG.ERROR_BACKOFF_MULTIPLIER, errorCountRef.current - 1),
+          POLLING_CONFIG.MAX_INTERVAL_MS
+        )
+        const jitter = Math.random() * POLLING_CONFIG.JITTER_MS
+        return Math.max(backoff + jitter, POLLING_CONFIG.MIN_INTERVAL_MS)
+      }
+
+      return POLLING_CONFIG.BASE_INTERVAL_MS
+    }),
+    staleTime: 2000, // Consider data stale after 2 seconds
+    gcTime: 10 * 60 * 1000 // Cache for 10 minutes
+  })
+}
+
+/**
+ * Get paginated links discovered from a source with filtering and sorting
+ */
+export function useSourceLinks(
+  sourceId: number | undefined,
+  params?: {
+    page?: number
+    limit?: number
+    sortBy?: string
+    sortOrder?: 'asc' | 'desc'
+    status?: string
+    minDepth?: number
+    maxDepth?: number
+    search?: string
+    from?: string
+    to?: string
+  }
+) {
+  return useQuery({
+    queryKey: SOURCE_KEYS.links(sourceId!, params),
+    queryFn: async () => {
+      const searchParams = new URLSearchParams()
+      if (params?.page) searchParams.set('page', params.page.toString())
+      if (params?.limit) searchParams.set('limit', params.limit.toString())
+      if (params?.sortBy) searchParams.set('sortBy', params.sortBy)
+      if (params?.sortOrder) searchParams.set('sortOrder', params.sortOrder)
+      if (params?.status) searchParams.set('status', params.status)
+      if (params?.minDepth !== undefined) searchParams.set('minDepth', params.minDepth.toString())
+      if (params?.maxDepth !== undefined) searchParams.set('maxDepth', params.maxDepth.toString())
+      if (params?.search) searchParams.set('search', params.search)
+      if (params?.from) searchParams.set('from', params.from)
+      if (params?.to) searchParams.set('to', params.to)
+
+      const response = await fetch(
+        `${SERVER_HTTP_ENDPOINT}/api/research/sources/${sourceId}/links?${searchParams.toString()}`,
+        {
+          credentials: 'include'
+        }
+      )
+      if (!response.ok) throw new Error('Failed to fetch source links')
+      const result = await response.json()
+      return result
+    },
+    enabled: !!sourceId && sourceId > 0,
+    staleTime: 30 * 1000, // Links data is fairly stable, 30 seconds
+    gcTime: 10 * 60 * 1000
   })
 }
 

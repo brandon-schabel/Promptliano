@@ -28,6 +28,7 @@ import {
   researchExportRepository,
   crawledContentRepository,
   urlRepository,
+  domainRepository,
   type ResearchRecord,
   type InsertResearchRecord,
   type ResearchSource,
@@ -911,18 +912,24 @@ export function createDeepResearchService(deps: DeepResearchServiceDeps = {}) {
           const source = await researchSourceRepository.getById(sourceId)
           if (!source) throw safeErrorFactory.notFound('ResearchSource', sourceId)
           if (source.researchId !== researchId) {
-            throw safeErrorFactory.operationFailed('Source does not belong to research', {
-              researchId,
-              sourceId
-            })
+            throw new Error(`Source ${sourceId} does not belong to research ${researchId}`)
           }
 
           const urlToCrawl = source.url
           const shouldRecrawl = options.recrawl === true
+          const metadata = (source.metadata || {}) as any
 
-          if (shouldRecrawl && source.metadata?.crawlSessionId) {
-            await crawledContentRepository.deleteByCrawlSessionId(source.metadata.crawlSessionId)
-            await urlRepository.deleteByCrawlSessionId(source.metadata.crawlSessionId)
+          if (!shouldRecrawl && ['active', 'queued'].includes(String(metadata.crawlStatus))) {
+            throw new ApiError(409, 'Crawl already in progress for this source', 'CRAWL_IN_PROGRESS')
+          }
+
+          if (shouldRecrawl && metadata.currentCrawlSessionId) {
+            await crawledContentRepository.deleteByCrawlSessionId(metadata.currentCrawlSessionId)
+            await urlRepository.deleteByCrawlSessionId(metadata.currentCrawlSessionId)
+          }
+
+          if (shouldRecrawl) {
+            metadata.crawlStatus = 'queued'
           }
 
           const crawlOptions: CrawlOptions = {
@@ -931,58 +938,51 @@ export function createDeepResearchService(deps: DeepResearchServiceDeps = {}) {
             sameDomainOnly: options.sameDomainOnly ?? true
           }
 
-          const crawlService = webCrawlingService
+          // Create web crawling service with research source repository for real-time updates
+          const { createWebCrawlingService } = await import('./web-crawling-service')
+          const crawlService = createWebCrawlingService({
+            domainRepository,
+            urlRepository,
+            contentRepository: crawledContentRepository,
+            researchSourceRepository,
+            logger: createServiceLogger('WebCrawlingService')
+          })
+
           const { crawlId } = await crawlService.startCrawl(urlToCrawl, crawlOptions, {
             researchId,
             researchSourceId: sourceId
           })
 
-          const baseMetadata = {
-            crawlSessionId: crawlId,
-            crawlStatus: 'running' as const,
-            crawlStartedAt: Date.now(),
-            crawlFinishedAt: undefined,
-            crawlError: undefined,
-            crawlProgress: {
-              urlsCrawled: 0,
-              urlsPending: 1,
-              urlsFailed: 0,
-              currentDepth: 0
-            }
-          }
-
+          const now = Date.now()
           await researchSourceRepository.update(sourceId, {
             metadata: {
-              ...source.metadata,
-              ...baseMetadata
+              ...metadata,
+              crawlStatus: 'queued',
+              currentCrawlSessionId: crawlId,
+              lastCrawlStartedAt: now,
+              crawlProgress: {
+                ...(metadata.crawlProgress || {}),
+                totalLinksDiscovered: metadata.crawlProgress?.totalLinksDiscovered || 0,
+                totalPagesCrawled: metadata.crawlProgress?.totalPagesCrawled || 0,
+                pagesRemainingInQueue: metadata.crawlProgress?.pagesRemainingInQueue || 0,
+                currentDepth: metadata.crawlProgress?.currentDepth || 0
+              }
             },
-            updatedAt: Date.now()
+            updatedAt: now
           } as Partial<InsertResearchSource>)
 
+          // Execute crawl in background - metadata updates are handled by web crawling service
           setImmediate(async () => {
             try {
-              const progress = await crawlService.executeCrawl(crawlId)
-
-              await researchSourceRepository.update(sourceId, {
-                metadata: {
-                  ...source.metadata,
-                  ...baseMetadata,
-                  crawlStatus: 'completed',
-                  crawlFinishedAt: Date.now(),
-                  crawlProgress: progress,
-                  totalLinksDiscovered: progress.totalLinksDiscovered,
-                  totalPagesFetched: progress.totalPagesFetched
-                },
-                updatedAt: Date.now()
-              } as Partial<InsertResearchSource>)
+              await crawlService.executeCrawl(crawlId)
+              logger.info('Crawl completed successfully', { sourceId, crawlId })
             } catch (error) {
+              logger.error('Crawl failed', { sourceId, crawlId, error: String(error) })
               await researchSourceRepository.update(sourceId, {
                 metadata: {
-                  ...source.metadata,
-                  ...baseMetadata,
+                  ...metadata,
                   crawlStatus: 'failed',
-                  crawlError: String(error),
-                  crawlFinishedAt: Date.now()
+                  lastCrawlEndedAt: Date.now()
                 },
                 updatedAt: Date.now()
               } as Partial<InsertResearchSource>)
@@ -1004,8 +1004,8 @@ export function createDeepResearchService(deps: DeepResearchServiceDeps = {}) {
           const source = await researchSourceRepository.getById(sourceId)
           if (!source) throw safeErrorFactory.notFound('ResearchSource', sourceId)
 
-          const metadata = source.metadata || {}
-          const crawlSessionId = metadata.crawlSessionId
+          const metadata = (source.metadata || {}) as any
+          const crawlSessionId = metadata.currentCrawlSessionId
           let progress = metadata.crawlProgress
 
           if (crawlSessionId) {
@@ -1025,13 +1025,13 @@ export function createDeepResearchService(deps: DeepResearchServiceDeps = {}) {
             researchId: source.researchId,
             status: metadata.crawlStatus ?? 'idle',
             crawlSessionId,
-            startedAt: metadata.crawlStartedAt,
-            finishedAt: metadata.crawlFinishedAt,
-            lastCrawledAt: metadata.lastCrawledAt,
-            error: metadata.crawlError,
+            startedAt: metadata.lastCrawlStartedAt,
+            finishedAt: metadata.lastCrawlEndedAt,
+            lastCrawledAt: source.fetchedAt,
+            error: metadata.errorTracking?.lastErrorMessage,
             progress,
-            totalLinksDiscovered: metadata.totalLinksDiscovered,
-            totalPagesFetched: metadata.totalPagesFetched
+            totalLinksDiscovered: metadata.linkDiscoveryTimeline?.totalLinksDiscoveredSession,
+            totalPagesFetched: metadata.crawlProgress?.totalPagesCrawled
           }
         },
         { entity: 'ResearchSource', action: 'getSourceCrawlStatus', id: sourceId }
@@ -1055,7 +1055,8 @@ export function createDeepResearchService(deps: DeepResearchServiceDeps = {}) {
           const source = await researchSourceRepository.getById(sourceId)
           if (!source) throw safeErrorFactory.notFound('ResearchSource', sourceId)
 
-          const crawlSessionId = source.metadata?.crawlSessionId
+          const metadata = (source.metadata || {}) as any
+          const crawlSessionId = metadata.currentCrawlSessionId
           if (!crawlSessionId) {
             return {
               sourceId,

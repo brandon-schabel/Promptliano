@@ -8,6 +8,7 @@ import { sqliteTable, integer, text, index, real } from 'drizzle-orm/sqlite-core
 import { relations, sql } from 'drizzle-orm'
 import { createInsertSchema, createSelectSchema } from './schema-factory'
 import { z } from '@hono/zod-openapi'
+import { enhancedResearchSourceMetadata, type EnhancedResearchSourceMetadata } from './schemas/research-metadata'
 
 // =============================================================================
 // TYPE DEFINITIONS (from @promptliano/schemas)
@@ -1382,7 +1383,7 @@ export type ResearchRecord = Omit<ResearchRecordInferred, 'metadata'> & {
 
 type ResearchSourceInferred = typeof researchSources.$inferSelect
 export type ResearchSource = Omit<ResearchSourceInferred, 'metadata'> & {
-  metadata: ResearchSourceMetadata
+  metadata: ResearchSourceMetadata | null
 }
 
 // Override ResearchProcessedData type to fix JSON field types
@@ -1690,26 +1691,9 @@ export const researchMetadata = z.object({
 
 export type ResearchMetadata = z.infer<typeof researchMetadata>
 
-export const researchSourceMetadata = z.object({
-  crawlSessionId: z.string().optional(),
-  crawlStatus: z.enum(['idle', 'running', 'completed', 'failed']).optional(),
-  crawlStartedAt: z.number().optional(),
-  crawlFinishedAt: z.number().optional(),
-  lastCrawledAt: z.number().optional(),
-  crawlError: z.string().optional(),
-  crawlProgress: z.object({
-    urlsCrawled: z.number(),
-    urlsPending: z.number(),
-    urlsFailed: z.number(),
-    currentDepth: z.number(),
-    totalLinksDiscovered: z.number().optional(),
-    totalPagesFetched: z.number().optional()
-  }).optional(),
-  totalLinksDiscovered: z.number().optional(),
-  totalPagesFetched: z.number().optional()
-}).strict()
-
-export type ResearchSourceMetadata = z.infer<typeof researchSourceMetadata>
+// Use the enhanced metadata schema (imported at top of file)
+export const researchSourceMetadata = enhancedResearchSourceMetadata
+export type ResearchSourceMetadata = EnhancedResearchSourceMetadata
 
 export const researchRecords = sqliteTable('research_records', {
   id: integer('id').primaryKey(),
@@ -1739,7 +1723,7 @@ export const researchRecords = sqliteTable('research_records', {
   // Metadata with strict type safety
   metadata: text('metadata', { mode: 'json' })
     .$type<ResearchMetadata>()
-    .default('{}'),
+    .default(sql`'{}'`),
 
   createdAt: integer('created_at').notNull(),
   updatedAt: integer('updated_at').notNull(),
@@ -1776,7 +1760,7 @@ export const researchSources = sqliteTable('research_sources', {
   fetchedAt: integer('fetched_at'),
   metadata: text('metadata', { mode: 'json' })
     .$type<ResearchSourceMetadata>()
-    .default('{}'),
+    .default(sql`'{}'`),
   createdAt: integer('created_at').notNull(),
   updatedAt: integer('updated_at').notNull()
 }, (table) => ({
@@ -1953,7 +1937,9 @@ export const crawledContent = sqliteTable('crawled_content', {
   crawlSessionId: text('crawl_session_id'),
   crawledAt: integer('crawled_at').notNull()
 }, (table) => ({
-  urlIdx: index('crawled_content_url_idx').on(table.urlId)
+  urlIdx: index('crawled_content_url_idx').on(table.urlId),
+  researchSourceIdx: index('crawled_content_research_source_idx').on(table.researchSourceId),
+  crawlSessionIdx: index('crawled_content_crawl_session_idx').on(table.crawlSessionId)
 }))
 
 // Web Crawling Relations

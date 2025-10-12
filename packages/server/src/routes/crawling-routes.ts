@@ -6,7 +6,15 @@
  */
 
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi'
-import { crawlingService } from '@promptliano/services'
+import { crawlUtils, crawledContentRepository, domainRepository, urlRepository } from '@promptliano/database'
+import type { Domain } from '@promptliano/database'
+import {
+  startCrawl,
+  executeCrawl,
+  getCrawlArtifacts,
+  type CrawlOptions,
+  fetchRobotsTxt
+} from '@promptliano/services'
 import {
   CrawlRequestSchema,
   CrawlResponseSchema,
@@ -128,137 +136,155 @@ export const crawlingRoutes = new OpenAPIHono()
 
 // POST /api/crawl
 crawlingRoutes.openapi(crawlRoute, async c => {
-  const { url, maxDepth, summarize, forceRefresh } = c.req.valid('json')
+  const { url, maxDepth, summarize } = c.req.valid('json')
 
-  // If maxDepth > 1, crawl website, otherwise crawl single page
-  if (maxDepth && maxDepth > 1) {
-    const results = await crawlingService.crawlWebsite(url, {
-      maxDepth,
-      summarize,
-        forceRefresh
-      })
+  const crawlOptions: CrawlOptions = {
+    maxDepth: Math.min(Math.max(maxDepth ?? 1, 1), 5),
+    maxPages: 100,
+    respectRobotsTxt: true,
+    sameDomainOnly: true
+  }
 
-      // Generate overall summary if requested
-      let aiSummary: string | undefined
-      if (summarize && results.length > 0) {
-        // Combine summaries from individual pages
-        aiSummary = results
-          .map(r => r.summary)
-          .filter(Boolean)
-          .join('\n\n')
-      }
+  const { crawlId } = await startCrawl(url, crawlOptions)
+  await executeCrawl(crawlId)
 
-      return c.json(
-        successResponse({
-          pagesCrawled: results.length,
-          results: results.map(r => ({
-            id: r.id,
-            url: r.url.url,
-            urlHash: r.url.urlHash,
-            domain: r.url.domain,
-            status: r.url.status as 'pending' | 'crawled' | 'failed',
-            httpStatus: r.url.httpStatus,
-            title: r.title,
-            cleanContent: r.cleanContent,
-            metadata: r.metadata,
-            summary: r.summary,
-            lastCrawledAt: r.url.lastCrawledAt,
-            createdAt: r.url.createdAt
-          })),
-          aiSummary
-        }),
-        200
-      )
-    } else {
-      // Single page crawl
-      const result = await crawlingService.crawlUrl(url, {
-        summarize,
-        forceRefresh
-      })
+  const artifacts = await getCrawlArtifacts(crawlId, { limit: crawlOptions.maxPages })
+  const contents = await Promise.all(artifacts.records.map(record => crawledContentRepository.getByUrlId(record.urlId)))
 
-      return c.json(
-        successResponse({
-          pagesCrawled: 1,
-          results: [
-            {
-              id: result.id,
-              url: result.url.url,
-              urlHash: result.url.urlHash,
-              domain: result.url.domain,
-              status: result.url.status as 'pending' | 'crawled' | 'failed',
-              httpStatus: result.url.httpStatus,
-              title: result.title,
-              cleanContent: result.cleanContent,
-              metadata: result.metadata,
-              summary: result.summary,
-              lastCrawledAt: result.url.lastCrawledAt,
-              createdAt: result.url.createdAt
-            }
-          ],
-          aiSummary: result.summary || undefined
-        }),
-        200
-      )
+  const results = artifacts.records.map((record, index) => {
+    const content = contents[index]
+
+    return {
+      id: record.urlId,
+      url: record.url,
+      urlHash: crawlUtils.generateUrlHash(record.url),
+      domain: new URL(record.url).hostname,
+      status: record.status,
+      httpStatus: record.httpStatus ?? null,
+      title: content?.title ?? null,
+      cleanContent: content?.cleanContent ?? null,
+      metadata: (content?.metadata as Record<string, unknown>) ?? null,
+      summary: content?.summary ?? null,
+      lastCrawledAt: record.crawledAt ?? content?.crawledAt ?? null,
+      createdAt: content?.crawledAt ?? Date.now()
     }
   })
+
+  let aiSummary: string | undefined
+  if (summarize && results.length > 0) {
+    aiSummary = results
+      .map(r => r.summary)
+      .filter((value): value is string => Boolean(value))
+      .join('\n\n')
+  }
+
+  return c.json(
+    successResponse({
+      pagesCrawled: results.length,
+      results,
+      aiSummary
+    }),
+    200
+  )
+})
 
 // GET /api/crawl/cached/:urlHash
 crawlingRoutes.openapi(getCachedRoute, async c => {
   const { urlHash } = c.req.valid('param')
 
-    const cached = await crawlingService.getCachedByUrlHash(urlHash)
-
-    if (!cached) {
-      return c.json(
-        {
-          success: false,
-          error: {
-            message: 'Cached content not found',
-            code: 'NOT_FOUND'
-          }
-        },
-        404
-      )
-    }
-
+  const urlRecord = await urlRepository.getByUrlHash(urlHash)
+  if (!urlRecord) {
     return c.json(
-      successResponse({
-        url: cached.url.url,
-        title: cached.title,
-        cleanContent: cached.cleanContent,
-        metadata: cached.metadata,
-        summary: cached.summary,
-        lastCrawledAt: cached.url.lastCrawledAt
-      }),
-      200
+      {
+        success: false,
+        error: {
+          message: 'Cached content not found',
+          code: 'NOT_FOUND'
+        }
+      },
+      404
     )
-  })
+  }
+
+  const content = await crawledContentRepository.getByUrlId(urlRecord.id)
+
+  return c.json(
+    successResponse({
+      url: urlRecord.url,
+      title: content?.title ?? null,
+      cleanContent: content?.cleanContent ?? null,
+      metadata: (content?.metadata as Record<string, unknown>) ?? null,
+      summary: content?.summary ?? null,
+      lastCrawledAt: content?.crawledAt ?? urlRecord.lastCrawledAt ?? null
+    }),
+    200
+  )
+})
 
 // GET /api/crawl/history
 crawlingRoutes.openapi(getHistoryRoute, async c => {
   const { limit, offset } = c.req.valid('query')
 
-  const history = await crawlingService.getHistory({ limit, offset })
+  const allUrls = await urlRepository.getAll('desc')
+  const paged = allUrls.slice(offset, offset + limit)
 
-  return c.json(successResponse(history), 200)
+  const contents = await Promise.all(paged.map(urlEntry => crawledContentRepository.getByUrlId(urlEntry.id)))
+
+  const crawls = paged.map((urlEntry, index) => {
+    const content = contents[index]
+
+    return {
+      id: urlEntry.id,
+      url: urlEntry.url,
+      domain: urlEntry.domain,
+      status: urlEntry.status,
+      httpStatus: urlEntry.httpStatus ?? null,
+      title: content?.title ?? null,
+      lastCrawledAt: urlEntry.lastCrawledAt ?? content?.crawledAt ?? null,
+      createdAt: urlEntry.createdAt
+    }
+  })
+
+  return c.json(
+    successResponse({
+      total: allUrls.length,
+      crawls
+    }),
+    200
+  )
 })
 
 // POST /api/crawl/search
 crawlingRoutes.openapi(searchRoute, async c => {
   const { query, limit } = c.req.valid('json')
 
-  const results = await crawlingService.searchCached(query, { limit })
+  const cachedContent = await crawledContentRepository.getLatestContent(1000)
+  const allUrls = await urlRepository.getAll('desc')
+  const urlMap = new Map(allUrls.map(urlEntry => [urlEntry.id, urlEntry]))
+
+  const filtered = cachedContent.filter(entry => {
+    const haystack = `${entry.title ?? ''} ${entry.summary ?? ''} ${entry.cleanContent ?? ''}`.toLowerCase()
+    return haystack.includes(query.toLowerCase())
+  })
+
+  const trimmed = filtered.slice(0, limit)
+
+  const results = trimmed.map(entry => {
+    const urlEntry = urlMap.get(entry.urlId)
+
+    return {
+      id: entry.id,
+      url: urlEntry?.url ?? 'unknown',
+      title: entry.title ?? null,
+      snippet: entry.summary ?? entry.cleanContent?.slice(0, 200) ?? null,
+      lastCrawledAt: entry.crawledAt ?? urlEntry?.lastCrawledAt ?? null
+    }
+  })
 
   return c.json(
     successResponse({
-      results: results.map(r => ({
-        id: r.content.id,
-        url: r.url.url,
-        title: r.content.title,
-        snippet: r.snippet || r.content.excerpt,
-        lastCrawledAt: r.url.lastCrawledAt
-      })),
-      total: results.length
+      results,
+      total: filtered.length
     }),
     200
   )
@@ -266,16 +292,49 @@ crawlingRoutes.openapi(searchRoute, async c => {
 
 // GET /api/crawl/domains
 crawlingRoutes.openapi(getDomainsRoute, async c => {
-  const domains = await crawlingService.getDomainStats()
+  const domains = await domainRepository.getAll('desc')
 
-  return c.json(successResponse({ domains }), 200)
+  const stats = await Promise.all(
+    domains.map(async domainEntry => {
+      const urlsForDomain = await urlRepository.getByDomain(domainEntry.domain)
+
+      return {
+        domain: domainEntry.domain,
+        totalPages: urlsForDomain.length,
+        lastCrawl: domainEntry.lastCrawlAt ?? null,
+        robotsTxt: domainEntry.robotsTxt ?? null,
+        crawlDelay: domainEntry.crawlDelay ?? 0
+      }
+    })
+  )
+
+  return c.json(successResponse({ domains: stats }), 200)
 })
 
 // GET /api/crawl/domains/:domain/robots
 crawlingRoutes.openapi(getRobotsTxtRoute, async c => {
   const { domain } = c.req.valid('param')
 
-  const robotsInfo = await crawlingService.getRobotsTxt(domain)
+  const existing = await domainRepository.getByDomain(domain)
 
-  return c.json(successResponse(robotsInfo), 200)
+  if (existing?.robotsTxt) {
+    return c.json(
+      successResponse({
+        robotsTxt: existing.robotsTxt,
+        crawlDelay: existing.crawlDelay ?? 0
+      }),
+      200
+    )
+  }
+
+  const robotsInfo = await fetchRobotsTxt(domain)
+  await domainRepository.upsert({ domain, robotsTxt: robotsInfo.rules, crawlDelay: robotsInfo.crawlDelay ?? undefined })
+
+  return c.json(
+    successResponse({
+      robotsTxt: robotsInfo.rules || null,
+      crawlDelay: robotsInfo.crawlDelay ?? 0
+    }),
+    200
+  )
 })

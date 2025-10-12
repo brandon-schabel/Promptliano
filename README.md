@@ -130,7 +130,7 @@ bun install
 bun run dev
 ```
 
-The development UI will be available at [http://localhost:1420](http://localhost:1420)
+The development UI will be available at [http://localhost:5173](http://localhost:5173)
 
 ### File Search Backend
 
@@ -179,7 +179,7 @@ Upgrading from older versions: run database migrations (below) to drop legacy se
 ### Port Configuration (Dev)
 
 - Server API: `SERVER_PORT` or `PORT` (default: 3147)
-- Client UI (Vite): `CLIENT_DEV_PORT` (default: 1420)
+- Client UI (Vite): `CLIENT_DEV_PORT` (default: 5173)
 - Drizzle Studio: `DRIZZLE_STUDIO_PORT` (default: 4983)
 - MCP Inspector UI: `MCP_INSPECTOR_CLIENT_PORT` (default: 6274)
 - MCP Inspector Proxy: `MCP_INSPECTOR_SERVER_PORT` (default: 6277)

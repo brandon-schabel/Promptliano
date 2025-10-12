@@ -1,10 +1,18 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react'
-import { createAuthClient, type User, type AuthClient, type AuthStatusResponse } from '@promptliano/api-client'
+import {
+  createAuthClient,
+  type User,
+  type AuthClient,
+  type AuthStatusResponse,
+  type AuthStatusData
+} from '@promptliano/api-client'
 import { DEFAULT_AUTH_SETTINGS, normalizeAuthStatus } from '@/routes/__root'
 import { toast } from 'sonner'
 import { useNavigate } from '@tanstack/react-router'
 import { clearCsrfToken } from '@/lib/csrf'
 import { useQueryClient } from '@tanstack/react-query'
+import { withTimeout, isNetworkError } from '@/lib/system/network'
+import { CONNECTION_QUERY_KEY, ConnectionSnapshot } from '@/lib/system/connection-status'
 
 /**
  * Auth context interface - PASSWORD REQUIRED
@@ -67,6 +75,9 @@ export function AuthProvider({
 
   // CRITICAL: Access React Query to use cached auth status
   const queryClient = useQueryClient()
+
+  const connectionSnapshot = queryClient.getQueryData<ConnectionSnapshot>(CONNECTION_QUERY_KEY)
+  const isOffline = connectionSnapshot?.status && connectionSnapshot.status !== 'connected'
 
   /**
    * Store user data in localStorage (no tokens!)
@@ -271,6 +282,10 @@ export function AuthProvider({
         const normalizedStatus = cachedAuthStatus ? normalizeAuthStatus(cachedAuthStatus) : undefined
 
         if (!normalizedStatus) {
+          if (isOffline) {
+            setIsLoading(false)
+            return
+          }
           console.log('[AuthContext] No cached auth status, waiting for root route to load')
           setIsLoading(false)
           return
@@ -280,7 +295,6 @@ export function AuthProvider({
         const needsSetupValue = normalizedStatus.data.needsSetup
         setNeedsSetup(needsSetupValue)
 
-        // If setup is needed, skip user authentication checks
         if (needsSetupValue) {
           console.log('[AuthContext] Setup required - skipping auth initialization')
           setIsLoading(false)
@@ -290,7 +304,11 @@ export function AuthProvider({
         // Setup complete - proceed with normal auth flow
         // Verify session with server (don't trust localStorage alone)
         try {
-          const response = await authClientRef.current.getCurrentUser()
+          if (isOffline) {
+            setIsLoading(false)
+            return
+          }
+          const response = await withTimeout(authClientRef.current.getCurrentUser(), 6000)
           if (response.data?.user) {
             storeUserData(response.data.user)
             setupTokenRefresh()
@@ -298,16 +316,22 @@ export function AuthProvider({
             clearAuthData()
           }
         } catch (error) {
-          // Session invalid - clear user data
-          console.log('[AuthContext] Session verification failed, clearing auth data')
-          clearAuthData()
+          if (isNetworkError(error)) {
+            console.warn('[AuthContext] Session verification skipped due to offline state')
+          } else {
+            console.log('[AuthContext] Session verification failed, clearing auth data')
+            clearAuthData()
+          }
         }
       } catch (error) {
         // Setup status check failed
-        console.error('[AuthContext] Initialization error:', error)
-        clearAuthData()
-        // On error, assume setup is needed (fail closed)
-        setNeedsSetup(true)
+        if (isNetworkError(error) || isOffline) {
+          console.warn('[AuthContext] Initialization skipped due to offline state')
+        } else {
+          console.error('[AuthContext] Initialization error:', error)
+          clearAuthData()
+          setNeedsSetup(true)
+        }
       } finally {
         setIsLoading(false)
       }
@@ -322,7 +346,7 @@ export function AuthProvider({
         clearInterval(refreshIntervalRef.current)
       }
     }
-  }, [queryClient]) // Depend on queryClient
+  }, [isOffline, queryClient]) // Depend on queryClient
 
   const contextValue: AuthContextType = {
     user,

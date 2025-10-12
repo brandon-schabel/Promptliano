@@ -697,7 +697,7 @@ export class PromptlianoClient {
 
   // System methods
   public readonly system = {
-    healthCheck: () => this.typeSafe.getProviders(), // Using providers as health check
+    healthCheck: async () => this.typeSafeClient.listProxyCopilot_health(),
     browseDirectory: (data: any) => this.typeSafe.createBrowseDirector(data)
   }
 

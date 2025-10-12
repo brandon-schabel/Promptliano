@@ -32,7 +32,10 @@ import {
   StartSourceCrawlRequestSchema,
   CrawlResultQuerySchema,
   SourceCrawlStatusResponseSchema,
-  SourceCrawlResultsResponseSchema
+  SourceCrawlResultsResponseSchema,
+  SourceDashboardResponseSchema,
+  SourceLinksQuerySchema,
+  SourceLinksResponseSchema
 } from '@promptliano/schemas'
 import { deepResearchService, researchWorkflowService } from '@promptliano/services'
 import {
@@ -45,6 +48,7 @@ import {
   selectResearchExportSchema,
   selectResearchProcessedDataSchema
 } from '@promptliano/database'
+import { ApiError } from '@promptliano/shared'
 
 // =============================================================================
 // RESPONSE SCHEMAS (Created from database schemas)
@@ -263,6 +267,31 @@ const getSourceCrawlResultsRoute = createRoute({
     query: CrawlResultQuerySchema
   },
   responses: createStandardResponses(SourceCrawlResultsResponseSchema)
+})
+
+const getSourceDashboardRoute = createRoute({
+  method: 'get',
+  path: '/api/research/sources/{id}/dashboard',
+  tags: ['Deep Research', 'Dashboard'],
+  summary: 'Get comprehensive dashboard data for a research source',
+  description: 'Returns crawl statistics, token usage, performance metrics, recent link discoveries, and error summary',
+  request: {
+    params: IDParamsSchema
+  },
+  responses: createStandardResponses(SourceDashboardResponseSchema)
+})
+
+const getSourceLinksRoute = createRoute({
+  method: 'get',
+  path: '/api/research/sources/{id}/links',
+  tags: ['Deep Research', 'Dashboard'],
+  summary: 'Get paginated list of discovered links for a research source',
+  description: 'Returns discovered links with filtering, sorting, and pagination support',
+  request: {
+    params: IDParamsSchema,
+    query: SourceLinksQuerySchema
+  },
+  responses: createStandardResponses(SourceLinksResponseSchema)
 })
 
 const getSourceProcessedDataRoute = createRoute({
@@ -736,7 +765,9 @@ deepResearchRoutes
         sectionsCompleted: workflowProgress.progress.sectionsCompleted
       },
       estimatedTimeRemaining: detailedProgress.estimatedTimeRemaining,
-      lastError: (research.metadata as any)?.errorMessage
+      lastError: typeof research.metadata === 'object' && research.metadata && 'errorMessage' in research.metadata
+        ? String(research.metadata.errorMessage)
+        : undefined
     }
 
     return c.json(successResponse(status), 200)
@@ -746,7 +777,7 @@ deepResearchRoutes
     const { id } = c.req.valid('param')
 
     const research = await deepResearchService.getById(id)
-    const metadata = research.metadata as any
+    const metadata = typeof research.metadata === 'object' && research.metadata ? research.metadata : {}
 
     const crawlProgress = {
       researchId: id,
@@ -777,15 +808,32 @@ deepResearchRoutes
       return c.json(successResponse({ success: false, message: 'Source not found' }), 404)
     }
 
-    const result = await deepResearchService.startSourceCrawl(source.researchId, id, {
-      depthOverride: body.depthOverride,
-      maxPagesOverride: body.maxPagesOverride,
-      maxLinks: body.maxLinks,
-      recrawl: body.recrawl,
-      sameDomainOnly: body.sameDomainOnly
-    })
+    try {
+      const result = await deepResearchService.startSourceCrawl(source.researchId, id, {
+        depthOverride: body.depthOverride,
+        maxPagesOverride: body.maxPagesOverride,
+        maxLinks: body.maxLinks,
+        recrawl: body.recrawl,
+        sameDomainOnly: body.sameDomainOnly
+      })
 
-    return c.json(operationSuccessResponse(result), 200)
+      return c.json(operationSuccessResponse(result), 200)
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 409) {
+        return c.json(
+          {
+            success: false,
+            error: {
+              message: error.message,
+              code: error.code || 'CRAWL_IN_PROGRESS'
+            }
+          },
+          409
+        )
+      }
+
+      throw error
+    }
   })
   .openapi(getSourceCrawlStatusRoute, async (c) => {
     const { id } = c.req.valid('param')
@@ -815,6 +863,211 @@ deepResearchRoutes
     })
 
     return c.json(successResponse(result), 200)
+  })
+  .openapi(getSourceDashboardRoute, async (c) => {
+    const { id } = c.req.valid('param')
+
+    // Get source
+    const source = await researchSourceRepository.getById(id)
+    if (!source) {
+      return c.json(
+        {
+          success: false,
+          error: {
+            message: 'Source not found',
+            code: 'NOT_FOUND'
+          }
+        },
+        404
+      )
+    }
+
+    // Parse metadata - use type assertion for dynamic metadata access
+    const metadata = (typeof source.metadata === 'object' && source.metadata ? source.metadata : {}) as any
+
+    // Build dashboard response
+    const crawlProgress = metadata.crawlProgress || {}
+    const performanceStats = metadata.performanceStats || {}
+    const linkTimeline = metadata.linkDiscoveryTimeline || {}
+    const errorTracking = metadata.errorTracking || {}
+
+    const totalPagesCrawled = typeof crawlProgress.totalPagesCrawled === 'number' ? crawlProgress.totalPagesCrawled : 0
+    const totalRequests = typeof performanceStats.totalRequests === 'number' ? performanceStats.totalRequests : totalPagesCrawled
+    const successRate = typeof performanceStats.successRate === 'number' ? performanceStats.successRate : undefined
+    const successfulRequests = typeof performanceStats.successfulRequests === 'number'
+      ? performanceStats.successfulRequests
+      : successRate !== undefined
+        ? Math.round((successRate / 100) * totalRequests)
+        : undefined
+
+    const dashboardData = {
+      source: {
+        id: source.id,
+        researchId: source.researchId,
+        url: source.url,
+        title: source.title || undefined,
+        description: undefined // ResearchSource doesn't have description field
+      },
+      tokenStats: {
+        totalTokens: performanceStats.totalTokens || 0,
+        averageTokensPerPage: performanceStats.avgTokensPerPage || 0,
+        totalContentSize: performanceStats.totalContentSizeBytes || 0
+      },
+      crawlStatus: {
+        status: metadata.crawlStatus || 'idle',
+        lastCrawlStartTime: metadata.lastCrawlStartedAt,
+        lastCrawlEndTime: metadata.lastCrawlEndedAt,
+        currentSessionId: metadata.currentCrawlSessionId
+      },
+      crawlProgress: {
+        totalLinksDiscovered: crawlProgress.totalLinksDiscovered || 0,
+        totalPagesCrawled: crawlProgress.totalPagesCrawled || 0,
+        pagesRemainingInQueue: crawlProgress.pagesRemainingInQueue || 0,
+        currentCrawlDepth: crawlProgress.currentDepth || 0,
+        maxDepthConfigured: crawlProgress.maxDepthConfigured || metadata.crawlConfiguration?.maxDepth || 3,
+        linksPerDepth: crawlProgress.linksPerDepth?.reduce((acc: Record<string, number>, stat: any) => {
+          acc[stat.depth.toString()] = stat.totalLinks
+          return acc
+        }, {})
+      },
+      performanceStats: {
+        avgCrawlTimePerPage: performanceStats.avgCrawlTimeMs || 0,
+        successRate: successRate ?? 100,
+        failedPagesCount: performanceStats.failedPagesCount || 0
+      },
+      recentLinks: (linkTimeline.recentDiscoveries || []).slice(0, 50).map((link: any) => ({
+        url: link.url,
+        discoveredAt: link.discoveredAt,
+        depth: link.depth,
+        status: 'crawled' as const, // Default to crawled for discovered links
+        title: link.title,
+        relevanceScore: link.relevanceScore
+      })),
+      errors: {
+        errorCount: errorTracking.totalErrorCount || 0,
+        recentErrors: (errorTracking.failedUrls || []).slice(0, 20).map((error: any) => ({
+          message: error.errorMessage,
+          url: error.url,
+          timestamp: error.timestamp,
+          errorCode: error.errorCode
+        }))
+      },
+      metadata: {
+        tokenCount: performanceStats.totalTokens || 0,
+        pagesCrawled: totalPagesCrawled,
+        linksDiscovered: crawlProgress.totalLinksDiscovered || linkTimeline.totalLinksDiscoveredSession || 0,
+        lastCrawlTime: metadata.lastCrawlEndedAt || metadata.lastCrawlStartedAt,
+        totalRequests,
+        successfulRequests,
+        avgResponseTime: performanceStats.avgCrawlTimeMs,
+        maxDepth: crawlProgress.maxDepthConfigured || metadata.crawlConfiguration?.maxDepth,
+        currentDepth: crawlProgress.currentDepth || 0,
+        errorCount: errorTracking.totalErrorCount || 0
+      }
+    }
+
+    return c.json(successResponse(dashboardData), 200)
+  })
+  .openapi(getSourceLinksRoute, async (c) => {
+    const { id } = c.req.valid('param')
+    const query = c.req.valid('query')
+
+    // Get source
+    const source = await researchSourceRepository.getById(id)
+    if (!source) {
+      return c.json(
+        {
+          success: false,
+          error: {
+            message: 'Source not found',
+            code: 'NOT_FOUND'
+          }
+        },
+        404
+      )
+    }
+
+    // Parse metadata - use type assertion for dynamic metadata access
+    const metadata = (typeof source.metadata === 'object' && source.metadata ? source.metadata : {}) as any
+    const allLinks = metadata.linkDiscoveryTimeline?.recentDiscoveries || []
+
+    // Apply filters
+    let filteredLinks = [...allLinks]
+
+    if (query.status && query.status !== 'all') {
+      // For now, we'll mark all discovered links as 'crawled'
+      // In a real implementation, you'd check against actual crawl results
+      filteredLinks = filteredLinks.filter(() => query.status === 'crawled')
+    }
+
+    if (query.minDepth !== undefined) {
+      filteredLinks = filteredLinks.filter((link: any) => link.depth >= query.minDepth!)
+    }
+
+    if (query.maxDepth !== undefined) {
+      filteredLinks = filteredLinks.filter((link: any) => link.depth <= query.maxDepth!)
+    }
+
+    // Apply sorting
+    const sortBy = query.sortBy || 'discoveredAt'
+    const sortOrder = query.sortOrder || 'desc'
+
+    filteredLinks.sort((a: any, b: any) => {
+      let comparison = 0
+      switch (sortBy) {
+        case 'discoveredAt':
+          comparison = a.discoveredAt - b.discoveredAt
+          break
+        case 'url':
+          comparison = a.url.localeCompare(b.url)
+          break
+        case 'depth':
+          comparison = a.depth - b.depth
+          break
+        case 'relevanceScore':
+          comparison = (a.relevanceScore || 0) - (b.relevanceScore || 0)
+          break
+      }
+      return sortOrder === 'asc' ? comparison : -comparison
+    })
+
+    // Calculate pagination
+    const page = query.page || 1
+    const limit = query.limit || 20
+    const total = filteredLinks.length
+    const totalPages = Math.ceil(total / limit)
+    const startIndex = (page - 1) * limit
+    const endIndex = startIndex + limit
+
+    const paginatedLinks = filteredLinks.slice(startIndex, endIndex).map((link: any) => ({
+      url: link.url,
+      discoveredAt: link.discoveredAt,
+      depth: link.depth,
+      status: 'crawled' as const,
+      title: link.title,
+      relevanceScore: link.relevanceScore,
+      parentUrl: link.parentUrl,
+      errorMessage: undefined
+    }))
+
+    return c.json(
+      successResponse({
+        sourceId: id,
+        links: paginatedLinks,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages,
+          hasMore: page < totalPages
+        },
+        summary: {
+          totalDiscovered: metadata.linkDiscoveryTimeline?.totalLinksDiscoveredSession || total,
+          windowSize: metadata.linkDiscoveryTimeline?.recentDiscoveries?.length || total
+        }
+      }),
+      200
+    )
   })
 
 // Export route types for type safety

@@ -488,7 +488,7 @@ export function createModelFetcherService(config: ProviderKeysConfig, deps: Mode
           const defaultHeaders: Record<string, string> = {
             'Content-Type': 'application/json',
             // Use env overrides when available; fall back to dev defaults
-            Referer: process.env.OPENROUTER_SITE_URL || 'http://localhost:1420',
+            Referer: process.env.OPENROUTER_SITE_URL || 'http://localhost:5173',
             'X-Title': process.env.OPENROUTER_APP_TITLE || 'Promptliano'
           }
           const response = await fetch(`${OPENROUTER_BASE_URL}/models`, {

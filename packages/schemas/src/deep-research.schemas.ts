@@ -370,13 +370,128 @@ export const SourceCrawlResultsResponseSchema = z.object({
       title: z.string().optional(),
       rawHtml: z.string().optional(),
       cleanContent: z.string().optional(),
-      metadata: z.record(z.any()).optional(),
+      metadata: z.record(z.string(), z.any()).optional(),
       crawledAt: z.number()
     })),
     cursor: z.string().optional(),
     hasMore: z.boolean()
   })
 }).openapi('SourceCrawlResultsResponse')
+
+/**
+ * Source Dashboard Response
+ * Used for GET /api/research/sources/{id}/dashboard
+ * Provides comprehensive dashboard data for a research source
+ */
+export const SourceDashboardResponseSchema = z.object({
+  success: z.literal(true),
+  data: z.object({
+    source: z.object({
+      id: z.number().int().positive(),
+      researchId: z.number().int().positive(),
+      url: z.string(),
+      title: z.string().optional(),
+      description: z.string().optional()
+    }),
+    tokenStats: z.object({
+      totalTokens: z.number().int().min(0),
+      averageTokensPerPage: z.number().min(0),
+      totalContentSize: z.number().int().min(0)
+    }),
+    crawlStatus: z.object({
+      status: z.enum(['idle', 'queued', 'active', 'completed', 'failed', 'paused']),
+      lastCrawlStartTime: z.number().optional(),
+      lastCrawlEndTime: z.number().optional(),
+      currentSessionId: z.string().optional()
+    }),
+    crawlProgress: z.object({
+      totalLinksDiscovered: z.number().int().min(0),
+      totalPagesCrawled: z.number().int().min(0),
+      pagesRemainingInQueue: z.number().int().min(0),
+      currentCrawlDepth: z.number().int().min(0),
+      maxDepthConfigured: z.number().int().min(0),
+      linksPerDepth: z.record(z.string(), z.number()).optional()
+    }),
+    performanceStats: z.object({
+      avgCrawlTimePerPage: z.number().min(0),
+      successRate: z.number().min(0).max(100),
+      failedPagesCount: z.number().int().min(0)
+    }),
+    recentLinks: z.array(z.object({
+      url: z.string(),
+      discoveredAt: z.number(),
+      depth: z.number().int().min(0),
+      status: z.enum(['pending', 'crawled', 'failed']),
+      title: z.string().optional(),
+      relevanceScore: z.number().min(0).max(1).optional()
+    })),
+    errors: z.object({
+      errorCount: z.number().int().min(0),
+      recentErrors: z.array(z.object({
+        message: z.string(),
+        url: z.string(),
+        timestamp: z.number(),
+        errorCode: z.string().optional()
+      }))
+    }),
+    metadata: z
+      .object({
+        tokenCount: z.number().int().min(0),
+        pagesCrawled: z.number().int().min(0),
+        linksDiscovered: z.number().int().min(0),
+        lastCrawlTime: z.number().optional(),
+        totalRequests: z.number().int().min(0).optional(),
+        successfulRequests: z.number().int().min(0).optional(),
+        avgResponseTime: z.number().min(0).optional(),
+        maxDepth: z.number().int().min(0).optional(),
+        currentDepth: z.number().int().min(0).optional(),
+        errorCount: z.number().int().min(0).optional()
+      })
+      .optional()
+  })
+}).openapi('SourceDashboardResponse')
+
+/**
+ * Source Links Query Schema
+ * Used for GET /api/research/sources/{id}/links query params
+ */
+export const SourceLinksQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+  sortBy: z.enum(['discoveredAt', 'url', 'depth', 'relevanceScore']).default('discoveredAt').optional(),
+  sortOrder: z.enum(['asc', 'desc']).default('desc').optional(),
+  status: z.enum(['pending', 'crawled', 'failed', 'all']).default('all').optional(),
+  minDepth: z.coerce.number().int().min(0).optional(),
+  maxDepth: z.coerce.number().int().min(0).optional()
+}).openapi('SourceLinksQuery')
+
+/**
+ * Source Links Response
+ * Used for GET /api/research/sources/{id}/links
+ */
+export const SourceLinksResponseSchema = z.object({
+  success: z.literal(true),
+  data: z.object({
+    sourceId: z.number().int().positive(),
+    links: z.array(z.object({
+      url: z.string(),
+      discoveredAt: z.number(),
+      depth: z.number().int().min(0),
+      status: z.enum(['pending', 'crawled', 'failed']),
+      title: z.string().optional(),
+      relevanceScore: z.number().min(0).max(1).optional(),
+      parentUrl: z.string().optional(),
+      errorMessage: z.string().optional()
+    })),
+    pagination: z.object({
+      page: z.number().int().min(1),
+      limit: z.number().int().min(1),
+      total: z.number().int().min(0),
+      totalPages: z.number().int().min(0),
+      hasMore: z.boolean()
+    })
+  })
+}).openapi('SourceLinksResponse')
 
 // =============================================================================
 // TYPE EXPORTS (Inferred from Schemas)
@@ -414,3 +529,6 @@ export type WorkflowStatusResponse = z.infer<typeof WorkflowStatusResponseSchema
 export type CrawlProgressResponse = z.infer<typeof CrawlProgressResponseSchema>
 export type SourceCrawlStatusResponse = z.infer<typeof SourceCrawlStatusResponseSchema>
 export type SourceCrawlResultsResponse = z.infer<typeof SourceCrawlResultsResponseSchema>
+export type SourceDashboardResponse = z.infer<typeof SourceDashboardResponseSchema>
+export type SourceLinksQuery = z.infer<typeof SourceLinksQuerySchema>
+export type SourceLinksResponse = z.infer<typeof SourceLinksResponseSchema>

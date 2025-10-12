@@ -387,8 +387,8 @@ export default defineConfig({
     },
     {
       command: 'bun run dev',
-      url: 'http://localhost:1420',
-      port: 1420
+      url: 'http://localhost:5173',
+      port: 5173
     }
   ]
 })
@@ -471,6 +471,7 @@ steps:
    ```
 
 3. **Headed Mode** to see browser:
+
    ```bash
    bun run test:e2e:headed
    ```
@@ -486,7 +487,7 @@ steps:
 curl http://localhost:3147/health
 
 # Verify client server
-curl http://localhost:1420
+curl http://localhost:5173
 ```
 
 #### Issue: MCP tests failing

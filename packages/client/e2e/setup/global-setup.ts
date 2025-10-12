@@ -26,7 +26,7 @@ async function globalSetup(config: FullConfig) {
     console.log(`📱 Navigating to ${baseURL}`)
 
     // Wait for the application to be ready
-    await page.goto(baseURL || 'http://localhost:1420', {
+    await page.goto(baseURL || 'http://localhost:5173', {
       waitUntil: 'domcontentloaded', // Less strict than networkidle
       timeout: 60000
     })

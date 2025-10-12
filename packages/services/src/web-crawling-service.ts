@@ -33,6 +33,7 @@ import {
   domainRepository,
   urlRepository,
   crawledContentRepository,
+  researchSourceRepository as dbResearchSourceRepository,
   crawlUtils,
   type Domain,
   type Url,
@@ -70,6 +71,10 @@ const MAX_CONTENT_SIZE = 10_000_000 // 10MB
 const SESSION_TTL = 2 * 60 * 60 * 1000 // 2 hours
 const SESSION_CLEANUP_INTERVAL = 30 * 60 * 1000 // 30 minutes
 
+// Real-time update configuration
+const PROGRESS_UPDATE_INTERVAL = 10 // Update metadata every N pages
+const MAX_LINK_TIMELINE_SIZE = 100 // Keep last 100 discovered links
+
 // =============================================================================
 // TYPE DEFINITIONS
 // =============================================================================
@@ -78,6 +83,7 @@ export interface WebCrawlingServiceDeps {
   domainRepository?: typeof domainRepository
   urlRepository?: typeof urlRepository
   contentRepository?: typeof crawledContentRepository
+  researchSourceRepository?: typeof import('@promptliano/database').researchSourceRepository
   logger?: ReturnType<typeof createServiceLogger>
 }
 
@@ -336,6 +342,99 @@ function extractDisallowedPaths(robotsTxt: string | null): string[] {
 }
 
 // =============================================================================
+// REAL-TIME METADATA UPDATE HELPERS
+// =============================================================================
+
+/**
+ * Update research source metadata during active crawls
+ * Provides real-time progress tracking for dashboard polling
+ */
+async function updateSourceMetadataProgress(
+  researchSourceRepository: any,
+  sourceId: number,
+  updates: {
+    totalLinksDiscovered?: number
+    totalPagesCrawled?: number
+    pagesRemainingInQueue?: number
+    currentDepth?: number
+    failedPages?: number
+    completedPages?: number
+  }
+) {
+  try {
+    await researchSourceRepository.updateSourceCrawlProgress(sourceId, updates)
+  } catch (error) {
+    console.warn('Failed to update source metadata progress', { sourceId, error: String(error) })
+  }
+}
+
+/**
+ * Track discovered link with timestamp in source metadata
+ */
+async function trackDiscoveredLink(
+  researchSourceRepository: any,
+  sourceId: number,
+  link: {
+    url: string
+    title?: string
+    depth: number
+    parentUrl?: string
+  }
+) {
+  try {
+    await researchSourceRepository.addSourceDiscoveredLink(sourceId, link)
+  } catch (error) {
+    console.warn('Failed to track discovered link', { sourceId, url: link.url, error: String(error) })
+  }
+}
+
+/**
+ * Track crawl error in source metadata
+ */
+async function trackCrawlError(
+  researchSourceRepository: any,
+  sourceId: number,
+  error: {
+    url: string
+    errorCode?: string
+    errorMessage: string
+    retryCount?: number
+  }
+) {
+  try {
+    await researchSourceRepository.trackSourceError(sourceId, error)
+  } catch (err) {
+    console.warn('Failed to track crawl error', { sourceId, error: String(err) })
+  }
+}
+
+/**
+ * Update performance statistics during crawl
+ */
+async function updatePerformanceMetrics(
+  researchSourceRepository: any,
+  sourceId: number,
+  metrics: {
+    avgCrawlTimeMs?: number
+    minCrawlTimeMs?: number
+    maxCrawlTimeMs?: number
+    successRate?: number
+    failedPagesCount?: number
+    totalTokens?: number
+    avgTokensPerPage?: number
+    totalContentSizeBytes?: number
+    avgContentSizeBytes?: number
+    pagesPerMinute?: number
+  }
+) {
+  try {
+    await researchSourceRepository.updateSourcePerformanceStats(sourceId, metrics)
+  } catch (error) {
+    console.warn('Failed to update performance metrics', { sourceId, error: String(error) })
+  }
+}
+
+// =============================================================================
 // SERVICE FACTORY
 // =============================================================================
 
@@ -347,6 +446,7 @@ export function createWebCrawlingService(deps: WebCrawlingServiceDeps = {}) {
     domainRepository: domainRepo = domainRepository,
     urlRepository: urlRepo = urlRepository,
     contentRepository: contentRepo = crawledContentRepository,
+    researchSourceRepository: researchSourceRepo = dbResearchSourceRepository,
     logger = createServiceLogger('WebCrawlingService')
   } = deps
 
@@ -850,6 +950,36 @@ export function createWebCrawlingService(deps: WebCrawlingServiceDeps = {}) {
 
         logger.info('Executing crawl', { crawlId })
 
+        // Initialize metadata tracking if research source is available
+        const sourceId = session.context?.researchSourceId
+        if (sourceId && researchSourceRepo) {
+          // Initialize crawl metadata with configuration
+          await researchSourceRepo.initializeSourceCrawlMetadata(sourceId, {
+            maxDepth: session.options.maxDepth,
+            maxPages: session.options.maxPages,
+            crawlDelayMs: session.options.crawlDelay
+          })
+
+          // Set status to active
+          await researchSourceRepo.updateSourceCrawlStatus(sourceId, 'active', crawlId)
+
+          // Initialize progress
+          await updateSourceMetadataProgress(researchSourceRepo, sourceId, {
+            totalLinksDiscovered: 0,
+            totalPagesCrawled: 0,
+            pagesRemainingInQueue: session.pending.length,
+            currentDepth: 0,
+            completedPages: 0,
+            failedPages: 0
+          })
+        }
+
+        // Performance tracking
+        const crawlStartTime = Date.now()
+        const pageCrawlTimes: number[] = []
+        let totalContentSize = 0
+        let totalTokens = 0
+
         while (
           session.pending.length > 0 &&
           session.progress.urlsCrawled < session.options.maxPages &&
@@ -859,6 +989,7 @@ export function createWebCrawlingService(deps: WebCrawlingServiceDeps = {}) {
           if (!next) break
 
           const { url, depth } = next
+          const pageStartTime = Date.now()
 
           // Skip if depth exceeds limit
           if (depth > session.options.maxDepth) {
@@ -886,6 +1017,15 @@ export function createWebCrawlingService(deps: WebCrawlingServiceDeps = {}) {
 
             if (result.success) {
               session.progress.urlsCrawled++
+
+              // Track performance metrics
+              const pageCrawlTime = Date.now() - pageStartTime
+              pageCrawlTimes.push(pageCrawlTime)
+              totalContentSize += result.contentSize
+
+              // Estimate tokens (rough estimate: 1 token ≈ 4 characters)
+              const estimatedTokens = Math.floor(result.contentSize / 4)
+              totalTokens += estimatedTokens
 
               // Add extracted links to queue
               const content = await contentRepo.getByUrlId(urlRecord.id)
@@ -925,6 +1065,16 @@ export function createWebCrawlingService(deps: WebCrawlingServiceDeps = {}) {
                   session.pending.push({ url: link, depth: depth + 1 })
                   session.progress.urlsPending++
                   uniqueLinks++
+
+                  // Track discovered link in metadata (sample - not every link to avoid overhead)
+                  if (sourceId && researchSourceRepo && uniqueLinks <= MAX_LINK_TIMELINE_SIZE) {
+                    await trackDiscoveredLink(researchSourceRepo, sourceId, {
+                      url: link,
+                      title: content.title || undefined,
+                      depth: depth + 1,
+                      parentUrl: url
+                    })
+                  }
                 }
 
                 logger.debug('Filtering extracted links', {
@@ -935,8 +1085,55 @@ export function createWebCrawlingService(deps: WebCrawlingServiceDeps = {}) {
                   seedDomain: session.seedDomain
                 })
               }
+
+              // Periodic metadata updates (every N pages)
+              if (sourceId && researchSourceRepo && session.progress.urlsCrawled % PROGRESS_UPDATE_INTERVAL === 0) {
+                const avgCrawlTime = pageCrawlTimes.reduce((a, b) => a + b, 0) / pageCrawlTimes.length
+                const successRate = (session.progress.urlsCrawled / (session.progress.urlsCrawled + session.progress.urlsFailed)) * 100
+
+                // Update progress metrics
+                await updateSourceMetadataProgress(researchSourceRepo, sourceId, {
+                  totalLinksDiscovered: session.visited.size,
+                  totalPagesCrawled: session.progress.urlsCrawled,
+                  pagesRemainingInQueue: session.pending.length,
+                  currentDepth: session.progress.currentDepth,
+                  completedPages: session.progress.urlsCrawled,
+                  failedPages: session.progress.urlsFailed
+                })
+
+                // Update performance stats
+                await updatePerformanceMetrics(researchSourceRepo, sourceId, {
+                  avgCrawlTimeMs: avgCrawlTime,
+                  minCrawlTimeMs: Math.min(...pageCrawlTimes),
+                  maxCrawlTimeMs: Math.max(...pageCrawlTimes),
+                  successRate,
+                  failedPagesCount: session.progress.urlsFailed,
+                  totalTokens,
+                  avgTokensPerPage: totalTokens / session.progress.urlsCrawled,
+                  totalContentSizeBytes: totalContentSize,
+                  avgContentSizeBytes: totalContentSize / session.progress.urlsCrawled,
+                  pagesPerMinute: (session.progress.urlsCrawled / ((Date.now() - crawlStartTime) / 60000))
+                })
+
+                logger.debug('Periodic metadata update', {
+                  crawlId,
+                  sourceId,
+                  pagesCrawled: session.progress.urlsCrawled,
+                  avgCrawlTime,
+                  successRate: `${successRate.toFixed(2)}%`
+                })
+              }
             } else {
               session.progress.urlsFailed++
+
+              // Track error in metadata
+              if (sourceId && researchSourceRepo) {
+                await trackCrawlError(researchSourceRepo, sourceId, {
+                  url,
+                  errorMessage: 'Failed to crawl page',
+                  retryCount: 0
+                })
+              }
             }
 
             // Respect crawl delay
@@ -955,6 +1152,16 @@ export function createWebCrawlingService(deps: WebCrawlingServiceDeps = {}) {
               error: String(error)
             })
             session.progress.urlsFailed++
+
+            // Track error in metadata
+            if (sourceId && researchSourceRepo) {
+              await trackCrawlError(researchSourceRepo, sourceId, {
+                url,
+                errorCode: error instanceof Error ? error.name : 'UNKNOWN',
+                errorMessage: String(error),
+                retryCount: 0
+              })
+            }
           }
 
           session.progress.urlsPending--
@@ -967,6 +1174,40 @@ export function createWebCrawlingService(deps: WebCrawlingServiceDeps = {}) {
           urlsCrawled: session.progress.urlsCrawled,
           urlsFailed: session.progress.urlsFailed
         })
+
+        // Final metadata update
+        if (sourceId && researchSourceRepo) {
+          await researchSourceRepo.updateSourceCrawlStatus(sourceId, 'completed', crawlId)
+
+          // Final progress update
+          await updateSourceMetadataProgress(researchSourceRepo, sourceId, {
+            totalLinksDiscovered: session.visited.size,
+            totalPagesCrawled: session.progress.urlsCrawled,
+            pagesRemainingInQueue: 0,
+            currentDepth: session.progress.currentDepth,
+            completedPages: session.progress.urlsCrawled,
+            failedPages: session.progress.urlsFailed
+          })
+
+          // Final performance stats
+          if (pageCrawlTimes.length > 0) {
+            const avgCrawlTime = pageCrawlTimes.reduce((a, b) => a + b, 0) / pageCrawlTimes.length
+            const successRate = (session.progress.urlsCrawled / (session.progress.urlsCrawled + session.progress.urlsFailed)) * 100
+
+            await updatePerformanceMetrics(researchSourceRepo, sourceId, {
+              avgCrawlTimeMs: avgCrawlTime,
+              minCrawlTimeMs: Math.min(...pageCrawlTimes),
+              maxCrawlTimeMs: Math.max(...pageCrawlTimes),
+              successRate,
+              failedPagesCount: session.progress.urlsFailed,
+              totalTokens,
+              avgTokensPerPage: totalTokens / (session.progress.urlsCrawled || 1),
+              totalContentSizeBytes: totalContentSize,
+              avgContentSizeBytes: totalContentSize / (session.progress.urlsCrawled || 1),
+              pagesPerMinute: (session.progress.urlsCrawled / ((Date.now() - crawlStartTime) / 60000))
+            })
+          }
+        }
 
         // Clean up completed session immediately
         activeSessions.delete(crawlId)
@@ -1117,6 +1358,123 @@ export function createWebCrawlingService(deps: WebCrawlingServiceDeps = {}) {
     )
   }
 
+  /**
+   * Get dashboard data for a research source
+   * Returns latest crawl statistics for real-time display
+   */
+  async function getSourceDashboardData(sourceId: number) {
+    return withErrorContext(
+      async () => {
+        if (!researchSourceRepo) {
+          throw new Error('Research source repository not available')
+        }
+
+        // Get performance metrics from repository helpers
+        const metrics = await researchSourceRepo.getCrawlPerformanceMetrics(sourceId)
+
+        if (!metrics) {
+          return {
+            sourceId,
+            status: 'idle',
+            progress: null,
+            performance: null,
+            errors: 0,
+            lastError: null,
+            isActive: false
+          }
+        }
+
+        return {
+          sourceId,
+          status: metrics.status,
+          progress: metrics.progress,
+          performance: metrics.performance,
+          errors: metrics.errors,
+          lastError: metrics.lastError,
+          linkDiscoveryRate: metrics.linkDiscoveryRate,
+          estimatedTimeRemaining: metrics.estimatedTimeRemaining,
+          isActive: metrics.status === 'active' || metrics.status === 'queued'
+        }
+      },
+      { entity: 'ResearchSource', action: 'getSourceDashboardData', id: sourceId }
+    )
+  }
+
+  /**
+   * Check if a source is actively crawling
+   */
+  async function isSourceActivelyCrawling(sourceId: number): Promise<boolean> {
+    return withErrorContext(
+      async () => {
+        if (!researchSourceRepo) {
+          return false
+        }
+
+        const source = await researchSourceRepo.getById(sourceId)
+        if (!source) return false
+
+        const metadata = (typeof source.metadata === 'object' && source.metadata ? source.metadata : {}) as any
+        return metadata.crawlStatus === 'active' || metadata.crawlStatus === 'queued'
+      },
+      { entity: 'ResearchSource', action: 'isSourceActivelyCrawling', id: sourceId }
+    )
+  }
+
+  /**
+   * Get recent link discovery activity for a source
+   */
+  async function getSourceRecentActivity(sourceId: number, limit: number = 10) {
+    return withErrorContext(
+      async () => {
+        if (!researchSourceRepo) {
+          throw new Error('Research source repository not available')
+        }
+
+        const source = await researchSourceRepo.getById(sourceId)
+        if (!source) {
+          throw safeErrorFactory.notFound('ResearchSource', sourceId)
+        }
+
+        const metadata = (typeof source.metadata === 'object' && source.metadata ? source.metadata : {}) as any
+        const timeline = metadata.linkDiscoveryTimeline
+
+        if (!timeline?.recentDiscoveries) {
+          return {
+            sourceId,
+            recentLinks: [],
+            linkDiscoveryRate: 0,
+            totalLinksDiscovered: 0
+          }
+        }
+
+        return {
+          sourceId,
+          recentLinks: timeline.recentDiscoveries.slice(0, limit),
+          linkDiscoveryRate: timeline.linkDiscoveryRatePerMinute || 0,
+          totalLinksDiscovered: timeline.totalLinksDiscoveredSession || 0,
+          lastLinkDiscoveredAt: timeline.lastLinkDiscoveredAt
+        }
+      },
+      { entity: 'ResearchSource', action: 'getSourceRecentActivity', id: sourceId }
+    )
+  }
+
+  /**
+   * Get aggregated crawl statistics for a research session
+   */
+  async function getResearchCrawlStatistics(researchId: number) {
+    return withErrorContext(
+      async () => {
+        if (!researchSourceRepo) {
+          throw new Error('Research source repository not available')
+        }
+
+        return await researchSourceRepo.getResearchCrawlStatistics(researchId)
+      },
+      { entity: 'Research', action: 'getResearchCrawlStatistics', id: researchId }
+    )
+  }
+
   return {
     startCrawl,
     processUrl,
@@ -1131,6 +1489,11 @@ export function createWebCrawlingService(deps: WebCrawlingServiceDeps = {}) {
     cancelCrawl,
     getCrawlArtifacts,
     clearCrawlArtifacts,
+    // Dashboard and polling methods
+    getSourceDashboardData,
+    isSourceActivelyCrawling,
+    getSourceRecentActivity,
+    getResearchCrawlStatistics,
     // Session management utilities
     cleanupExpiredSessions,
     stopSessionCleanup,
@@ -1162,5 +1525,10 @@ export const {
   stopSessionCleanup,
   getActiveSessionCount,
   getCrawlArtifacts,
-  clearCrawlArtifacts
+  clearCrawlArtifacts,
+  // Dashboard and polling methods
+  getSourceDashboardData,
+  isSourceActivelyCrawling,
+  getSourceRecentActivity,
+  getResearchCrawlStatistics,
 } = webCrawlingService

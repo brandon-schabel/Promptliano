@@ -23,6 +23,7 @@ import {
   type InsertResearchExport
 } from '../schema'
 import { createBaseRepository, extendRepository } from './base-repository'
+import { researchCrawlHelpers } from './research-crawl-helpers'
 
 // =============================================================================
 // Research Record Repository
@@ -90,6 +91,8 @@ export const researchRecordRepository = extendRepository(baseResearchRecordRepo,
 const baseResearchSourceRepo = createBaseRepository(researchSources, undefined, undefined, 'ResearchSource')
 
 export const researchSourceRepository = extendRepository(baseResearchSourceRepo, {
+  // Include all crawl helper methods
+  ...researchCrawlHelpers,
 
   /**
    * Get all sources for a research session

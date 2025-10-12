@@ -434,8 +434,6 @@ export { queueItemService } from './src/queue-item-service'
 export { selectedFileService } from './src/selected-file-service'
 export { taskService as ticketTaskService } from './src/task-service'
 
-// Web Crawling Services
-export * from './src/crawling'
 
 // Deep Research Service
 export {
@@ -483,11 +481,15 @@ export {
   executeCrawl,
   pauseCrawl,
   resumeCrawl,
+  getCrawlArtifacts,
   cancelCrawl,
   type WebCrawlingService,
   type CrawlOptions,
   type CrawlProgress,
-  type CrawlSession
+  type CrawlSession,
+  type CrawlArtifactsOptions,
+  type CrawlArtifactsResult,
+  type CrawlArtifactPayload
 } from './src/web-crawling-service'
 
 // AI Link Relevance Service

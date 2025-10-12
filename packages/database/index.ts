@@ -8,6 +8,9 @@ export * from './src/schema'
 export * from './src/schema/mcp-executions'
 export * from './src/db'
 export * from './src/repositories'
+// Export crawl helpers and metadata schemas
+export * from './src/repositories/research-crawl-helpers'
+export * from './src/schemas/research-metadata'
 export * from './src/schema-transformers'
 // Migrations helpers
 export { runMigrations, createInitialSchema } from './src/migrations/migrate'

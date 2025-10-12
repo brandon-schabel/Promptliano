@@ -29,7 +29,7 @@ export default defineConfig({
 
   // Fast execution settings
   use: {
-    baseURL: process.env.VITE_BASE_URL || 'http://localhost:1420',
+    baseURL: process.env.VITE_BASE_URL || 'http://localhost:5173',
     trace: 'off', // Disabled for speed
     screenshot: 'off', // Disabled for speed
     video: 'off', // Disabled for speed

@@ -146,8 +146,8 @@ async function ensureSchemaUpgrades() {
     }
 
     // Helper: check if an index exists
-    const hasIndex = (indexName: string): boolean => {
-      const rows = rawDb.query(`PRAGMA index_list('files')`).all() as { name: string }[]
+    const hasIndex = (table: string, indexName: string): boolean => {
+      const rows = rawDb.query(`PRAGMA index_list(${table})`).all() as { name: string }[]
       return rows.some((r) => r.name === indexName)
     }
 
@@ -236,12 +236,75 @@ async function ensureSchemaUpgrades() {
     }
 
     // Ensure indexes that may not exist on older DBs
-    if (!hasIndex('files_extension_idx')) {
+    if (!hasIndex('files', 'files_extension_idx')) {
       try {
         rawDb.exec('CREATE INDEX IF NOT EXISTS `files_extension_idx` ON `files` (`extension`)')
         console.error('✅ Created index files_extension_idx')
       } catch (e) {
         console.warn('⚠️ Failed to create index files_extension_idx:', e)
+      }
+    }
+
+    if (!hasColumn('crawled_content', 'crawl_session_id')) {
+      try {
+        console.error('🔧 Upgrading crawled_content table to include crawl session metadata')
+        rawDb.exec('PRAGMA foreign_keys=off')
+        rawDb.exec('BEGIN TRANSACTION')
+        rawDb.exec(`CREATE TABLE "crawled_content_new" (
+  "id" integer PRIMARY KEY NOT NULL,
+  "url_id" integer NOT NULL,
+  "research_source_id" integer,
+  "depth" integer,
+  "title" text,
+  "clean_content" text,
+  "raw_html" text,
+  "summary" text,
+  "metadata" text DEFAULT '{}',
+  "links" text DEFAULT '[]',
+  "crawl_session_id" text,
+  "crawled_at" integer NOT NULL,
+  FOREIGN KEY ("url_id") REFERENCES "urls"("id") ON DELETE cascade,
+  FOREIGN KEY ("research_source_id") REFERENCES "research_sources"("id") ON DELETE set null
+)`)
+        rawDb.exec(`INSERT INTO "crawled_content_new" (
+  "id",
+  "url_id",
+  "research_source_id",
+  "depth",
+  "title",
+  "clean_content",
+  "raw_html",
+  "summary",
+  "metadata",
+  "links",
+  "crawl_session_id",
+  "crawled_at"
+) SELECT
+  "id",
+  "url_id",
+  NULL,
+  NULL,
+  "title",
+  "clean_content",
+  "raw_html",
+  "summary",
+  COALESCE("metadata", '{}'),
+  COALESCE("links", '[]'),
+  NULL,
+  "crawled_at"
+FROM "crawled_content"`)
+        rawDb.exec('DROP TABLE `crawled_content`')
+        rawDb.exec('ALTER TABLE `crawled_content_new` RENAME TO `crawled_content`')
+        rawDb.exec('CREATE INDEX IF NOT EXISTS `crawled_content_url_idx` ON `crawled_content`(`url_id`)')
+        rawDb.exec('CREATE INDEX IF NOT EXISTS `crawled_content_research_source_idx` ON `crawled_content`(`research_source_id`)')
+        rawDb.exec('CREATE INDEX IF NOT EXISTS `crawled_content_crawl_session_idx` ON `crawled_content`(`crawl_session_id`)')
+        rawDb.exec('COMMIT')
+        console.error('✅ Upgraded crawled_content table')
+      } catch (e) {
+        console.warn('⚠️ Failed to upgrade crawled_content table:', e)
+        rawDb.exec('ROLLBACK')
+      } finally {
+        rawDb.exec('PRAGMA foreign_keys=on')
       }
     }
 
@@ -255,17 +318,17 @@ async function ensureSchemaUpgrades() {
         rawDb.exec('BEGIN TRANSACTION')
         rawDb.exec(
           'CREATE TABLE `chats_new` (\n' +
-            '  `id` integer PRIMARY KEY,\n' +
-            '  `project_id` integer,\n' +
-            '  `title` text NOT NULL,\n' +
-            '  `created_at` integer NOT NULL,\n' +
-            '  `updated_at` integer NOT NULL,\n' +
-            '  FOREIGN KEY (`project_id`) REFERENCES `projects`(`id`) ON DELETE cascade\n' +
-            ')'
+          '  `id` integer PRIMARY KEY,\n' +
+          '  `project_id` integer,\n' +
+          '  `title` text NOT NULL,\n' +
+          '  `created_at` integer NOT NULL,\n' +
+          '  `updated_at` integer NOT NULL,\n' +
+          '  FOREIGN KEY (`project_id`) REFERENCES `projects`(`id`) ON DELETE cascade\n' +
+          ')'
         )
         rawDb.exec(
           'INSERT INTO `chats_new` (`id`, `project_id`, `title`, `created_at`, `updated_at`) ' +
-            'SELECT `id`, `project_id`, `title`, `created_at`, `updated_at` FROM `chats`'
+          'SELECT `id`, `project_id`, `title`, `created_at`, `updated_at` FROM `chats`'
         )
         rawDb.exec('DROP TABLE `chats`')
         rawDb.exec('ALTER TABLE `chats_new` RENAME TO `chats`')
@@ -291,33 +354,33 @@ async function ensureSchemaUpgrades() {
         rawDb.exec('BEGIN TRANSACTION')
         rawDb.exec(
           'CREATE TABLE `research_records_new` (\n' +
-            '  `id` integer PRIMARY KEY NOT NULL,\n' +
-            '  `project_id` integer,\n' +
-            '  `topic` text NOT NULL,\n' +
-            '  `description` text,\n' +
-            '  `status` text DEFAULT \'initializing\' NOT NULL,\n' +
-            '  `total_sources` integer DEFAULT 0,\n' +
-            '  `processed_sources` integer DEFAULT 0,\n' +
-            '  `sections_total` integer DEFAULT 0,\n' +
-            '  `sections_completed` integer DEFAULT 0,\n' +
-            '  `max_sources` integer DEFAULT 10,\n' +
-            '  `max_depth` integer DEFAULT 3,\n' +
-            '  `strategy` text DEFAULT \'balanced\' NOT NULL,\n' +
-            '  `metadata` text DEFAULT \'{}\',\n' +
-            '  `created_at` integer NOT NULL,\n' +
-            '  `updated_at` integer NOT NULL,\n' +
-            '  `completed_at` integer,\n' +
-            '  FOREIGN KEY (`project_id`) REFERENCES `projects`(`id`) ON UPDATE no action ON DELETE cascade\n' +
-            ')'
+          '  `id` integer PRIMARY KEY NOT NULL,\n' +
+          '  `project_id` integer,\n' +
+          '  `topic` text NOT NULL,\n' +
+          '  `description` text,\n' +
+          '  `status` text DEFAULT \'initializing\' NOT NULL,\n' +
+          '  `total_sources` integer DEFAULT 0,\n' +
+          '  `processed_sources` integer DEFAULT 0,\n' +
+          '  `sections_total` integer DEFAULT 0,\n' +
+          '  `sections_completed` integer DEFAULT 0,\n' +
+          '  `max_sources` integer DEFAULT 10,\n' +
+          '  `max_depth` integer DEFAULT 3,\n' +
+          '  `strategy` text DEFAULT \'balanced\' NOT NULL,\n' +
+          '  `metadata` text DEFAULT \'{}\',\n' +
+          '  `created_at` integer NOT NULL,\n' +
+          '  `updated_at` integer NOT NULL,\n' +
+          '  `completed_at` integer,\n' +
+          '  FOREIGN KEY (`project_id`) REFERENCES `projects`(`id`) ON UPDATE no action ON DELETE cascade\n' +
+          ')'
         )
         rawDb.exec(
           'INSERT INTO `research_records_new` ' +
-            '(`id`, `project_id`, `topic`, `description`, `status`, `total_sources`, `processed_sources`, ' +
-            '`sections_total`, `sections_completed`, `max_sources`, `max_depth`, `strategy`, `metadata`, ' +
-            '`created_at`, `updated_at`, `completed_at`) ' +
-            'SELECT `id`, `project_id`, `topic`, `description`, `status`, `total_sources`, `processed_sources`, ' +
-            '`sections_total`, `sections_completed`, `max_sources`, `max_depth`, `strategy`, `metadata`, ' +
-            '`created_at`, `updated_at`, `completed_at` FROM `research_records`'
+          '(`id`, `project_id`, `topic`, `description`, `status`, `total_sources`, `processed_sources`, ' +
+          '`sections_total`, `sections_completed`, `max_sources`, `max_depth`, `strategy`, `metadata`, ' +
+          '`created_at`, `updated_at`, `completed_at`) ' +
+          'SELECT `id`, `project_id`, `topic`, `description`, `status`, `total_sources`, `processed_sources`, ' +
+          '`sections_total`, `sections_completed`, `max_sources`, `max_depth`, `strategy`, `metadata`, ' +
+          '`created_at`, `updated_at`, `completed_at` FROM `research_records`'
         )
         rawDb.exec('DROP TABLE `research_records`')
         rawDb.exec('ALTER TABLE `research_records_new` RENAME TO `research_records`')
@@ -329,7 +392,7 @@ async function ensureSchemaUpgrades() {
       console.warn('⚠️ Failed to ensure research_records.project_id nullability:', e)
     }
 
-    if (!hasIndex('files_checksum_idx')) {
+    if (!hasIndex('files', 'files_checksum_idx')) {
       try {
         rawDb.exec('CREATE INDEX IF NOT EXISTS `files_checksum_idx` ON `files` (`checksum`)')
         console.error('✅ Created index files_checksum_idx')
@@ -393,15 +456,15 @@ async function ensureMissingTablesFromBase(migrationsPath: string) {
     const tableExists = (name: string) =>
       (
         rawDb.query("SELECT name FROM sqlite_master WHERE type='table' AND name=?").get(name) as
-          | { name?: string }
-          | undefined
+        | { name?: string }
+        | undefined
       )?.name === name
 
     const indexExists = (name: string) =>
       (
         rawDb.query("SELECT name FROM sqlite_master WHERE type='index' AND name=?").get(name) as
-          | { name?: string }
-          | undefined
+        | { name?: string }
+        | undefined
       )?.name === name
 
     const toRun: string[] = []
@@ -456,8 +519,8 @@ async function ensureModelConfigTables() {
     const tableExists = (name: string) =>
       (
         rawDb.query("SELECT name FROM sqlite_master WHERE type='table' AND name=?").get(name) as
-          | { name?: string }
-          | undefined
+        | { name?: string }
+        | undefined
       )?.name === name
 
     // Create model_configs first (referenced by model_presets)

@@ -22,14 +22,10 @@ import {
   WebCrawlingSchema
 } from '../shared'
 import {
-  crawlWebpage,
-  crawlWebsite,
-  searchCached,
-  getCrawlHistory,
-  checkRobotsTxt,
-  type CrawlWebpageOptions,
-  type CrawlWebsiteOptions,
-  type SearchCachedOptions
+  createWebCrawlingService,
+  type CrawlArtifactsOptions,
+  type CrawlOptions,
+  type CrawlProgress
 } from '@promptliano/services'
 
 export const webCrawlingTool: MCPToolDefinition = {
@@ -70,6 +66,8 @@ Examples:
       try {
         const { action, data } = args
 
+        const crawler = createWebCrawlingService()
+
         switch (action) {
           case WebCrawlingAction.CRAWL_WEBPAGE: {
             const url = validateDataField<string>(
@@ -79,24 +77,23 @@ Examples:
               '"https://example.com/article"'
             )
 
-            const options: CrawlWebpageOptions = {
-              summarize: (data?.summarize as boolean) || false
-            }
+            const { crawlId } = await crawler.startCrawl(url, {
+              maxDepth: 1,
+              maxPages: 1,
+              respectRobotsTxt: (data?.respectRobotsTxt as boolean) !== false,
+              crawlDelay: data?.crawlDelay as number | undefined,
+              userAgent: data?.userAgent as string | undefined,
+              timeout: data?.timeout as number | undefined,
+              sameDomainOnly: true
+            })
 
-            const result = await crawlWebpage(url, options)
+            await crawler.executeCrawl(crawlId)
+            const content = await crawler.getCrawlArtifacts(crawlId, { limit: 1 })
+            const page = content.records[0]
 
-            let response = `**${result.title}**\n\n`
-            if (result.byline) response += `By ${result.byline}\n`
-            if (result.siteName) response += `Site: ${result.siteName}\n`
-            if (result.publishedTime) response += `Published: ${result.publishedTime}\n`
-            response += `\nLength: ${result.length} characters\n`
-            response += `Excerpt: ${result.excerpt}\n\n`
-
-            if (result.summary) {
-              response += `**Summary:**\n${result.summary}\n\n`
-            }
-
-            response += `**Content:**\n${result.textContent.slice(0, 5000)}${result.textContent.length > 5000 ? '...' : ''}`
+            const response = page
+              ? `**${page.title ?? 'Untitled'}**\nURL: ${page.url}\nStatus: ${page.status ?? 'unknown'}`
+              : `No content retrieved from ${url}`
 
             return {
               content: [
@@ -116,33 +113,33 @@ Examples:
               '"https://example.com"'
             )
 
-            const maxDepth = Math.min(Math.max((data?.maxDepth as number) || 2, 1), 3)
-            const maxPages = Math.min((data?.maxPages as number) || 50, 100)
+            const { crawlId } = await crawler.startCrawl(url, {
+              maxDepth: Math.min(Math.max((data?.maxDepth as number) || 2, 1), 3),
+              maxPages: Math.min((data?.maxPages as number) || 50, 100),
+              respectRobotsTxt: (data?.respectRobotsTxt as boolean) !== false,
+              crawlDelay: data?.crawlDelay as number | undefined,
+              userAgent: data?.userAgent as string | undefined,
+              timeout: data?.timeout as number | undefined,
+              sameDomainOnly: (data?.followExternalLinks as boolean) !== true
+            })
 
-            const options: CrawlWebsiteOptions = {
-              maxDepth,
-              maxPages,
-              summarize: (data?.summarize as boolean) || false,
-              followExternalLinks: (data?.followExternalLinks as boolean) || false,
-              respectRobotsTxt: (data?.respectRobotsTxt as boolean) !== false
-            }
-
-            const results = await crawlWebsite(url, options)
+            await crawler.executeCrawl(crawlId)
+            const pages = await crawler.getCrawlArtifacts(crawlId, {
+              limit: Math.min((data?.maxPages as number) || 50, 20)
+            })
 
             let response = `**Website Crawl Complete**\n\n`
             response += `Starting URL: ${url}\n`
-            response += `Pages crawled: ${results.length}\n`
-            response += `Max depth: ${maxDepth}\n\n`
+            response += `Pages crawled: ${pages.records.length}\n`
+            response += `Max depth: ${Math.min(Math.max((data?.maxDepth as number) || 2, 1), 3)}\n\n`
             response += `**Pages:**\n\n`
 
-            results.forEach((page, index) => {
-              response += `${index + 1}. **${page.title}**\n`
+            pages.records.forEach((page, index) => {
+              response += `${index + 1}. **${page.title ?? 'Untitled'}**\n`
               response += `   URL: ${page.url}\n`
-              response += `   Length: ${page.length} characters\n`
-              if (page.summary) {
-                response += `   Summary: ${page.summary}\n`
-              }
-              response += `   Excerpt: ${page.excerpt.slice(0, 150)}...\n\n`
+              response += `   Status: ${page.status ?? 'unknown'}\n`
+              response += `   HTTP: ${page.httpStatus ?? 'n/a'}\n`
+              response += `   Depth: ${page.depth ?? 0}\n\n`
             })
 
             return {
@@ -163,13 +160,13 @@ Examples:
               '"search term"'
             )
 
-            const options: SearchCachedOptions = {
+            const options: CrawlArtifactsOptions = {
               limit: Math.min(Math.max((data?.limit as number) || 10, 1), 20)
             }
 
-            const results = searchCached(query, options)
+            const results = await crawler.getCrawlArtifacts(query, options)
 
-            if (results.length === 0) {
+            if (results.records.length === 0) {
               return {
                 content: [
                   {
@@ -180,18 +177,14 @@ Examples:
               }
             }
 
-            let response = `**Cached Search Results** (${results.length} matches)\n\n`
+            let response = `**Cached Search Results** (${results.records.length} matches)\n\n`
             response += `Query: "${query}"\n\n`
 
-            results.forEach((item, index) => {
-              const age = Math.floor((Date.now() - item.crawledAt) / (1000 * 60))
-              response += `${index + 1}. **${item.title}**\n`
+            results.records.forEach((item, index) => {
+              response += `${index + 1}. **${item.title ?? 'Untitled'}**\n`
               response += `   URL: ${item.url}\n`
-              response += `   Cached: ${age} minutes ago\n`
-              if (item.summary) {
-                response += `   Summary: ${item.summary}\n`
-              }
-              response += `   Excerpt: ${item.excerpt}\n\n`
+              response += `   Status: ${item.status ?? 'unknown'}\n`
+              response += `   Crawled At: ${item.crawledAt ? new Date(item.crawledAt).toISOString() : 'n/a'}\n\n`
             })
 
             return {
@@ -206,9 +199,9 @@ Examples:
 
           case WebCrawlingAction.GET_HISTORY: {
             const limit = Math.min((data?.limit as number) || 50, 100)
-            const history = getCrawlHistory(limit)
+            const history = await crawler.getCrawlArtifacts('history', { limit })
 
-            if (history.length === 0) {
+            if (history.records.length === 0) {
               return {
                 content: [
                   {
@@ -219,19 +212,12 @@ Examples:
               }
             }
 
-            let response = `**Crawl History** (${history.length} entries)\n\n`
+            let response = `**Crawl History** (${history.records.length} entries)\n\n`
 
-            history.forEach((entry, index) => {
-              const age = Math.floor((Date.now() - entry.crawledAt) / (1000 * 60))
+            history.records.forEach((entry, index) => {
               response += `${index + 1}. ${entry.url}\n`
-              response += `   Crawled: ${age} minutes ago\n`
-              if (entry.pageCount) {
-                response += `   Pages: ${entry.pageCount}\n`
-              }
-              if (entry.depth) {
-                response += `   Depth: ${entry.depth}\n`
-              }
-              response += '\n'
+              response += `   Status: ${entry.status ?? 'unknown'}\n`
+              response += `   Crawled At: ${entry.crawledAt ? new Date(entry.crawledAt).toISOString() : 'n/a'}\n\n`
             })
 
             return {
@@ -304,9 +290,9 @@ Examples:
           error instanceof MCPError
             ? error
             : MCPError.fromError(error, {
-                tool: 'web_crawling',
-                action: args.action
-              })
+              tool: 'web_crawling',
+              action: args.action
+            })
 
         return await formatMCPErrorResponse(mcpError)
       }

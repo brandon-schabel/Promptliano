@@ -9,7 +9,7 @@ export default defineConfig({
   clearScreen: false,
   envPrefix: ['VITE_', 'DEVTOOLS_'],
   server: {
-    port: 1420,
+    port: 5173,
     strictPort: true,
     host: false,
     open: true,
@@ -24,7 +24,10 @@ export default defineConfig({
   },
   plugins: [
     // TanStackRouterVite automatically generates routeTree.gen.ts during dev and build
-    tanstackRouter(),
+    tanstackRouter({
+      target: 'react',
+      autoCodeSplitting: true,
+    }),
     react({}),
     tsconfigPaths(),
     // TYPE-SAFE DATABASE IMPORTS PLUGIN
