@@ -367,10 +367,35 @@ export function useAIChat({
     return Number.isFinite(chatId) && chatId > 0 ? chatId.toString() : `chat-${chatId}`
   }, [chatId])
 
+  // Custom fetch with CSRF token injection
+  const fetchWithCsrf = useCallback(async (url: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+    // Get CSRF token from cookie
+    const getCsrfToken = () => {
+      const cookies = document.cookie.split(';')
+      const csrfCookie = cookies.find(c => c.trim().startsWith('csrf_token='))
+      return csrfCookie ? csrfCookie.split('=')[1] : null
+    }
+
+    const csrfToken = getCsrfToken()
+    const headers = new Headers(init?.headers || {})
+
+    // Add CSRF token for POST requests
+    if (csrfToken && (!init?.method || init.method.toUpperCase() === 'POST')) {
+      headers.set('x-csrf-token', csrfToken)
+    }
+
+    return fetch(url, {
+      ...init,
+      headers,
+      credentials: 'include' // Include cookies
+    })
+  }, []) as typeof fetch
+
   const transport = useMemo(
     () =>
       new DefaultChatTransport<ChatUiMessage>({
         api: `${SERVER_HTTP_ENDPOINT}/api/chat`,
+        fetch: fetchWithCsrf, // Use custom fetch with CSRF
         prepareSendMessagesRequest: ({
           messages,
           body: requestBody
@@ -401,7 +426,7 @@ export function useAIChat({
           return { body: merged }
         }
       }),
-    [chatId, enableChatAutoNaming, model, provider, systemMessage, toolsEnabled]
+    [chatId, enableChatAutoNaming, model, provider, systemMessage, toolsEnabled, fetchWithCsrf]
   )
 
 const addToolResultRef = useRef<((args: { tool: any; toolCallId: string; output: any }) => Promise<void>) | null>(null)

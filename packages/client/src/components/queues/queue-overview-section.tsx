@@ -166,7 +166,7 @@ export function QueueOverviewSection({ projectId }: QueueOverviewSectionProps) {
             <div
               className={cn(
                 'p-3 rounded-lg text-sm',
-                'bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-800'
+                'bg-orange-50 dark:bg-orange-950/20 border border-orange-500/30 dark:border-orange-500/50'
               )}
             >
               <div className='flex items-start gap-2'>

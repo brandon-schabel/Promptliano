@@ -1,5 +1,6 @@
-import { describe, test, expect, beforeEach, mock } from 'bun:test'
+import { describe, test, expect, beforeAll, beforeEach, mock } from 'bun:test'
 import { suggestFilesForProject, recommendStrategy } from '../suggestions-service'
+import { seedModelConfigs } from '../../test-utils/test-model-setup'
 
 // Mock all dependencies
 const mockGetProjectFileTree = mock(async () => ({
@@ -55,7 +56,114 @@ mock.module('../../project-service', () => ({
   getProjectFiles: mockGetProjectFiles
 }))
 
+// Mock gen-ai-services to prevent real AI calls
+mock.module('../../gen-ai-services', () => ({
+  generateStructuredData: mock(async () => ({
+    object: {
+      directories: [
+        { path: 'src', confidence: 0.9, reason: 'Mock directory selection' }
+      ],
+      suggestedFiles: [
+        {
+          fileId: '1',
+          path: 'src/auth/jwt.ts',
+          confidence: 0.9,
+          relevance: 0.85,
+          reasons: ['Mock suggestion']
+        }
+      ]
+    }
+  }))
+}))
+
+// Mock AI SDK to prevent real API calls
+mock.module('ai', () => ({
+  generateObject: mock(async ({ model, schema, prompt }: any) => {
+    // Return mock based on what's being requested
+    if (prompt && typeof prompt === 'string' && prompt.includes('directory')) {
+      // Directory selection mock
+      return {
+        object: {
+          selectedDirectories: ['src'],
+          reasoning: 'Mock directory selection for testing',
+          confidenceScores: { src: 0.9 }
+        }
+      }
+    } else {
+      // File suggestion mock
+      return {
+        object: {
+          suggestedFiles: [
+            {
+              fileId: '1',
+              path: 'src/auth/jwt.ts',
+              confidence: 0.9,
+              relevance: 0.85,
+              reasons: ['Mock suggestion for testing']
+            }
+          ],
+          metadata: {
+            totalAnalyzed: 1,
+            processingTime: 100
+          }
+        }
+      }
+    }
+  })
+}))
+
+// Mock model config service to provide preset configs
+mock.module('../../model-config-service', () => ({
+  modelConfigService: {
+    getPresetConfig: mock(async (preset: string) => {
+      const configs: Record<string, any> = {
+        low: {
+          id: 1,
+          name: 'low',
+          displayName: 'Low - Fast',
+          provider: 'anthropic',
+          model: 'claude-3-haiku-20240307',
+          temperature: 0.7,
+          maxTokens: 2048
+        },
+        medium: {
+          id: 2,
+          name: 'medium',
+          displayName: 'Medium - Balanced',
+          provider: 'anthropic',
+          model: 'claude-3-5-sonnet-20241022',
+          temperature: 0.7,
+          maxTokens: 4096
+        },
+        high: {
+          id: 3,
+          name: 'high',
+          displayName: 'High - Quality',
+          provider: 'anthropic',
+          model: 'claude-3-5-sonnet-20241022',
+          temperature: 0.8,
+          maxTokens: 8192
+        }
+      }
+      return configs[preset] || configs.medium
+    }),
+    resolveProviderConfig: mock(async ({ provider, model }: any) => ({
+      id: 1,
+      name: 'test-config',
+      provider: provider || 'anthropic',
+      model: model || 'claude-3-haiku-20240307',
+      temperature: 0.7,
+      maxTokens: 4096
+    }))
+  }
+}))
+
 describe('Suggestions Service V2 - Integration', () => {
+  beforeAll(async () => {
+    // Model configs are mocked, so we don't need to seed them
+    // await seedModelConfigs()
+  })
+
   beforeEach(() => {
     mockGetProjectFileTree.mockClear()
     mockGetProjectById.mockClear()
@@ -202,18 +310,18 @@ describe('Suggestions Service V2 - Integration', () => {
   })
 
   describe('recommendStrategy', () => {
-    test('should recommend fast for small projects', () => {
-      const strategy = recommendStrategy(30)
+    test('should recommend fast for small projects', async () => {
+      const strategy = await recommendStrategy(30)
       expect(strategy).toBe('fast')
     })
 
-    test('should recommend balanced for medium projects', () => {
-      const strategy = recommendStrategy(250)
+    test('should recommend balanced for medium projects', async () => {
+      const strategy = await recommendStrategy(250)
       expect(strategy).toBe('balanced')
     })
 
-    test('should recommend thorough for large projects', () => {
-      const strategy = recommendStrategy(600)
+    test('should recommend thorough for large projects', async () => {
+      const strategy = await recommendStrategy(600)
       expect(strategy).toBe('thorough')
     })
   })
@@ -308,7 +416,7 @@ describe('Suggestions Service V2 - Integration', () => {
         expect(file).toHaveProperty('path')
         expect(file).toHaveProperty('relevance')
         expect(file).toHaveProperty('confidence')
-        expect(file).toHaveProperty('fileType')
+        expect(file).toHaveProperty('extension')
       })
     })
 

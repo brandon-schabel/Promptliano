@@ -610,6 +610,20 @@ export { MarkdownRenderer } from './components/markdown/markdown-renderer'
 export { MarkdownPreview } from './components/markdown/markdown-preview'
 export { MarkdownInlinePreview } from './components/markdown/markdown-inline-preview'
 
+// Mermaid components
+export {
+  MermaidViewer,
+  parseMermaidError,
+  validateMermaidSyntax,
+  getCommonErrorHelp,
+  exportMermaidToSvg,
+  exportMermaidToPng,
+  svgToPng,
+  getSvgDimensions,
+  downloadFile,
+  EXPORT_SIZE_PRESETS
+} from './components/mermaid'
+
 // Editor components
 export { MonacoEditorWrapper } from './components/editors/monaco-editor-wrapper'
 export { MonacoDiffViewer } from './components/editors/monaco-diff-viewer'
@@ -926,6 +940,13 @@ export type * from './components/layout/use-local-storage'
 export type { MarkdownRendererProps } from './components/markdown/markdown-renderer'
 export type { MarkdownPreviewProps } from './components/markdown/markdown-preview'
 export type { MarkdownInlinePreviewProps } from './components/markdown/markdown-inline-preview'
+export type {
+  MermaidViewerProps,
+  ParsedMermaidError,
+  PngExportOptions,
+  ExportResult,
+  ExportSizePreset
+} from './components/mermaid'
 export type { MonacoEditorWrapperProps } from './components/editors/monaco-editor-wrapper'
 export type { MonacoDiffViewerProps } from './components/editors/monaco-diff-viewer'
 export type { LazyMonacoEditorProps } from './components/editors/lazy-monaco-editor'

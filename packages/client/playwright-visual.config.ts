@@ -49,7 +49,7 @@ export default defineConfig({
 
   // Optimized settings for visual testing
   use: {
-    baseURL: process.env.VITE_BASE_URL || 'http://localhost:1420',
+    baseURL: process.env.VITE_BASE_URL || 'http://localhost:5173',
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',

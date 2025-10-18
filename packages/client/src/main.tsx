@@ -5,6 +5,9 @@ import './index.css'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Toaster } from '@promptliano/ui'
 import { PromptlianoClientProvider } from '@/context/promptliano-client-context'
+import { AuthProvider } from '@/contexts/auth-context'
+import { createAuthClient } from '@promptliano/api-client'
+import { getCsrfToken } from '@/lib/csrf'
 
 // Initialize core services
 const queryClient = new QueryClient({
@@ -16,9 +19,15 @@ const queryClient = new QueryClient({
   }
 })
 
+// Initialize auth client
+const serverUrl =
+  typeof window !== 'undefined' ? window.location.origin : import.meta.env.VITE_API_URL || 'http://localhost:3147'
+const authClient = createAuthClient(serverUrl)
+
 // Router context interface
 export interface RouterContext {
   queryClient: QueryClient
+  authClient: typeof authClient
 }
 
 // Create router instance with context
@@ -26,7 +35,8 @@ const router = createRouter({
   routeTree,
   defaultPreload: 'intent',
   context: {
-    queryClient
+    queryClient,
+    authClient
   }
 })
 
@@ -40,14 +50,21 @@ declare module '@tanstack/react-router' {
 
 const rootElement = document.getElementById('root') as HTMLElement
 
+// Fetch CSRF token on app initialization
+getCsrfToken().catch((err) => {
+  console.error('Failed to initialize CSRF token:', err)
+})
+
 if (!rootElement.innerHTML) {
   const root = ReactDOM.createRoot(rootElement)
   root.render(
     <QueryClientProvider client={queryClient}>
-      <PromptlianoClientProvider>
-        <RouterProvider router={router} />
-        <Toaster position='bottom-right' />
-      </PromptlianoClientProvider>
+      <AuthProvider serverUrl={serverUrl}>
+        <PromptlianoClientProvider>
+          <RouterProvider router={router} />
+          <Toaster position='bottom-right' />
+        </PromptlianoClientProvider>
+      </AuthProvider>
     </QueryClientProvider>
   )
 }

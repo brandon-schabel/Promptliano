@@ -120,7 +120,7 @@ const variantClasses = {
   outline: 'bg-transparent border-2',
   ghost: 'bg-transparent border-0 shadow-none',
   elevated: 'bg-card shadow-lg hover:shadow-xl',
-  glass: 'bg-card/50 backdrop-blur-sm border-white/10'
+  glass: 'bg-card/50 backdrop-blur-sm border-border/10'
 }
 
 export function InteractiveCard({

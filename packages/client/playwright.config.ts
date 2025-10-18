@@ -30,7 +30,7 @@ export default defineConfig({
 
   // Global test settings
   use: {
-    baseURL: process.env.VITE_BASE_URL || 'http://localhost:1420',
+    baseURL: process.env.VITE_BASE_URL || 'http://localhost:5173',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
@@ -52,9 +52,9 @@ export default defineConfig({
       timeout: 120 * 1000
     },
     {
-      // Start client dev server on 1420 for tests
-      command: 'bun run dev -- --port 1420',
-      url: 'http://localhost:1420',
+      // Start client dev server on 5173 for tests
+      command: 'bun run dev -- --port 5173',
+      url: 'http://localhost:5173',
       reuseExistingServer: true,
       timeout: 120 * 1000
     }

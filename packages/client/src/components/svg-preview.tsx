@@ -171,7 +171,7 @@ export function SvgPreview({
   return (
     <div className={cn('relative overflow-hidden rounded-lg border', className)}>
       {showControls && (
-        <div className='absolute top-2 left-2 right-2 z-10 flex items-center justify-between gap-2 p-2 bg-background/90 backdrop-blur rounded-md border'>
+        <div className='absolute top-2 left-2 right-2 z-10 flex items-center justify-between gap-2 p-2 bg-background/90 backdrop-blur rounded-md border border-border'>
           <div className='flex items-center gap-2'>
             <Button size='icon' variant='ghost' onClick={zoomOut} title='Zoom out'>
               <ZoomOut className='h-4 w-4' />

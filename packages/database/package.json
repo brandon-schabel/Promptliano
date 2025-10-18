@@ -19,7 +19,7 @@
     "@promptliano/shared": "workspace:*",
     "drizzle-orm": "^0.40.0",
     "drizzle-zod": "^0.8.3",
-    "zod": "^4.1.5"
+    "zod": "4.1.12"
   },
   "devDependencies": {
     "@types/bun": "latest",

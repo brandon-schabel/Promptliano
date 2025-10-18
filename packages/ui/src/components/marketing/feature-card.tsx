@@ -40,7 +40,7 @@ export function FeatureCard({
   const baseStyles = 'relative overflow-hidden rounded-lg p-6 transition-all duration-300'
 
   const variants = {
-    default: 'bg-card border border-border hover:border-primary/50 hover:shadow-lg',
+    default: 'bg-card border hover:border-primary/50 hover:shadow-lg',
     gradient:
       'bg-gradient-to-br from-primary/10 via-secondary/10 to-accent/10 border border-primary/20 hover:border-primary/40',
     glass: 'backdrop-blur-md bg-card/50 border border-border/50 hover:bg-card/60'

@@ -46,13 +46,16 @@ export function DataTable<TData, TValue>({
   onRowClick,
   getRowId,
   renderSubComponent,
-  children
+  children,
+  toolbarContent,
+  globalFilterPlaceholder,
+  rowSelection: controlledRowSelection
 }: DataTableProps<TData, TValue>) {
   // Internal state (used when not controlled)
   const [sorting, setSorting] = React.useState(controlledSorting || [])
   const [columnFilters, setColumnFilters] = React.useState(controlledColumnFilters || [])
   const [columnVisibility, setColumnVisibility] = React.useState(controlledColumnVisibility || {})
-  const [rowSelection, setRowSelection] = React.useState({})
+  const [rowSelection, setRowSelection] = React.useState(controlledRowSelection || {})
   const [globalFilter, setGlobalFilter] = React.useState(controlledGlobalFilter || '')
   const [pagination, setPagination] = React.useState(
     controlledPagination || {
@@ -95,8 +98,8 @@ export function DataTable<TData, TValue>({
       sorting: controlledSorting || sorting,
       columnFilters: controlledColumnFilters || columnFilters,
       columnVisibility: controlledColumnVisibility || columnVisibility,
-      rowSelection,
-      globalFilter: controlledGlobalFilter || globalFilter,
+      rowSelection: controlledRowSelection === undefined ? rowSelection : controlledRowSelection,
+      globalFilter: controlledGlobalFilter ?? globalFilter,
       pagination: controlledPagination || pagination
     }
   })
@@ -109,8 +112,9 @@ export function DataTable<TData, TValue>({
             table={table}
             globalFilter={controlledGlobalFilter || globalFilter}
             onGlobalFilterChange={onGlobalFilterChange || setGlobalFilter}
+            placeholder={globalFilterPlaceholder}
           >
-            {children}
+            {toolbarContent ? toolbarContent(table) : children}
           </DataTableToolbar>
         </div>
       )}
@@ -143,7 +147,7 @@ export function DataTable<TData, TValue>({
               // Loading skeleton
               Array.from({ length: pagination?.pageSize || 10 }).map((_, index) => (
                 <TableRow key={index}>
-                  {columns.map((_, cellIndex) => (
+                  {table.getVisibleLeafColumns().map((column, cellIndex) => (
                     <TableCell key={cellIndex}>
                       <Skeleton className='h-4 w-full' />
                     </TableCell>
@@ -182,7 +186,10 @@ export function DataTable<TData, TValue>({
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={columns.length} className='h-24 text-center'>
+                <TableCell
+                  colSpan={table.getVisibleLeafColumns().length || columns.length}
+                  className='h-24 text-center'
+                >
                   {emptyMessage}
                 </TableCell>
               </TableRow>

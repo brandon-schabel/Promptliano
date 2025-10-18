@@ -12,6 +12,7 @@ export * from './chat-stream-repository'
 export * from './prompt-repository'
 export * from './queue-repository' // Also exports queueItemRepository
 export * from './file-repository'
+export * from './auth-repository' // User, refresh token, and auth settings operations
 
 // Configuration and state repositories
 export * from './provider-key-repository'
@@ -23,6 +24,13 @@ export * from './mcp-execution-repository' // Exports MCP tracking repositories
 
 // Process management repositories
 export * from './process-repository'
+
+// Web crawling repositories
+export * from './crawl-repository'
+
+// Deep Research repositories
+export * from './research-repository'
+export * from './research-source-link-repository'
 
 // Unified storage service (for backward compatibility)
 export * from './storage-service'

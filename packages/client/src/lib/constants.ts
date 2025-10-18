@@ -23,3 +23,52 @@ export const DRAG_ANIMATION_DURATION = 200
 export const GENERIC_ERROR_MESSAGE = 'An error occurred. Please try again.'
 export const NETWORK_ERROR_MESSAGE = 'Network error. Please check your connection.'
 export const NOT_FOUND_ERROR_MESSAGE = 'The requested resource was not found.'
+
+// ============================================================================
+// POLLING CONFIGURATION - Intelligent polling with exponential backoff
+// ============================================================================
+
+/**
+ * Polling Configuration
+ * Controls intelligent polling behavior with exponential backoff for error recovery
+ */
+export const POLLING_CONFIG = {
+  /** Base polling interval in milliseconds (5 seconds) */
+  BASE_INTERVAL_MS: 5000,
+
+  /** Maximum polling interval in milliseconds (30 seconds) */
+  MAX_INTERVAL_MS: 30000,
+
+  /** Minimum polling interval to prevent excessive requests */
+  MIN_INTERVAL_MS: 3000,
+
+  /** Multiplier for exponential backoff on errors */
+  ERROR_BACKOFF_MULTIPLIER: 2,
+
+  /** Random jitter to add to backoff (prevents thundering herd) */
+  JITTER_MS: 1000,
+
+  /** Maximum number of retries before giving up */
+  MAX_RETRIES: 3,
+
+  /** Retry delay for mutations (1 second base) */
+  RETRY_DELAY_BASE_MS: 1000,
+
+  /** Maximum retry delay (10 seconds) */
+  RETRY_DELAY_MAX_MS: 10000
+} as const
+
+/**
+ * Metadata Configuration
+ * Configuration for research crawl metadata tracking
+ */
+export const METADATA_CONFIG = {
+  /** Maximum number of links to keep in timeline */
+  MAX_TIMELINE_LINKS: 100,
+
+  /** Maximum size of error log */
+  MAX_ERROR_LOG_SIZE: 50,
+
+  /** Update progress every N pages */
+  PROGRESS_UPDATE_INTERVAL: 10
+} as const

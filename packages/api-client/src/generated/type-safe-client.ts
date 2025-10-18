@@ -1,7 +1,7 @@
 /**
  * AUTO-GENERATED TYPE-SAFE API CLIENT
- * Generated at: 2025-10-01T00:42:22.727Z
- * Generated from: 193 API endpoints
+ * Generated at: 2025-10-10T23:15:52.043Z
+ * Generated from: 214 API endpoints
  * 
  * ⚠️  DO NOT EDIT MANUALLY - Changes will be overwritten
  */
@@ -184,6 +184,8 @@ export type CreateAiChatByChatIdMcpToolsRunRequest = NonNullable<paths['/api/ai/
 export type CreateAiChatSdkResponse = { success: boolean; message?: string }
 export type CreateAiChatSdkRequest = NonNullable<paths['/api/ai/chat/sdk']['post']['requestBody']>['content']['application/json']
 export type GetProvidersResponse = paths['/api/providers']['get']['responses']['200']['content']['application/json']
+export type CreateAiMermaidFixResponse = paths['/api/ai/mermaid/fix']['post']['responses']['200']['content']['application/json']
+export type CreateAiMermaidFixRequest = NonNullable<paths['/api/ai/mermaid/fix']['post']['requestBody']>['content']['application/json']
 export type GetModelsResponse = paths['/api/models']['get']['responses']['200']['content']['application/json']
 export type ListProviders_debugConfigResponse = paths['/api/providers/_debug-config']['get']['responses']['200']['content']['application/json']
 export type CreateAiGenerateTextResponse = paths['/api/ai/generate/text']['post']['responses']['200']['content']['application/json']
@@ -333,6 +335,40 @@ export type CreateProjectsByIdProcessesPortsByPortKillResponse = paths['/api/pro
 export type CreateProjectsByIdProcessesPortsScanResponse = paths['/api/projects/{id}/processes/ports/scan']['post']['responses']['200']['content']['application/json']
 export type CreateProjectsByIdProcessesScriptsRunResponse = paths['/api/projects/{id}/processes/scripts/run']['post']['responses']['200']['content']['application/json']
 export type CreateProjectsByIdProcessesScriptsRunRequest = NonNullable<paths['/api/projects/{id}/processes/scripts/run']['post']['requestBody']>['content']['application/json']
+export type GetResearchResponse = paths['/api/research']['get']['responses']['200']['content']['application/json']
+export type CreateResearcResponse = paths['/api/research']['post']['responses']['201']['content']['application/json']
+export type CreateResearcRequest = NonNullable<paths['/api/research']['post']['requestBody']>['content']['application/json']
+export type GetResearcResponse = paths['/api/research/{id}']['get']['responses']['200']['content']['application/json']
+export type UpdateResearcResponse = paths['/api/research/{id}']['patch']['responses']['200']['content']['application/json']
+export type UpdateResearcRequest = NonNullable<paths['/api/research/{id}']['patch']['requestBody']>['content']['application/json']
+export type DeleteResearcResponse = paths['/api/research/{id}']['delete']['responses']['200']['content']['application/json']
+export type CreateResearchStartResponse = paths['/api/research/start']['post']['responses']['200']['content']['application/json']
+export type CreateResearchStartRequest = NonNullable<paths['/api/research/start']['post']['requestBody']>['content']['application/json']
+export type GetResearchByIdSourcesResponse = paths['/api/research/{id}/sources']['get']['responses']['200']['content']['application/json']
+export type CreateResearchByIdSourcesResponse = paths['/api/research/{id}/sources']['post']['responses']['200']['content']['application/json']
+export type CreateResearchByIdSourcesRequest = NonNullable<paths['/api/research/{id}/sources']['post']['requestBody']>['content']['application/json']
+export type CreateResearchSourcesByIdProcessResponse = paths['/api/research/sources/{id}/process']['post']['responses']['200']['content']['application/json']
+export type GetResearchSourcesByIdProcessedDataResponse = paths['/api/research/sources/{id}/processed-data']['get']['responses']['200']['content']['application/json']
+export type CreateResearchByIdOutlineResponse = paths['/api/research/{id}/outline']['post']['responses']['200']['content']['application/json']
+export type CreateResearchByIdOutlineRequest = NonNullable<paths['/api/research/{id}/outline']['post']['requestBody']>['content']['application/json']
+export type GetResearchByIdSectionsResponse = paths['/api/research/{id}/sections']['get']['responses']['200']['content']['application/json']
+export type CreateResearchSectionsByIdBuildResponse = paths['/api/research/sections/{id}/build']['post']['responses']['200']['content']['application/json']
+export type CreateResearchSectionsByIdBuildRequest = NonNullable<paths['/api/research/sections/{id}/build']['post']['requestBody']>['content']['application/json']
+export type UpdateResearchSectionsByIdResponse = paths['/api/research/sections/{id}']['patch']['responses']['200']['content']['application/json']
+export type UpdateResearchSectionsByIdRequest = NonNullable<paths['/api/research/sections/{id}']['patch']['requestBody']>['content']['application/json']
+export type GetResearchByIdProgressResponse = paths['/api/research/{id}/progress']['get']['responses']['200']['content']['application/json']
+export type CreateResearchByIdExportResponse = paths['/api/research/{id}/export']['post']['responses']['200']['content']['application/json']
+export type CreateResearchByIdExportRequest = NonNullable<paths['/api/research/{id}/export']['post']['requestBody']>['content']['application/json']
+export type CreateResearchByIdExecuteResponse = paths['/api/research/{id}/execute']['post']['responses']['200']['content']['application/json']
+export type CreateResearchByIdExecuteRequest = NonNullable<paths['/api/research/{id}/execute']['post']['requestBody']>['content']['application/json']
+export type CreateResearchByIdResumeResponse = paths['/api/research/{id}/resume']['post']['responses']['200']['content']['application/json']
+export type CreateResearchByIdStopResponse = paths['/api/research/{id}/stop']['post']['responses']['200']['content']['application/json']
+export type GetResearchByIdWorkflowStatusResponse = paths['/api/research/{id}/workflow-status']['get']['responses']['200']['content']['application/json']
+export type GetResearchByIdCrawlProgressResponse = paths['/api/research/{id}/crawl-progress']['get']['responses']['200']['content']['application/json']
+export type ListDeepResearchByResearchIdDebugEventsResponse = paths['/api/deep-research/{researchId}/debug/events']['get']['responses']['200']['content']['application/json']
+export type DeleteDeepResearchByResearchIdDebugEventsResponse = paths['/api/deep-research/{researchId}/debug/events']['delete']['responses']['200']['content']['application/json']
+export type ListDeepResearchByResearchIdDebugStatsResponse = paths['/api/deep-research/{researchId}/debug/stats']['get']['responses']['200']['content']['application/json']
+export type ListDeepResearchByResearchIdDebugActivityResponse = paths['/api/deep-research/{researchId}/debug/activity']['get']['responses']['200']['content']['application/json']
 export type GetModelConfigsResponse = paths['/api/model-configs']['get']['responses']['200']['content']['application/json']
 export type CreateModelConfigResponse = paths['/api/model-configs']['post']['responses']['201']['content']['application/json']
 export type CreateModelConfigRequest = NonNullable<paths['/api/model-configs']['post']['requestBody']>['content']['application/json']
@@ -371,7 +407,7 @@ export type CreateModelPresetsByIdUseResponse = paths['/api/model-presets/{id}/u
  * - Request body validation
  * - Proper HTTP method handling
  * - Error handling with context
- * - Support for all 193 API endpoints
+ * - Support for all 214 API endpoints
  */
 export class TypeSafeApiClient {
   private baseUrl: string
@@ -392,7 +428,26 @@ export class TypeSafeApiClient {
   }
 
   /**
-   * Internal request handler with proper error handling
+   * Get CSRF token from cookie (browser only)
+   */
+  private getCsrfTokenFromCookie(): string | null {
+    if (typeof document === 'undefined') {
+      return null
+    }
+
+    const cookies = document.cookie.split(';')
+    const csrfCookie = cookies.find(c => c.trim().startsWith('csrf_token='))
+
+    if (!csrfCookie) {
+      return null
+    }
+
+    const tokenValue = csrfCookie.split('=')[1]
+    return tokenValue || null
+  }
+
+  /**
+   * Internal request handler with proper error handling and CSRF protection
    */
   private async request<T>(
     method: string,
@@ -404,7 +459,7 @@ export class TypeSafeApiClient {
     }
   ): Promise<T> {
     const url = new URL(path, this.baseUrl)
-    
+
     // Add query parameters
     if (options?.params) {
       Object.entries(options.params).forEach(([key, value]) => {
@@ -421,6 +476,15 @@ export class TypeSafeApiClient {
     try {
       const isForm = typeof FormData !== 'undefined' && options?.body instanceof FormData
       const headers: Record<string, string> = { ...this.headers }
+
+      // Add CSRF token for state-changing requests (browser only)
+      if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(method.toUpperCase()) && typeof window !== 'undefined') {
+        const csrfToken = this.getCsrfTokenFromCookie()
+        if (csrfToken) {
+          headers['x-csrf-token'] = csrfToken
+        }
+      }
+
       if (isForm && headers['Content-Type']) {
         // Let fetch set the multipart boundary
         delete headers['Content-Type']
@@ -430,7 +494,8 @@ export class TypeSafeApiClient {
         method,
         headers,
         body: isForm ? (options?.body as FormData) : options?.body ? JSON.stringify(options.body) : undefined,
-        signal: controller.signal
+        signal: controller.signal,
+        credentials: 'include' // Include cookies for CSRF token
       })
 
       clearTimeout(timeoutId)
@@ -1380,6 +1445,13 @@ export class TypeSafeApiClient {
   }
 
   /**
+   * Fix and optimize mermaid diagram code
+   */
+  async createAiMermaidFix(data: CreateAiMermaidFixRequest, options?: { timeout?: number }): Promise<CreateAiMermaidFixResponse> {
+    return this.request<CreateAiMermaidFixResponse>('POST', `/api/ai/mermaid/fix`, { body: data, timeout: options?.timeout })
+  }
+
+  /**
    * List available AI models for a provider
    */
   async getModels(query?: { provider?: any; includeDisabled?: any }, options?: { timeout?: number }): Promise<GetModelsResponse> {
@@ -2097,6 +2169,183 @@ export class TypeSafeApiClient {
    */
   async createProjectsByIdProcessesScriptsRun(id: string | number, data: CreateProjectsByIdProcessesScriptsRunRequest, options?: { timeout?: number }): Promise<CreateProjectsByIdProcessesScriptsRunResponse> {
     return this.request<CreateProjectsByIdProcessesScriptsRunResponse>('POST', this.buildPath(`/api/projects/{id}/processes/scripts/run`, { id }), { body: data, timeout: options?.timeout })
+  }
+
+
+  // Deep Research Operations
+  /**
+   * List all research sessions
+   */
+  async getResearch(options?: { timeout?: number }): Promise<GetResearchResponse> {
+    return this.request<GetResearchResponse>('GET', `/api/research`, { timeout: options?.timeout })
+  }
+
+  /**
+   * Create a new research session
+   */
+  async createResearc(data: CreateResearcRequest, options?: { timeout?: number }): Promise<CreateResearcResponse> {
+    return this.request<CreateResearcResponse>('POST', `/api/research`, { body: data, timeout: options?.timeout })
+  }
+
+  /**
+   * Get a specific research session
+   */
+  async getResearc(id: string | number, options?: { timeout?: number }): Promise<GetResearcResponse> {
+    return this.request<GetResearcResponse>('GET', this.buildPath(`/api/research/{id}`, { id }), { timeout: options?.timeout })
+  }
+
+  /**
+   * Update a research session
+   */
+  async updateResearc(id: string | number, data: UpdateResearcRequest, options?: { timeout?: number }): Promise<UpdateResearcResponse> {
+    return this.request<UpdateResearcResponse>('PATCH', this.buildPath(`/api/research/{id}`, { id }), { body: data, timeout: options?.timeout })
+  }
+
+  /**
+   * Delete a research session
+   */
+  async deleteResearc(id: string | number, options?: { timeout?: number }): Promise<DeleteResearcResponse> {
+    return this.request<DeleteResearcResponse>('DELETE', this.buildPath(`/api/research/{id}`, { id }), { timeout: options?.timeout })
+  }
+
+  /**
+   * Start a new research session with automatic source gathering
+   */
+  async createResearchStart(data: CreateResearchStartRequest, options?: { timeout?: number }): Promise<CreateResearchStartResponse> {
+    return this.request<CreateResearchStartResponse>('POST', `/api/research/start`, { body: data, timeout: options?.timeout })
+  }
+
+  /**
+   * Get all sources for a research session
+   */
+  async getResearchByIdSources(id: string | number, options?: { timeout?: number }): Promise<GetResearchByIdSourcesResponse> {
+    return this.request<GetResearchByIdSourcesResponse>('GET', this.buildPath(`/api/research/{id}/sources`, { id }), { timeout: options?.timeout })
+  }
+
+  /**
+   * Add a source to research
+   */
+  async createResearchByIdSources(id: string | number, data: CreateResearchByIdSourcesRequest, options?: { timeout?: number }): Promise<CreateResearchByIdSourcesResponse> {
+    return this.request<CreateResearchByIdSourcesResponse>('POST', this.buildPath(`/api/research/{id}/sources`, { id }), { body: data, timeout: options?.timeout })
+  }
+
+  /**
+   * Process a specific source
+   */
+  async createResearchSourcesByIdProcess(id: string | number, options?: { timeout?: number }): Promise<CreateResearchSourcesByIdProcessResponse> {
+    return this.request<CreateResearchSourcesByIdProcessResponse>('POST', this.buildPath(`/api/research/sources/{id}/process`, { id }), { timeout: options?.timeout })
+  }
+
+  /**
+   * Get processed data for a specific source
+   */
+  async getResearchSourcesByIdProcessedData(id: string | number, options?: { timeout?: number }): Promise<GetResearchSourcesByIdProcessedDataResponse> {
+    return this.request<GetResearchSourcesByIdProcessedDataResponse>('GET', this.buildPath(`/api/research/sources/{id}/processed-data`, { id }), { timeout: options?.timeout })
+  }
+
+  /**
+   * Generate document outline
+   */
+  async createResearchByIdOutline(id: string | number, data: CreateResearchByIdOutlineRequest, options?: { timeout?: number }): Promise<CreateResearchByIdOutlineResponse> {
+    return this.request<CreateResearchByIdOutlineResponse>('POST', this.buildPath(`/api/research/{id}/outline`, { id }), { body: data, timeout: options?.timeout })
+  }
+
+  /**
+   * Get all sections for a research document
+   */
+  async getResearchByIdSections(id: string | number, options?: { timeout?: number }): Promise<GetResearchByIdSectionsResponse> {
+    return this.request<GetResearchByIdSectionsResponse>('GET', this.buildPath(`/api/research/{id}/sections`, { id }), { timeout: options?.timeout })
+  }
+
+  /**
+   * Build a specific section
+   */
+  async createResearchSectionsByIdBuild(id: string | number, data: CreateResearchSectionsByIdBuildRequest, options?: { timeout?: number }): Promise<CreateResearchSectionsByIdBuildResponse> {
+    return this.request<CreateResearchSectionsByIdBuildResponse>('POST', this.buildPath(`/api/research/sections/{id}/build`, { id }), { body: data, timeout: options?.timeout })
+  }
+
+  /**
+   * Update a section
+   */
+  async updateResearchSectionsById(id: string | number, data: UpdateResearchSectionsByIdRequest, options?: { timeout?: number }): Promise<UpdateResearchSectionsByIdResponse> {
+    return this.request<UpdateResearchSectionsByIdResponse>('PATCH', this.buildPath(`/api/research/sections/{id}`, { id }), { body: data, timeout: options?.timeout })
+  }
+
+  /**
+   * Get research progress
+   */
+  async getResearchByIdProgress(id: string | number, options?: { timeout?: number }): Promise<GetResearchByIdProgressResponse> {
+    return this.request<GetResearchByIdProgressResponse>('GET', this.buildPath(`/api/research/{id}/progress`, { id }), { timeout: options?.timeout })
+  }
+
+  /**
+   * Export research document
+   */
+  async createResearchByIdExport(id: string | number, data: CreateResearchByIdExportRequest, options?: { timeout?: number }): Promise<CreateResearchByIdExportResponse> {
+    return this.request<CreateResearchByIdExportResponse>('POST', this.buildPath(`/api/research/{id}/export`, { id }), { body: data, timeout: options?.timeout })
+  }
+
+  /**
+   * Execute workflow from current state to completion
+   */
+  async createResearchByIdExecute(id: string | number, data: CreateResearchByIdExecuteRequest, options?: { timeout?: number }): Promise<CreateResearchByIdExecuteResponse> {
+    return this.request<CreateResearchByIdExecuteResponse>('POST', this.buildPath(`/api/research/{id}/execute`, { id }), { body: data, timeout: options?.timeout })
+  }
+
+  /**
+   * Resume workflow from failed/stopped state
+   */
+  async createResearchByIdResume(id: string | number, options?: { timeout?: number }): Promise<CreateResearchByIdResumeResponse> {
+    return this.request<CreateResearchByIdResumeResponse>('POST', this.buildPath(`/api/research/{id}/resume`, { id }), { timeout: options?.timeout })
+  }
+
+  /**
+   * Stop automatic workflow execution
+   */
+  async createResearchByIdStop(id: string | number, options?: { timeout?: number }): Promise<CreateResearchByIdStopResponse> {
+    return this.request<CreateResearchByIdStopResponse>('POST', this.buildPath(`/api/research/{id}/stop`, { id }), { timeout: options?.timeout })
+  }
+
+  /**
+   * Get detailed workflow status with action availability
+   */
+  async getResearchByIdWorkflowStatus(id: string | number, options?: { timeout?: number }): Promise<GetResearchByIdWorkflowStatusResponse> {
+    return this.request<GetResearchByIdWorkflowStatusResponse>('GET', this.buildPath(`/api/research/{id}/workflow-status`, { id }), { timeout: options?.timeout })
+  }
+
+  /**
+   * Get web crawling progress
+   */
+  async getResearchByIdCrawlProgress(id: string | number, options?: { timeout?: number }): Promise<GetResearchByIdCrawlProgressResponse> {
+    return this.request<GetResearchByIdCrawlProgressResponse>('GET', this.buildPath(`/api/research/{id}/crawl-progress`, { id }), { timeout: options?.timeout })
+  }
+
+  /**
+   * Get debug events for a research session
+   */
+  async listDeepResearchByResearchIdDebugEvents(researchId: string | number, query?: { category?: any; level?: any; limit?: any; from?: any; to?: any }, options?: { timeout?: number }): Promise<ListDeepResearchByResearchIdDebugEventsResponse> {
+    return this.request<ListDeepResearchByResearchIdDebugEventsResponse>('GET', this.buildPath(`/api/deep-research/{researchId}/debug/events`, { researchId }), { params: query, timeout: options?.timeout })
+  }
+
+  /**
+   * Clear all debug events
+   */
+  async deleteDeepResearchByResearchIdDebugEvents(researchId: string | number, options?: { timeout?: number }): Promise<DeleteDeepResearchByResearchIdDebugEventsResponse> {
+    return this.request<DeleteDeepResearchByResearchIdDebugEventsResponse>('DELETE', this.buildPath(`/api/deep-research/{researchId}/debug/events`, { researchId }), { timeout: options?.timeout })
+  }
+
+  /**
+   * Get debug statistics for a research session
+   */
+  async listDeepResearchByResearchIdDebugStats(researchId: string | number, options?: { timeout?: number }): Promise<ListDeepResearchByResearchIdDebugStatsResponse> {
+    return this.request<ListDeepResearchByResearchIdDebugStatsResponse>('GET', this.buildPath(`/api/deep-research/{researchId}/debug/stats`, { researchId }), { timeout: options?.timeout })
+  }
+
+  /**
+   * Get recent debug activity
+   */
+  async listDeepResearchByResearchIdDebugActivity(researchId: string | number, query?: { limit?: any }, options?: { timeout?: number }): Promise<ListDeepResearchByResearchIdDebugActivityResponse> {
+    return this.request<ListDeepResearchByResearchIdDebugActivityResponse>('GET', this.buildPath(`/api/deep-research/{researchId}/debug/activity`, { researchId }), { params: query, timeout: options?.timeout })
   }
 
 

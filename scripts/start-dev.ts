@@ -16,19 +16,19 @@ async function killPort(port: number) {
     }
     if (pids.length) console.log(`🔪 Killed ${pids.length} process(es) on port ${port}`)
     if (pids.length) return
-  } catch {}
+  } catch { }
   // Try fuser (some Linux distros)
   try {
     await $`bash -lc "command -v fuser >/dev/null 2>&1 && fuser -k ${port}/tcp || true"`.quiet()
     console.log(`🔪 Killed process(es) via fuser on port ${port}`)
     return
-  } catch {}
+  } catch { }
   // Try PowerShell (Windows)
   if (process.platform === 'win32') {
     try {
       await $`powershell -NoProfile -Command "Get-NetTCPConnection -LocalPort ${port} -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force }"`.quiet()
       console.log(`🔪 Killed process(es) on port ${port} (Windows)`)
-    } catch {}
+    } catch { }
   }
 }
 
@@ -39,7 +39,7 @@ async function startServices() {
     const rootDir = process.cwd()
     // Proactively free commonly used dev ports
     const serverPort = Number(process.env.SERVER_PORT || process.env.PORT || 3147)
-    const clientPort = Number(process.env.CLIENT_DEV_PORT || 1420)
+    const clientPort = Number(process.env.CLIENT_DEV_PORT || 5173)
     const drizzlePort = Number(process.env.DRIZZLE_STUDIO_PORT || 4983)
     const inspectorClientPort = Number(process.env.MCP_INSPECTOR_CLIENT_PORT || process.env.CLIENT_PORT || 6274)
     const inspectorServerPort = Number(process.env.MCP_INSPECTOR_SERVER_PORT || 6277)
@@ -64,7 +64,7 @@ async function startServices() {
     })
     processes.push(serverProcess)
 
-    // Start client (Vite runs on 1420 by default)
+    // Start client (Vite runs on 5173 by default)
     console.log('🚀 Starting client...')
     const clientProcess = Bun.spawn(['bun', 'run', 'dev'], {
       cwd: join(rootDir, 'packages', 'client'),
@@ -140,7 +140,7 @@ async function startServices() {
     })
 
     // Keep the script running
-    await new Promise(() => {})
+    await new Promise(() => { })
   } catch (error) {
     console.error('❌ Error starting services:', error)
     processes.forEach((proc) => proc.kill())

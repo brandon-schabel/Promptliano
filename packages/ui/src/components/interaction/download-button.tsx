@@ -136,7 +136,7 @@ export function DownloadButton({
                       'relative overflow-hidden rounded-lg border p-3 text-center transition-colors',
                       platform.available !== false
                         ? 'border-primary/20 bg-primary/5 cursor-pointer hover:bg-primary/10'
-                        : 'border-border bg-muted/50 cursor-not-allowed opacity-50'
+                        : 'bg-muted/50 cursor-not-allowed opacity-50'
                     )}
                   >
                     <div className='flex flex-col items-center gap-2'>

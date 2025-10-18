@@ -281,14 +281,17 @@ async function getTotalFileCount(projectId: number): Promise<number> {
 }
 
 /**
- * Recommend strategy based on project size
+ * Recommend strategy based on project size (file count)
+ * @param fileCount - Total number of files in the project
+ * @returns Recommended strategy: 'fast' for small, 'balanced' for medium, 'thorough' for large
  */
-export async function recommendStrategy(projectId: number): Promise<FileSuggestionStrategy> {
-  const fileCount = await getTotalFileCount(projectId)
-
-  if (fileCount < 50) return 'thorough'
-  if (fileCount < 200) return 'balanced'
-  return 'fast'
+export async function recommendStrategy(fileCount: number): Promise<FileSuggestionStrategy> {
+  // Small projects (< 100 files) → fast strategy
+  if (fileCount < 100) return 'fast'
+  // Medium projects (100-500 files) → balanced strategy
+  if (fileCount < 500) return 'balanced'
+  // Large projects (>= 500 files) → thorough strategy
+  return 'thorough'
 }
 
 /**

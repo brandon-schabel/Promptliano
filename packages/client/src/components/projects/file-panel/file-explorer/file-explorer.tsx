@@ -401,7 +401,7 @@ export function FileExplorer({ ref, allowSpacebarToSelect }: FileExplorerProps) 
         </PromptlianoTooltip>
 
         {showAutocomplete && (localFileSearch || '').trim() && suggestions.length > 0 && (
-          <ul className='absolute top-11 left-0 z-10 w-full bg-background border border-border rounded-md shadow-md max-h-56 overflow-auto'>
+          <ul className='absolute top-11 left-0 z-10 w-full bg-background border rounded-md shadow-md max-h-56 overflow-auto'>
             <li className='px-2 py-1.5 text-sm text-muted-foreground bg-muted border-b border-border'>
               Press Enter{allowSpacebarToSelect && ' or Spacebar'} to add highlighted file; Right arrow to preview
             </li>

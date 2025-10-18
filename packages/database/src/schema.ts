@@ -4,10 +4,11 @@
  * Achieves 100% type safety and 6-20x performance improvement
  */
 
-import { sqliteTable, integer, text, index, real } from 'drizzle-orm/sqlite-core'
+import { sqliteTable, integer, text, index, real, uniqueIndex } from 'drizzle-orm/sqlite-core'
 import { relations, sql } from 'drizzle-orm'
 import { createInsertSchema, createSelectSchema } from './schema-factory'
 import { z } from '@hono/zod-openapi'
+import { enhancedResearchSourceMetadata, type EnhancedResearchSourceMetadata } from './schemas/research-metadata'
 
 // =============================================================================
 // TYPE DEFINITIONS (from @promptliano/schemas)
@@ -309,6 +310,52 @@ export const queueItems = sqliteTable('queue_items', {
   actualProcessingTime: integer('actual_processing_time'),
   startedAt: integer('started_at'),
   completedAt: integer('completed_at'),
+  createdAt: integer('created_at').notNull(),
+  updatedAt: integer('updated_at').notNull()
+})
+
+// =============================================================================
+// AUTHENTICATION TABLES
+// =============================================================================
+
+// Users table for authentication
+export const users = sqliteTable('users', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  username: text('username').notNull().unique(),
+  email: text('email'),
+  passwordHash: text('password_hash'), // Nullable - null means passwordless mode
+  role: text('role', { enum: ['admin', 'user'] })
+    .notNull()
+    .default('user'),
+  isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
+  createdAt: integer('created_at').notNull(),
+  updatedAt: integer('updated_at').notNull()
+}, (table) => ({
+  usernameIdx: index('users_username_idx').on(table.username),
+  roleIdx: index('users_role_idx').on(table.role)
+}))
+
+// Refresh tokens for session management
+export const refreshTokens = sqliteTable('refresh_tokens', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  userId: integer('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  token: text('token').notNull().unique(),
+  expiresAt: integer('expires_at').notNull(),
+  createdAt: integer('created_at').notNull()
+}, (table) => ({
+  tokenIdx: index('refresh_tokens_token_idx').on(table.token),
+  userIdx: index('refresh_tokens_user_idx').on(table.userId),
+  expiresIdx: index('refresh_tokens_expires_idx').on(table.expiresAt)
+}))
+
+// Global auth settings (singleton table)
+export const authSettings = sqliteTable('auth_settings', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  authEnabled: integer('auth_enabled', { mode: 'boolean' }).notNull().default(true),
+  requirePassword: integer('require_password', { mode: 'boolean' }).notNull().default(false),
+  sessionTimeout: integer('session_timeout').notNull().default(604800000), // 7 days in milliseconds
   createdAt: integer('created_at').notNull(),
   updatedAt: integer('updated_at').notNull()
 })
@@ -725,6 +772,18 @@ export const processPorts = sqliteTable('process_ports', {
 // RELATIONSHIPS - Drizzle Relational API
 // =============================================================================
 
+// Authentication relationships
+export const usersRelations = relations(users, ({ many }) => ({
+  refreshTokens: many(refreshTokens)
+}))
+
+export const refreshTokensRelations = relations(refreshTokens, ({ one }) => ({
+  user: one(users, {
+    fields: [refreshTokens.userId],
+    references: [users.id]
+  })
+}))
+
 export const projectsRelations = relations(projects, ({ many }) => ({
   tickets: many(tickets),
   chats: many(chats),
@@ -745,7 +804,8 @@ export const projectsRelations = relations(projects, ({ many }) => ({
   relevanceScores: many(relevanceScores),
   relevanceConfigs: many(relevanceConfigs),
   processRuns: many(processRuns),
-  processPorts: many(processPorts)
+  processPorts: many(processPorts),
+  researchRecords: many(researchRecords)
 }))
 
 export const ticketsRelations = relations(tickets, ({ one, many }) => ({
@@ -987,6 +1047,11 @@ export const insertPromptSchema = createInsertSchema(prompts).openapi('InsertPro
 export const insertQueueSchema = createInsertSchema(queues).openapi('InsertQueue')
 export const insertQueueItemSchema = createInsertSchema(queueItems).openapi('InsertQueueItem')
 
+// Authentication insert schemas - OpenAPI compatible
+export const insertUserSchema = createInsertSchema(users).openapi('InsertUser')
+export const insertRefreshTokenSchema = createInsertSchema(refreshTokens).openapi('InsertRefreshToken')
+export const insertAuthSettingsSchema = createInsertSchema(authSettings).openapi('InsertAuthSettings')
+
 export const insertProviderKeySchema = createInsertSchema(providerKeys).openapi('InsertProviderKey')
 export const insertFileSchema = createInsertSchema(files).openapi('InsertFile')
 export const insertSelectedFileSchema = createInsertSchema(selectedFiles).openapi('InsertSelectedFile')
@@ -1025,6 +1090,12 @@ export const selectChatStreamEventSchema = createSelectSchema(chatStreamEvents).
 export const selectPromptSchema = createSelectSchema(prompts).openapi('Prompt')
 export const selectQueueSchema = createSelectSchema(queues).openapi('Queue')
 export const selectQueueItemSchema = createSelectSchema(queueItems).openapi('QueueItem')
+
+// Authentication select schemas - OpenAPI compatible
+export const selectUserSchema = createSelectSchema(users).openapi('User')
+export const selectRefreshTokenSchema = createSelectSchema(refreshTokens).openapi('RefreshToken')
+export const selectAuthSettingsSchema = createSelectSchema(authSettings).openapi('AuthSettings')
+
 export const selectProviderKeySchema = createSelectSchema(providerKeys).openapi('ProviderKey')
 export const selectFileSchema = createSelectSchema(files).openapi('File')
 export const selectSelectedFileSchema = createSelectSchema(selectedFiles).openapi('SelectedFile')
@@ -1067,6 +1138,12 @@ export type InsertChatStreamEvent = typeof chatStreamEvents.$inferInsert
 export type InsertPrompt = typeof prompts.$inferInsert
 export type InsertQueue = typeof queues.$inferInsert
 export type InsertQueueItem = typeof queueItems.$inferInsert
+
+// Authentication insert types
+export type InsertUser = typeof users.$inferInsert
+export type InsertRefreshToken = typeof refreshTokens.$inferInsert
+export type InsertAuthSettings = typeof authSettings.$inferInsert
+
 export type InsertProviderKey = typeof providerKeys.$inferInsert
 export type InsertModelConfig = typeof modelConfigs.$inferInsert
 export type InsertModelPreset = typeof modelPresets.$inferInsert
@@ -1102,8 +1179,25 @@ export type InsertProcessRun = typeof processRuns.$inferInsert
 export type InsertProcessLog = typeof processLogs.$inferInsert
 export type InsertProcessPort = typeof processPorts.$inferInsert
 
+// Deep Research insert types
+export type InsertResearchRecord = typeof researchRecords.$inferInsert
+export type InsertResearchSource = typeof researchSources.$inferInsert
+export type InsertResearchProcessedData = typeof researchProcessedData.$inferInsert
+export type InsertResearchDocumentSection = typeof researchDocumentSections.$inferInsert
+export type InsertResearchExport = typeof researchExports.$inferInsert
+
+// Web Crawling insert types
+export type InsertDomain = typeof domains.$inferInsert
+export type InsertUrl = typeof urls.$inferInsert
+export type InsertCrawledContent = typeof crawledContent.$inferInsert
+
 // Select types (for reading existing records)
 export type Project = typeof projects.$inferSelect
+
+// Authentication select types
+export type User = typeof users.$inferSelect
+export type RefreshToken = typeof refreshTokens.$inferSelect
+export type AuthSettings = typeof authSettings.$inferSelect
 
 // Override Ticket type to fix JSON field types
 type TicketInferred = typeof tickets.$inferSelect
@@ -1279,6 +1373,53 @@ export type ProcessLog = typeof processLogs.$inferSelect
 
 export type ProcessPort = typeof processPorts.$inferSelect
 
+// Deep Research select types
+
+// Override ResearchRecord type to use strict metadata schema
+type ResearchRecordInferred = typeof researchRecords.$inferSelect
+export type ResearchRecord = Omit<ResearchRecordInferred, 'metadata'> & {
+  metadata: ResearchMetadata
+}
+
+type ResearchSourceInferred = typeof researchSources.$inferSelect
+export type ResearchSource = Omit<ResearchSourceInferred, 'metadata'> & {
+  metadata: ResearchSourceMetadata | null
+}
+
+// Override ResearchProcessedData type to fix JSON field types
+type ResearchProcessedDataInferred = typeof researchProcessedData.$inferSelect
+export type ResearchProcessedData = Omit<ResearchProcessedDataInferred, 'keywords' | 'entities'> & {
+  keywords: string[]
+  entities: Array<{ text: string; type: string; relevance: number }>
+}
+
+// Override ResearchDocumentSection type to fix JSON field types
+type ResearchDocumentSectionInferred = typeof researchDocumentSections.$inferSelect
+export type ResearchDocumentSection = Omit<ResearchDocumentSectionInferred, 'citedSourceIds'> & {
+  citedSourceIds: number[]
+}
+
+export type ResearchExport = typeof researchExports.$inferSelect
+
+// Web Crawling select types
+export type Domain = typeof domains.$inferSelect
+
+export type Url = typeof urls.$inferSelect
+
+// Override CrawledContent type to fix JSON field types
+type CrawledContentInferred = typeof crawledContent.$inferSelect
+export type CrawledContent = Omit<CrawledContentInferred, 'metadata' | 'links'> & {
+  metadata: {
+    author?: string
+    date?: string
+    publishedTime?: string
+    siteName?: string
+    excerpt?: string
+    lang?: string
+  } | null
+  links: string[] | null
+}
+
 // Complex relationship types
 export type ProcessRunWithLogs = ProcessRun & {
   logs: ProcessLog[]
@@ -1293,6 +1434,9 @@ export type QueueStatus = 'queued' | 'in_progress' | 'completed' | 'failed' | 'c
 export type MessageRole = 'user' | 'assistant' | 'system'
 export type HookType = 'pre' | 'post' | 'error'
 export type ItemType = 'ticket' | 'task' | 'chat' | 'prompt'
+
+// Authentication enum types
+export type UserRole = 'admin' | 'user'
 
 // New enum types
 export type GitFileStatusType =
@@ -1331,6 +1475,17 @@ export type ProcessPortProtocol = 'tcp' | 'udp'
 export type ProcessPortState = 'listening' | 'established' | 'closed'
 export type ProcessScriptType = 'npm' | 'bun' | 'yarn' | 'pnpm' | 'custom'
 
+// Deep Research enum types
+export type ResearchStatus = 'initializing' | 'gathering' | 'processing' | 'building' | 'complete' | 'failed'
+export type ResearchSourceType = 'web' | 'pdf' | 'academic' | 'api'
+export type ResearchSourceStatus = 'pending' | 'fetching' | 'processing' | 'complete' | 'failed'
+export type SectionStatus = 'pending' | 'drafting' | 'complete' | 'reviewed'
+export type ExportFormat = 'markdown' | 'pdf' | 'html' | 'docx'
+export type ResearchStrategy = 'fast' | 'balanced' | 'thorough'
+
+// Web Crawling enum types
+export type UrlStatus = 'pending' | 'crawled' | 'failed'
+
 export type HookEvent =
   | 'PreToolUse'
   | 'PostToolUse'
@@ -1349,6 +1504,10 @@ export interface HookConfig {
 }
 
 // Complex relationship types
+export type UserWithTokens = User & {
+  refreshTokens: RefreshToken[]
+}
+
 export type TicketWithTasks = Ticket & {
   tasks: TicketTask[]
 }
@@ -1386,6 +1545,31 @@ export type ProjectWithGit = Project & {
   gitTags: GitTag[]
   gitStashes: GitStash[]
   gitWorktrees: GitWorktree[]
+}
+
+// Deep Research relationship types
+export type ResearchRecordWithRelations = ResearchRecord & {
+  sources: ResearchSource[]
+  processedData: ResearchProcessedData[]
+  sections: ResearchDocumentSection[]
+  exports: ResearchExport[]
+}
+
+export type ResearchSourceWithData = ResearchSource & {
+  processedData: ResearchProcessedData[]
+}
+
+export type ResearchDocumentSectionWithSubsections = ResearchDocumentSection & {
+  subsections: ResearchDocumentSection[]
+}
+
+// Web Crawling relationship types
+export type UrlWithContent = Url & {
+  content: CrawledContent[]
+}
+
+export type DomainWithUrls = Domain & {
+  urls: UrlWithContent[]
 }
 
 // =============================================================================
@@ -1468,6 +1652,366 @@ export const processPortsRelations = relations(processPorts, ({ one }) => ({
   })
 }))
 
+// =============================================================================
+// DEEP RESEARCH TABLES
+// =============================================================================
+
+// Research metadata schema for type safety
+export const researchMetadata = z.object({
+  searchQueries: z.array(z.string()).max(20).optional(),
+  errorMessage: z.string().max(1000).optional(),
+  errorCode: z.string().optional(),
+  errorCategory: z.string().optional(),
+  stopped: z.boolean().optional(),
+  stoppedAt: z.number().optional(),
+  processingTime: z.number().optional(),
+  estimatedTokens: z.number().optional(),
+
+  // Crawl mode tracking
+  crawlEnabled: z.boolean().optional(),
+  crawlSeedUrl: z.string().optional(),
+  crawlId: z.string().optional(),
+  crawlMaxDepth: z.number().optional(),
+  crawlMaxPages: z.number().optional(),
+  crawlRelevanceThreshold: z.number().optional(),
+  crawlProgress: z.object({
+    urlsCrawled: z.number(),
+    urlsPending: z.number(),
+    urlsFailed: z.number(),
+    currentDepth: z.number()
+  }).optional(),
+  crawlSummary: z.object({
+    totalSources: z.number(),
+    runningSources: z.number(),
+    completedSources: z.number(),
+    failedSources: z.number(),
+    lastUpdatedAt: z.number().optional()
+  }).optional()
+}).strict()
+
+export type ResearchMetadata = z.infer<typeof researchMetadata>
+
+// Use the enhanced metadata schema (imported at top of file)
+export const researchSourceMetadata = enhancedResearchSourceMetadata
+export type ResearchSourceMetadata = EnhancedResearchSourceMetadata
+
+export const researchRecords = sqliteTable('research_records', {
+  id: integer('id').primaryKey(),
+  projectId: integer('project_id')
+    .references(() => projects.id, { onDelete: 'cascade' }),
+  topic: text('topic').notNull(),
+  description: text('description'),
+  status: text('status', {
+    enum: ['initializing', 'gathering', 'processing', 'building', 'complete', 'failed']
+  })
+    .notNull()
+    .default('initializing'),
+
+  // Progress tracking
+  totalSources: integer('total_sources').default(0),
+  processedSources: integer('processed_sources').default(0),
+  sectionsTotal: integer('sections_total').default(0),
+  sectionsCompleted: integer('sections_completed').default(0),
+
+  // Configuration
+  maxSources: integer('max_sources').default(10),
+  maxDepth: integer('max_depth').default(3),
+  strategy: text('strategy', { enum: ['fast', 'balanced', 'thorough'] })
+    .notNull()
+    .default('balanced'),
+
+  // Metadata with strict type safety
+  metadata: text('metadata', { mode: 'json' })
+    .$type<ResearchMetadata>()
+    .default(sql`'{}'`),
+
+  createdAt: integer('created_at').notNull(),
+  updatedAt: integer('updated_at').notNull(),
+  completedAt: integer('completed_at')
+})
+
+export const researchSources = sqliteTable('research_sources', {
+  id: integer('id').primaryKey(),
+  researchId: integer('research_id')
+    .notNull()
+    .references(() => researchRecords.id, { onDelete: 'cascade' }),
+
+  url: text('url').notNull(),
+  title: text('title'),
+  sourceType: text('source_type', { enum: ['web', 'pdf', 'academic', 'api'] })
+    .notNull()
+    .default('web'),
+
+  // Status tracking
+  status: text('status', { enum: ['pending', 'fetching', 'processing', 'complete', 'failed'] })
+    .notNull()
+    .default('pending'),
+
+  // Content metadata
+  contentLength: integer('content_length'),
+  tokenCount: integer('token_count'),
+  cited: integer('cited', { mode: 'boolean' }).default(false),
+  citationCount: integer('citation_count').default(0),
+
+  // Error handling
+  errorMessage: text('error_message'),
+  retryCount: integer('retry_count').default(0),
+
+  fetchedAt: integer('fetched_at'),
+  metadata: text('metadata', { mode: 'json' })
+    .$type<ResearchSourceMetadata>()
+    .default(sql`'{}'`),
+  createdAt: integer('created_at').notNull(),
+  updatedAt: integer('updated_at').notNull()
+}, (table) => ({
+  researchIdIdx: index('research_sources_research_id_idx').on(table.researchId),
+  statusIdx: index('research_sources_status_idx').on(table.status),
+  // Composite indexes for common query patterns
+  researchStatusIdx: index('research_sources_research_status_idx')
+    .on(table.researchId, table.status),
+  fetchedAtIdx: index('research_sources_fetched_at_idx').on(table.fetchedAt)
+}))
+
+export const researchProcessedData = sqliteTable('research_processed_data', {
+  id: integer('id').primaryKey(),
+  sourceId: integer('source_id')
+    .notNull()
+    .references(() => researchSources.id, { onDelete: 'cascade' }),
+  researchId: integer('research_id')
+    .notNull()
+    .references(() => researchRecords.id, { onDelete: 'cascade' }),
+
+  // Content fields
+  rawContent: text('raw_content'),
+  cleanedContent: text('cleaned_content'),
+  markdown: text('markdown'),
+  summary: text('summary'), // AI-generated summary
+
+  // Extracted metadata
+  title: text('title'),
+  excerpt: text('excerpt'),
+  author: text('author'),
+  publishDate: integer('publish_date'),
+
+  // Analysis data
+  keywords: text('keywords', { mode: 'json' }).$type<string[]>().default(sql`'[]'`),
+  entities: text('entities', { mode: 'json' })
+    .$type<Array<{ text: string; type: string; relevance: number }>>()
+    .default(sql`'[]'`),
+
+  // Processing metadata
+  tokenCount: integer('token_count'),
+  relevanceScore: real('relevance_score'), // 0-1 scale
+
+  createdAt: integer('created_at').notNull()
+}, (table) => ({
+  sourceIdIdx: index('research_processed_data_source_id_idx').on(table.sourceId),
+  researchIdIdx: index('research_processed_data_research_id_idx').on(table.researchId)
+}))
+
+export const researchDocumentSections = sqliteTable('research_document_sections', {
+  id: integer('id').primaryKey(),
+  researchId: integer('research_id')
+    .notNull()
+    .references(() => researchRecords.id, { onDelete: 'cascade' }),
+
+  title: text('title').notNull(),
+  description: text('description'),
+  content: text('content'),
+
+  // Section structure
+  orderIndex: integer('order_index').notNull(),
+  level: integer('level').default(1), // Heading level (1-6)
+  parentSectionId: integer('parent_section_id'),
+
+  // Citation tracking
+  citedSourceIds: text('cited_source_ids', { mode: 'json' })
+    .$type<number[]>()
+    .default(sql`'[]'`),
+
+  // Status
+  status: text('status', { enum: ['pending', 'drafting', 'complete', 'reviewed'] })
+    .notNull()
+    .default('pending'),
+
+  // Metadata
+  wordCount: integer('word_count'),
+  tokenCount: integer('token_count'),
+
+  createdAt: integer('created_at').notNull(),
+  updatedAt: integer('updated_at').notNull()
+}, (table) => ({
+  researchIdIdx: index('research_document_sections_research_id_idx').on(table.researchId),
+  orderIdxIdx: index('research_document_sections_order_idx').on(table.orderIndex),
+  // Composite indexes for common query patterns
+  researchOrderIdx: index('research_document_sections_research_order_idx')
+    .on(table.researchId, table.orderIndex),
+  statusIdx: index('research_document_sections_status_idx').on(table.status)
+}))
+
+export const researchExports = sqliteTable('research_exports', {
+  id: integer('id').primaryKey(),
+  researchId: integer('research_id')
+    .notNull()
+    .references(() => researchRecords.id, { onDelete: 'cascade' }),
+
+  format: text('format', { enum: ['markdown', 'pdf', 'html', 'docx'] }).notNull(),
+  filename: text('filename').notNull(),
+
+  // Export metadata
+  size: integer('size'), // File size in bytes
+  downloadUrl: text('download_url'), // If stored externally
+  downloadCount: integer('download_count').default(0),
+
+  // Content (optional, for small exports)
+  content: text('content'),
+
+  createdAt: integer('created_at').notNull(),
+  expiresAt: integer('expires_at') // Optional TTL for downloads
+}, (table) => ({
+  researchIdIdx: index('research_exports_research_id_idx').on(table.researchId)
+}))
+
+// =============================================================================
+// WEB CRAWLING TABLES
+// =============================================================================
+
+export const domains = sqliteTable('domains', {
+  id: integer('id').primaryKey(),
+  domain: text('domain').notNull().unique(),
+  robotsTxt: text('robots_txt'),
+  crawlDelay: integer('crawl_delay').notNull().default(1000), // milliseconds
+  lastCrawlAt: integer('last_crawl_at'),
+  createdAt: integer('created_at').notNull(),
+  updatedAt: integer('updated_at').notNull()
+}, (table) => ({
+  domainIdx: index('domains_domain_idx').on(table.domain)
+}))
+
+export const urls = sqliteTable('urls', {
+  id: integer('id').primaryKey(),
+  url: text('url').notNull(),
+  urlHash: text('url_hash').notNull().unique(), // MD5 hash for fast lookups
+  domain: text('domain').notNull(),
+  status: text('status', { enum: ['pending', 'crawled', 'failed'] })
+    .notNull()
+    .default('pending'),
+  httpStatus: integer('http_status'),
+  lastCrawledAt: integer('last_crawled_at'),
+  nextCrawlAt: integer('next_crawl_at'), // TTL-based recrawling
+  crawlSessionId: text('crawl_session_id'),
+  createdAt: integer('created_at').notNull(),
+  updatedAt: integer('updated_at').notNull()
+}, (table) => ({
+  urlHashIdx: index('urls_url_hash_idx').on(table.urlHash),
+  domainIdx: index('urls_domain_idx').on(table.domain),
+  statusIdx: index('urls_status_idx').on(table.status),
+  nextCrawlIdx: index('urls_next_crawl_idx').on(table.nextCrawlAt)
+}))
+
+export const crawledContent = sqliteTable('crawled_content', {
+  id: integer('id').primaryKey(),
+  urlId: integer('url_id')
+    .notNull()
+    .references(() => urls.id, { onDelete: 'cascade' }),
+  researchSourceId: integer('research_source_id').references(() => researchSources.id, { onDelete: 'set null' }),
+  depth: integer('depth'),
+  title: text('title'),
+  cleanContent: text('clean_content'), // From @mozilla/readability
+  rawHtml: text('raw_html'),
+  summary: text('summary'), // AI-generated summary
+  metadata: text('metadata', { mode: 'json' })
+    .$type<{
+      author?: string
+      date?: string
+      publishedTime?: string
+      siteName?: string
+      excerpt?: string
+      lang?: string
+    }>()
+    .default(sql`'{}'`),
+  links: text('links', { mode: 'json' })
+    .$type<string[]>()
+    .notNull()
+    .default(sql`'[]'`), // Extracted links array
+  crawlSessionId: text('crawl_session_id'),
+  crawledAt: integer('crawled_at').notNull()
+}, (table) => ({
+  urlIdx: index('crawled_content_url_idx').on(table.urlId),
+  researchSourceIdx: index('crawled_content_research_source_idx').on(table.researchSourceId),
+  crawlSessionIdx: index('crawled_content_crawl_session_idx').on(table.crawlSessionId)
+}))
+
+// Web Crawling Relations
+export const domainsRelations = relations(domains, ({ many }) => ({
+  urls: many(urls)
+}))
+
+export const urlsRelations = relations(urls, ({ many }) => ({
+  content: many(crawledContent)
+}))
+
+export const crawledContentRelations = relations(crawledContent, ({ one }) => ({
+  url: one(urls, {
+    fields: [crawledContent.urlId],
+    references: [urls.id]
+  })
+}))
+
+// Deep Research Relations
+export const researchRecordsRelations = relations(researchRecords, ({ one, many }) => ({
+  project: one(projects, {
+    fields: [researchRecords.projectId],
+    references: [projects.id]
+  }),
+  sources: many(researchSources),
+  processedData: many(researchProcessedData),
+  sections: many(researchDocumentSections),
+  exports: many(researchExports)
+}))
+
+export const researchSourcesRelations = relations(researchSources, ({ one, many }) => ({
+  research: one(researchRecords, {
+    fields: [researchSources.researchId],
+    references: [researchRecords.id]
+  }),
+  processedData: many(researchProcessedData),
+  links: many(researchSourceLinks)
+}))
+
+export const researchProcessedDataRelations = relations(researchProcessedData, ({ one }) => ({
+  source: one(researchSources, {
+    fields: [researchProcessedData.sourceId],
+    references: [researchSources.id]
+  }),
+  research: one(researchRecords, {
+    fields: [researchProcessedData.researchId],
+    references: [researchRecords.id]
+  })
+}))
+
+export const researchDocumentSectionsRelations = relations(researchDocumentSections, ({ one, many }) => ({
+  research: one(researchRecords, {
+    fields: [researchDocumentSections.researchId],
+    references: [researchRecords.id]
+  }),
+  parentSection: one(researchDocumentSections, {
+    fields: [researchDocumentSections.parentSectionId],
+    references: [researchDocumentSections.id],
+    relationName: 'subsections'
+  }),
+  subsections: many(researchDocumentSections, {
+    relationName: 'subsections'
+  })
+}))
+
+export const researchExportsRelations = relations(researchExports, ({ one }) => ({
+  research: one(researchRecords, {
+    fields: [researchExports.researchId],
+    references: [researchRecords.id]
+  })
+}))
+
 // Model Configuration Relations
 export const modelConfigsRelations = relations(modelConfigs, ({ many }) => ({
   presets: many(modelPresets)
@@ -1485,6 +2029,27 @@ export const insertModelConfigSchema = createInsertSchema(modelConfigs)
 export const insertModelPresetSchema = createInsertSchema(modelPresets)
 export const selectModelConfigSchema = createSelectSchema(modelConfigs)
 export const selectModelPresetSchema = createSelectSchema(modelPresets)
+
+// Deep Research Schemas - OpenAPI compatible
+export const insertResearchRecordSchema = createInsertSchema(researchRecords).openapi('InsertResearchRecord')
+export const insertResearchSourceSchema = createInsertSchema(researchSources).openapi('InsertResearchSource')
+export const insertResearchProcessedDataSchema = createInsertSchema(researchProcessedData).openapi('InsertResearchProcessedData')
+export const insertResearchDocumentSectionSchema = createInsertSchema(researchDocumentSections).openapi('InsertResearchDocumentSection')
+export const insertResearchExportSchema = createInsertSchema(researchExports).openapi('InsertResearchExport')
+
+export const selectResearchRecordSchema = createSelectSchema(researchRecords).openapi('ResearchRecord')
+export const selectResearchSourceSchema = createSelectSchema(researchSources).openapi('ResearchSource')
+export const selectResearchProcessedDataSchema = createSelectSchema(researchProcessedData).openapi('ResearchProcessedData')
+export const selectResearchDocumentSectionSchema = createSelectSchema(researchDocumentSections).openapi('ResearchDocumentSection')
+export const selectResearchExportSchema = createSelectSchema(researchExports).openapi('ResearchExport')
+
+// Web Crawling Schemas
+export const insertDomainSchema = createInsertSchema(domains).openapi('InsertDomain')
+export const insertUrlSchema = createInsertSchema(urls).openapi('InsertUrl')
+export const insertCrawledContentSchema = createInsertSchema(crawledContent).openapi('InsertCrawledContent')
+export const selectDomainSchema = createSelectSchema(domains).openapi('Domain')
+export const selectUrlSchema = createSelectSchema(urls).openapi('Url')
+export const selectCrawledContentSchema = createSelectSchema(crawledContent).openapi('CrawledContent')
 
 // NOTE: OpenAPI naming will be handled in the route definitions where schemas are used
 
@@ -1536,3 +2101,47 @@ export type MCPServerConfiguration = McpServerConfig
 
 // Re-export important types that are already defined as interfaces above
 // (GitFileStatus, GitCommitAuthor, ImportInfo, ExportInfo, FileRelationship, RelevanceWeights are already exported)
+
+export const researchSourceLinks = sqliteTable(
+  'research_source_links',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    sourceId: integer('source_id')
+      .notNull()
+      .references(() => researchSources.id, { onDelete: 'cascade' }),
+    url: text('url').notNull(),
+    title: text('title'),
+    status: text('status', { enum: ['pending', 'crawled', 'failed'] }).notNull().default('pending'),
+    depth: integer('depth'),
+    parentUrl: text('parent_url'),
+    relevanceScore: real('relevance_score'),
+    tokenCount: integer('token_count'),
+    discoveredAt: integer('discovered_at', { mode: 'number' })
+      .notNull(),
+    crawlSessionId: text('crawl_session_id'),
+    createdAt: integer('created_at', { mode: 'number' })
+      .notNull(),
+    updatedAt: integer('updated_at', { mode: 'number' })
+      .notNull()
+  },
+  table => ({
+    sourceDiscoveredAtIdx: index('research_source_links_source_discovered_idx').on(
+      table.sourceId,
+      table.discoveredAt
+    ),
+    sourceUrlUnique: uniqueIndex('research_source_links_source_url_idx').on(table.sourceId, table.url)
+  })
+)
+
+export const researchSourceLinksRelations = relations(researchSourceLinks, ({ one }) => ({
+  source: one(researchSources, {
+    fields: [researchSourceLinks.sourceId],
+    references: [researchSources.id]
+  })
+}))
+
+export const insertResearchSourceLinkSchema = createInsertSchema(researchSourceLinks).openapi('InsertResearchSourceLink')
+export const selectResearchSourceLinkSchema = createSelectSchema(researchSourceLinks).openapi('ResearchSourceLink')
+
+export type ResearchSourceLink = typeof researchSourceLinks.$inferSelect
+export type InsertResearchSourceLink = typeof researchSourceLinks.$inferInsert

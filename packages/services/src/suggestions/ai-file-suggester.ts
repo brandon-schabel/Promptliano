@@ -269,16 +269,21 @@ export async function suggestFilesFromPartialContent(
     console.error('[FileSuggester] AI file suggestion failed:', error)
 
     // Fallback: return first N files sorted by path
-    const fallbackFiles = partialFiles.slice(0, maxResults).map((file) => ({
-      fileId: file.fileId,
-      path: file.path,
-      confidence: 0.5,
-      relevance: 0.5,
-      reasons: ['Fallback: AI suggestion failed'],
-      extension: file.extension,
-      lineCount: file.lineCount,
-      totalLines: file.totalLines
-    }))
+    // Filter by minConfidence (fallback uses 0.5, so if minConfidence > 0.5, return empty)
+    const fallbackConfidence = 0.5
+    const fallbackFiles =
+      fallbackConfidence >= minConfidence
+        ? partialFiles.slice(0, maxResults).map((file) => ({
+            fileId: file.fileId,
+            path: file.path,
+            confidence: fallbackConfidence,
+            relevance: fallbackConfidence,
+            reasons: ['Fallback: AI suggestion failed'],
+            extension: file.extension,
+            lineCount: file.lineCount,
+            totalLines: file.totalLines
+          }))
+        : []
 
     return {
       suggestedFiles: fallbackFiles,

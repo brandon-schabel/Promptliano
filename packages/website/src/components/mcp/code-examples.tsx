@@ -237,9 +237,7 @@ export function CodeExamples() {
             onClick={() => setSelectedCategory(category.id)}
             className={cn(
               'px-4 py-2 rounded-lg border transition-all flex items-center gap-2',
-              selectedCategory === category.id
-                ? 'border-primary bg-primary/10 text-primary'
-                : 'border-border hover:border-primary/50'
+              selectedCategory === category.id ? 'border-primary bg-primary/10 text-primary' : 'hover:border-primary/50'
             )}
           >
             <span>{category.icon}</span>
@@ -257,9 +255,7 @@ export function CodeExamples() {
               onClick={() => setSelectedExample(example)}
               className={cn(
                 'w-full text-left p-4 rounded-lg border transition-all',
-                selectedExample?.id === example.id
-                  ? 'border-primary bg-primary/10'
-                  : 'border-border hover:border-primary/50'
+                selectedExample?.id === example.id ? 'border-primary bg-primary/10' : 'hover:border-primary/50'
               )}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}

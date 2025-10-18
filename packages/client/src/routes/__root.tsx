@@ -1,6 +1,10 @@
 // File: packages/client/src/routes/__root.tsx
-import { Outlet, createRootRouteWithContext } from '@tanstack/react-router'
+import { Outlet, createRootRouteWithContext, isRedirect } from '@tanstack/react-router'
+import type { AuthStatusResponse } from '@promptliano/api-client'
 import type { RouterContext } from '../main'
+import { CONNECTION_QUERY_KEY, ConnectionSnapshot, createConnectionSnapshot } from '@/lib/system/connection-status'
+import { ServerConnectionOverlay } from '@/components/server-connection/server-connection-overlay'
+import { isNetworkError, getNetworkErrorMessage, withTimeout } from '@/lib/system/network'
 // Removed: import { AppNavbar } from '@/components/navigation/app-navbar';
 import { AppSidebar } from '@/components/navigation/app-sidebar' // Added
 import { SidebarProvider, SidebarTrigger } from '@promptliano/ui' // Added
@@ -25,10 +29,10 @@ import { useNavigate } from '@tanstack/react-router'
 import { useGetActiveProjectTabId, useAppSettings } from '@/hooks/use-kv-local-storage'
 import { MenuIcon } from 'lucide-react' // For a custom trigger example
 import { Button } from '@promptliano/ui'
-import { useMigrateDefaultTab } from '@/hooks/use-migrate-default-tab'
-import { useMigrateTabViews } from '@/hooks/use-migrate-tab-views'
-import { useSyncProviderSettings } from '@/hooks/use-sync-provider-settings'
-import { useReactScan } from '@/hooks/use-react-scan'
+import { useAuth } from '@/contexts/auth-context'
+import { Loader2 } from 'lucide-react'
+import { redirect } from '@tanstack/react-router'
+import { useQueryClient } from '@tanstack/react-query'
 
 // Dynamic imports for DevTools - only load when enabled
 const ReactQueryDevtools = React.lazy(() =>
@@ -48,6 +52,63 @@ const AIDevtools = React.lazy(() =>
     default: module.AIDevtools
   }))
 )
+
+export const DEFAULT_AUTH_SETTINGS: AuthStatusResponse['data']['authSettings'] = {
+  requirePassword: true,
+  sessionTimeout: 3600,
+  maxLoginAttempts: 5
+}
+
+function normalizeAuthSettings(settings: unknown): AuthStatusResponse['data']['authSettings'] {
+  if (settings && typeof settings === 'object') {
+    const record = settings as Record<string, unknown>
+    return {
+      requirePassword:
+        typeof record.requirePassword === 'boolean' ? record.requirePassword : DEFAULT_AUTH_SETTINGS.requirePassword,
+      sessionTimeout:
+        typeof record.sessionTimeout === 'number' ? record.sessionTimeout : DEFAULT_AUTH_SETTINGS.sessionTimeout,
+      maxLoginAttempts:
+        typeof record.maxLoginAttempts === 'number' ? record.maxLoginAttempts : DEFAULT_AUTH_SETTINGS.maxLoginAttempts
+    }
+  }
+
+  return { ...DEFAULT_AUTH_SETTINGS }
+}
+
+export function normalizeAuthStatus(status: unknown): AuthStatusResponse {
+  if (status && typeof status === 'object') {
+    const candidate = status as Record<string, unknown>
+
+    if ('data' in candidate && typeof candidate.data === 'object' && candidate.data !== null) {
+      const data = candidate.data as Record<string, unknown>
+      return {
+        success: true as const,
+        data: {
+          needsSetup: typeof data.needsSetup === 'boolean' ? data.needsSetup : false,
+          authSettings: normalizeAuthSettings(data.authSettings)
+        }
+      }
+    }
+
+    if ('needsSetup' in candidate) {
+      return {
+        success: true as const,
+        data: {
+          needsSetup: typeof candidate.needsSetup === 'boolean' ? (candidate.needsSetup as boolean) : false,
+          authSettings: normalizeAuthSettings(candidate.authSettings)
+        }
+      }
+    }
+  }
+
+  return {
+    success: true as const,
+    data: {
+      needsSetup: true,
+      authSettings: { ...DEFAULT_AUTH_SETTINGS }
+    }
+  }
+}
 
 function GlobalCommandPalette() {
   const [open, setOpen] = useState(false)
@@ -179,6 +240,91 @@ function GlobalCommandPalette() {
 }
 
 export const Route = createRootRouteWithContext<RouterContext>()({
+  beforeLoad: async ({ context, location }) => {
+    const existingConnection = context.queryClient.getQueryData<ConnectionSnapshot>(CONNECTION_QUERY_KEY)
+    if (existingConnection && existingConnection.status !== 'connected') {
+      const cachedFullStatus = context.queryClient.getQueryData(['auth', 'full-status'])
+      const normalized = cachedFullStatus ? normalizeAuthStatus(cachedFullStatus) : undefined
+
+      return {
+        connection: existingConnection,
+        setupStatus: { needsSetup: normalized?.data.needsSetup ?? false },
+        authSettings: normalized?.data.authSettings ?? DEFAULT_AUTH_SETTINGS
+      }
+    }
+
+    try {
+      const cachedStatus = context.queryClient.getQueryData(['auth', 'full-status'])
+
+      const fullStatus = cachedStatus
+        ? normalizeAuthStatus(cachedStatus)
+        : normalizeAuthStatus(await withTimeout(context.authClient.getAuthStatus(), 8000))
+      context.queryClient.setQueryData(['auth', 'full-status'], fullStatus)
+
+      context.queryClient.setQueryData(
+        CONNECTION_QUERY_KEY,
+        createConnectionSnapshot('connected', null, Date.now(), Date.now())
+      )
+
+      const authStatus = {
+        needsSetup: fullStatus.data.needsSetup,
+        authSettings: fullStatus.data.authSettings
+      }
+
+      context.queryClient.setQueryData(['auth', 'setup-status'], authStatus.needsSetup)
+      context.queryClient.setQueryData(['auth', 'auth-settings'], authStatus.authSettings)
+
+      if (authStatus.needsSetup && location.pathname !== '/setup') {
+        throw redirect({ to: '/setup' })
+      }
+
+      if (!authStatus.needsSetup && location.pathname === '/setup') {
+        const { redirect } = await import('@tanstack/react-router')
+        throw redirect({ to: '/login' })
+      }
+
+      const connectionSnapshot = createConnectionSnapshot('connected', null, Date.now(), Date.now())
+      context.queryClient.setQueryData(CONNECTION_QUERY_KEY, connectionSnapshot)
+
+      return {
+        setupStatus: { needsSetup: authStatus.needsSetup },
+        authSettings: authStatus.authSettings,
+        connection: connectionSnapshot
+      }
+    } catch (error) {
+      if (isRedirect(error)) {
+        throw error
+      }
+
+      if (isNetworkError(error) || (error instanceof Error && error.message.includes('Request timed out'))) {
+        const snapshot = createConnectionSnapshot(
+          'disconnected',
+          getNetworkErrorMessage(error),
+          Date.now(),
+          existingConnection?.lastSuccessfulConnectionAt ?? null
+        )
+        context.queryClient.setQueryData(CONNECTION_QUERY_KEY, snapshot)
+        return {
+          connection: snapshot,
+          setupStatus: { needsSetup: context.queryClient.getQueryData(['auth', 'setup-status']) ?? false },
+          authSettings: context.queryClient.getQueryData(['auth', 'auth-settings']) ?? DEFAULT_AUTH_SETTINGS
+        }
+      }
+
+      console.error('[ROOT-GUARD] Unexpected error during auth status check', error)
+      const fallbackStatus = {
+        success: true as const,
+        data: {
+          needsSetup: true,
+          authSettings: { ...DEFAULT_AUTH_SETTINGS }
+        }
+      } satisfies AuthStatusResponse
+      context.queryClient.setQueryData(['auth', 'full-status'], fallbackStatus)
+      context.queryClient.setQueryData(['auth', 'setup-status'], true)
+      const { redirect } = await import('@tanstack/react-router')
+      throw redirect({ to: '/setup' })
+    }
+  },
   component: RootComponent
 })
 
@@ -186,79 +332,66 @@ function RootComponent() {
   const [activeProjectTabId] = useGetActiveProjectTabId()
   const navigate = useNavigate()
   const [settings] = useAppSettings()
+  const { isLoading: authLoading, needsSetup } = useAuth()
+  const queryClient = useQueryClient()
+  const connectionSnapshot = queryClient.getQueryData(CONNECTION_QUERY_KEY) as ConnectionSnapshot | undefined
 
-  // Get dev tools enabled settings
-  const devToolsEnabled = settings?.devToolsEnabled || {
-    tanstackQuery: false,
-    tanstackRouter: false,
-    reactScan: false,
-    drizzleStudio: false,
-    swaggerUI: false,
-    mcpInspector: false,
-    aiSdk: false
+  const isAuthPage = window.location.pathname === '/setup' || window.location.pathname === '/login'
+
+  if (authLoading) {
+    return (
+      <div className='flex h-screen items-center justify-center bg-background'>
+        <div className='flex flex-col items-center gap-4'>
+          <Loader2 className='h-8 w-8 animate-spin text-primary' />
+          <p className='text-muted-foreground'>Initializing Promptliano...</p>
+        </div>
+      </div>
+    )
   }
-
-  const isDevEnv = import.meta.env.DEV
-
-  // Use React Scan hook for dynamic loading
-  useReactScan(devToolsEnabled.reactScan)
-
-  // Migrate legacy defaultTab to numeric ID system
-  useMigrateDefaultTab()
-
-  // Migrate old tab views to new Manage sub-view structure
-  useMigrateTabViews()
-
-  // Sync provider settings (custom URLs) with server
-  useSyncProviderSettings()
-
-  // Redirect from old /keys route to new /providers route
-  useEffect(() => {
-    if (window.location.pathname === '/keys') {
-      navigate({ to: '/providers', replace: true })
-    }
-  }, [])
 
   return (
     <ErrorBoundary>
       <SidebarProvider>
-        {/* defaultOpen={initialSidebarOpen} can be used here */}
         <div className='flex h-screen w-screen bg-background text-foreground'>
-          {/* Ensure background and text colors are set */}
-          <ComponentErrorBoundary componentName='Sidebar'>
-            <AppSidebar data-testid='app-sidebar' />
-          </ComponentErrorBoundary>
+          {!isAuthPage && (
+            <ComponentErrorBoundary componentName='Sidebar'>
+              <AppSidebar data-testid='app-sidebar' />
+            </ComponentErrorBoundary>
+          )}
           <main className='flex-1 min-h-0 overflow-auto relative' data-testid='main-content'>
-            {/* pt-[env(safe-area-inset-top)] can be added if needed */}
-            {/* Example of a manual SidebarTrigger fixed in the content area */}
-            {/* You might not need this if SidebarRail is sufficient */}
-            <div className='absolute top-4 left-4 z-20 md:hidden'>
-              {/* Show only on mobile, or remove if rail is enough */}
-              <SidebarTrigger asChild>
-                <Button variant='ghost' size='icon'>
-                  <MenuIcon />
-                </Button>
-              </SidebarTrigger>
-            </div>
+            {!isAuthPage && (
+              <div className='absolute top-4 left-4 z-20 md:hidden'>
+                <SidebarTrigger asChild>
+                  <Button variant='ghost' size='icon'>
+                    <MenuIcon />
+                  </Button>
+                </SidebarTrigger>
+              </div>
+            )}
+            {!isAuthPage && connectionSnapshot && connectionSnapshot.status !== 'connected' && (
+              <ServerConnectionOverlay />
+            )}
             <ComponentErrorBoundary componentName='Main Content'>
               <Outlet />
             </ComponentErrorBoundary>
           </main>
-          <ComponentErrorBoundary componentName='Command Palette'>
-            <GlobalCommandPalette />
-          </ComponentErrorBoundary>
+          {!isAuthPage && (
+            <ComponentErrorBoundary componentName='Command Palette'>
+              <GlobalCommandPalette />
+            </ComponentErrorBoundary>
+          )}
           <ComponentErrorBoundary componentName='Development Tools'>
-            {devToolsEnabled.tanstackQuery && (
+            {settings?.devToolsEnabled?.tanstackQuery && (
               <Suspense fallback={null}>
                 <ReactQueryDevtools initialIsOpen={false} />
               </Suspense>
             )}
-            {devToolsEnabled.tanstackRouter && (
+            {settings?.devToolsEnabled?.tanstackRouter && (
               <Suspense fallback={null}>
                 <TanStackRouterDevtools position='bottom-right' />
               </Suspense>
             )}
-            {isDevEnv && devToolsEnabled.aiSdk && (
+            {import.meta.env.DEV && settings?.devToolsEnabled?.aiSdk && (
               <Suspense fallback={null}>
                 <AIDevtools />
               </Suspense>

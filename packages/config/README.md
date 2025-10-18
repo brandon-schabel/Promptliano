@@ -61,7 +61,7 @@ The following environment variables can override default settings:
 - `CORS_ORIGIN` - CORS origin (default: \*)
 - `SERVER_HOST` - Server host (default: localhost)
 - `SERVER_PORT` - Server port (default: 3147)
-- `CLIENT_URL` - Client URL (default: <http://localhost:1420>)
+- `CLIENT_URL` - Client URL (default: <http://localhost:5173>)
 - `API_URL` - API URL (default: <http://localhost:3147>)
 
 ## Configuration Validation

@@ -102,19 +102,19 @@ export class TestExecutionCoordinator {
         {
           name: 'frontend',
           command: 'bun run dev',
-          port: 1420,
-          env: { VITE_BASE_URL: 'http://localhost:1420' },
-          healthCheck: 'http://localhost:1420',
-          readyPattern: /Local:\s+http:\/\/localhost:1420/
+          port: 5173,
+          env: { VITE_BASE_URL: 'http://localhost:5173' },
+          healthCheck: 'http://localhost:5173',
+          readyPattern: /Local:\s+http:\/\/localhost:5173/
         }
       ],
       envVars: {
         NODE_ENV: 'test',
-        VITE_BASE_URL: 'http://localhost:1420',
+        VITE_BASE_URL: 'http://localhost:5173',
         API_BASE_URL: 'http://localhost:3147'
       },
       healthChecks: [
-        { name: 'Frontend', url: 'http://localhost:1420' },
+        { name: 'Frontend', url: 'http://localhost:5173' },
         { name: 'Backend API', url: 'http://localhost:3147/health' },
         { name: 'MCP Integration', url: 'http://localhost:3147/mcp/health', expectedStatus: 200 }
       ],
@@ -129,11 +129,11 @@ export class TestExecutionCoordinator {
       envVars: {
         NODE_ENV: 'test',
         CI: 'true',
-        VITE_BASE_URL: 'http://localhost:1420',
+        VITE_BASE_URL: 'http://localhost:5173',
         API_BASE_URL: 'http://localhost:3147'
       },
       healthChecks: [
-        { name: 'Frontend', url: 'http://localhost:1420' },
+        { name: 'Frontend', url: 'http://localhost:5173' },
         { name: 'Backend API', url: 'http://localhost:3147/health' }
       ],
       timeout: 600000 // 10 minutes for CI
@@ -155,7 +155,7 @@ export class TestExecutionCoordinator {
       ],
       envVars: {
         NODE_ENV: 'development',
-        VITE_BASE_URL: 'http://localhost:1420'
+        VITE_BASE_URL: 'http://localhost:5173'
       },
       healthChecks: [{ name: 'Backend API', url: 'http://localhost:3147/health' }],
       timeout: 120000 // 2 minutes
@@ -181,15 +181,15 @@ export class TestExecutionCoordinator {
         {
           name: 'frontend',
           command: 'bun run dev',
-          port: 1420,
-          healthCheck: 'http://localhost:1420'
+          port: 5173,
+          healthCheck: 'http://localhost:5173'
         }
       ],
       envVars: {
         NODE_ENV: 'test',
         DISABLE_ANIMATIONS: 'true'
       },
-      healthChecks: [{ name: 'Frontend', url: 'http://localhost:1420' }],
+      healthChecks: [{ name: 'Frontend', url: 'http://localhost:5173' }],
       timeout: 180000 // 3 minutes
     })
   }
@@ -615,8 +615,8 @@ export class TestExecutionCoordinator {
         </div>
         
         ${suiteReport.results
-          .map(
-            (result: ExecutionSummary) => `
+        .map(
+          (result: ExecutionSummary) => `
             <div class="environment">
                 <h3>${result.environment} Environment</h3>
                 <p><strong>Duration:</strong> ${(result.duration / 1000).toFixed(2)}s</p>
@@ -633,8 +633,8 @@ export class TestExecutionCoordinator {
                 </ul>
             </div>
         `
-          )
-          .join('')}
+        )
+        .join('')}
     </body>
     </html>
     `

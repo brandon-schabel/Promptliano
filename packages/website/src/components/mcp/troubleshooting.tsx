@@ -274,7 +274,7 @@ export function Troubleshooting() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder='Search issues...'
-            className='w-full pl-10 pr-4 py-3 bg-background border border-border rounded-lg focus:border-primary focus:outline-none'
+            className='w-full pl-10 pr-4 py-3 bg-background border rounded-lg focus:border-primary focus:outline-none'
           />
         </div>
         <div className='flex gap-2 flex-wrap'>
@@ -286,7 +286,7 @@ export function Troubleshooting() {
                 'px-4 py-2 rounded-lg border transition-all flex items-center gap-2',
                 selectedCategory === category.id
                   ? 'border-primary bg-primary/10 text-primary'
-                  : 'border-border hover:border-primary/50'
+                  : 'hover:border-primary/50'
               )}
             >
               <span>{category.icon}</span>

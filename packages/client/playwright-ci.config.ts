@@ -41,7 +41,7 @@ export default defineConfig({
 
   // CI-optimized settings
   use: {
-    baseURL: process.env.VITE_BASE_URL || 'http://localhost:1420',
+    baseURL: process.env.VITE_BASE_URL || 'http://localhost:5173',
     trace: 'retain-on-failure', // More comprehensive tracing in CI
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',

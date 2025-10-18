@@ -1,5 +1,5 @@
 import type { MCPToolDefinition } from '../tools-registry'
-import { aiAssistantTool } from './content'
+import { aiAssistantTool, webCrawlingTool } from './content'
 import { gitManagerTool } from './git'
 import { projectManagerTool, promptManagerTool } from './project'
 import { flowManagerTool } from './workflow'
@@ -9,6 +9,7 @@ export const CONSOLIDATED_TOOLS: readonly MCPToolDefinition[] = Object.freeze([
   promptManagerTool,
   flowManagerTool,
   aiAssistantTool,
+  webCrawlingTool,
   gitManagerTool
 ])
 

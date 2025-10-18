@@ -27,7 +27,7 @@
     "knip": "knip-bun",
     "lint": "eslint . --cache",
     "prepack": "bun run build",
-    "prepare": "simple-git-hooks",
+    "_prepare_disabled_bun_bug": "simple-git-hooks",
     "release": "bumpp && bun publish --access public",
     "start": "NODE_ENV=production bun run ./src/main.ts",
     "typecheck": "tsc"
@@ -56,7 +56,6 @@
     "knip": "^5.63.1",
     "lint-staged": "^16.1.6",
     "prettier-plugin-packagejson": "^2.5.19",
-    "simple-git-hooks": "^2.13.1",
     "tsdown": "^0.14.2",
     "typescript": "^5.9.2"
   }

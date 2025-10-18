@@ -223,7 +223,7 @@ export class APITestHelpers {
     method: 'GET' | 'POST' | 'PUT' | 'DELETE' = 'GET',
     body?: any
   ) {
-    const baseUrl = new URL(page.url()).origin.replace(':1420', ':3147') // Client port to API port
+    const baseUrl = new URL(page.url()).origin.replace(':5173', ':3147') // Client port to API port
 
     const response = await page.evaluate(
       async ({ url, method, body }) => {
@@ -447,7 +447,7 @@ export class EnhancedAPIHelpers {
 export class TestDataManager {
   private createdItems: Array<{ type: string; id: number }> = []
 
-  constructor(private page: Page) {}
+  constructor(private page: Page) { }
 
   /**
    * Create and track a test project

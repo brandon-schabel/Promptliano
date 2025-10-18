@@ -9,6 +9,20 @@ Promptliano is an MCP (Model Context Protocol) server that gives AI assistants d
 
 Learn more at [promptliano.com](https://promptliano.com)
 
+## Features
+
+- **Project Management** - Organize your work with projects and files
+- **AI Chat** - Integrated chat interface with multiple AI providers
+- **Ticket System** - Track tasks and workflows
+- **Prompt Library** - Reusable prompts for common tasks
+- **Git Integration** - Version control integration
+- **Deep Research** - AI-powered comprehensive research and document generation
+  - Multi-source web scraping with intelligent content extraction
+  - AI-powered document outline generation
+  - Automated section building with citations
+  - Export to Markdown, PDF, HTML, DOCX
+  - Built-in security (SSRF protection, size limits, rate limiting)
+
 ## Quick Start
 
 ### Option 1: CLI Setup (Recommended)
@@ -116,7 +130,7 @@ bun install
 bun run dev
 ```
 
-The development UI will be available at [http://localhost:1420](http://localhost:1420)
+The development UI will be available at [http://localhost:5173](http://localhost:5173)
 
 ### File Search Backend
 
@@ -165,7 +179,7 @@ Upgrading from older versions: run database migrations (below) to drop legacy se
 ### Port Configuration (Dev)
 
 - Server API: `SERVER_PORT` or `PORT` (default: 3147)
-- Client UI (Vite): `CLIENT_DEV_PORT` (default: 1420)
+- Client UI (Vite): `CLIENT_DEV_PORT` (default: 5173)
 - Drizzle Studio: `DRIZZLE_STUDIO_PORT` (default: 4983)
 - MCP Inspector UI: `MCP_INSPECTOR_CLIENT_PORT` (default: 6274)
 - MCP Inspector Proxy: `MCP_INSPECTOR_SERVER_PORT` (default: 6277)
@@ -245,6 +259,43 @@ flag controls `bun run dev:server`. Leave it `false` to skip starting the Inspec
 run `bun run dev`.
 
 Advanced: An HTTP endpoint may be available at `http://localhost:3147/api/mcp` (project‑scoped: `/api/projects/{id}/mcp`). STDIO is recommended for the Inspector.
+
+## Deep Research
+
+The Deep Research feature automates comprehensive research workflows with AI-powered document generation.
+
+### How It Works
+
+1. **Create Research** - Define your research topic and parameters
+2. **Add Sources** - Manually add URLs or let AI find relevant sources
+3. **Process Sources** - Automatically extract and clean content
+4. **Generate Outline** - AI creates a structured document outline
+5. **Build Sections** - AI writes each section with citations
+6. **Export** - Download in your preferred format
+
+### Security Features
+
+Deep Research includes robust security measures for safe operation:
+
+- **URL Validation** - Prevents SSRF attacks by blocking:
+  - Internal addresses (localhost, 127.0.0.1, ::1)
+  - Private IP ranges (10.x, 192.168.x, 172.16-31.x)
+  - AWS metadata endpoints (169.254.169.254)
+  - Dangerous schemes (file://, ftp://, javascript:)
+
+- **Content Size Limits**
+  - 10MB maximum per HTTP source
+  - 1M characters maximum for text processing
+  - 100K tokens maximum for AI operations
+
+- **Rate Limiting** - Prevents abuse with:
+  - 10 AI requests per minute (outline generation, section building)
+  - 20 source fetches per minute
+  - **Note**: Rate limiting is disabled in development mode (`DEV=true`)
+
+- **Input Sanitization** - All user inputs validated with Zod schemas
+
+For detailed usage instructions, see [docs/DEEP_RESEARCH_USER_GUIDE.md](./docs/DEEP_RESEARCH_USER_GUIDE.md).
 
 ## GitHub Copilot (via proxy)
 

@@ -54,6 +54,8 @@ export interface DataTableProps<TData, TValue = unknown> {
 
   // Children passed to toolbar
   children?: React.ReactNode
+  toolbarContent?: (table: TanstackTable<TData>) => React.ReactNode
+  globalFilterPlaceholder?: string
 
   // Row actions
   onRowClick?: (row: Row<TData>) => void
@@ -61,6 +63,9 @@ export interface DataTableProps<TData, TValue = unknown> {
 
   // Custom components
   renderSubComponent?: (props: { row: Row<TData> }) => React.ReactElement
+
+  // Row selection (controlled)
+  rowSelection?: RowSelectionState
 }
 
 export interface DataTablePaginationProps<TData> {
@@ -77,6 +82,7 @@ export interface DataTableToolbarProps<TData> {
   table: TanstackTable<TData>
   globalFilter?: string
   onGlobalFilterChange?: OnChangeFn<string>
+  placeholder?: string
   children?: React.ReactNode
 }
 

@@ -20,7 +20,7 @@ export default defineConfig({
 
   // Global test settings
   use: {
-    baseURL: process.env.VITE_BASE_URL || 'http://localhost:1420',
+    baseURL: process.env.VITE_BASE_URL || 'http://localhost:5173',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',

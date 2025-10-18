@@ -83,6 +83,30 @@ export {
 } from './src/chat-service'
 
 export {
+  // Auth Service
+  createAuthService,
+  authService,
+  hashPassword,
+  verifyPassword,
+  generateAccessToken,
+  generateRefreshToken,
+  verifyAccessToken,
+  setupFirstUser,
+  authenticateUser,
+  refreshAccessToken,
+  logout,
+  logoutAllSessions,
+  needsSetup,
+  getAuthSettings,
+  updateAuthSettings,
+  cleanupExpiredTokens,
+  getJwtSecret,
+  type AuthService,
+  type JWTPayload,
+  type AuthTokens
+} from './src/auth-service'
+
+export {
   createChatStreamService,
   type ChatStreamService
 } from './src/chat-stream-service'
@@ -409,3 +433,83 @@ export { chatService as chatMessageService } from './src/chat-service'
 export { queueItemService } from './src/queue-item-service'
 export { selectedFileService } from './src/selected-file-service'
 export { taskService as ticketTaskService } from './src/task-service'
+
+
+// Deep Research Service
+export {
+  createDeepResearchService,
+  deepResearchService,
+  createResearch,
+  getResearchById,
+  getAllResearch,
+  updateResearch,
+  deleteResearch,
+  startResearch,
+  addSource,
+  processSource,
+  generateOutline,
+  buildSection,
+  exportDocument,
+  getProgress,
+  type DeepResearchService
+} from './src/deep-research-service'
+
+// Research Workflow Orchestration Service
+export {
+  createResearchWorkflowService,
+  researchWorkflowService,
+  executeWorkflow,
+  resumeWorkflow,
+  stopWorkflow,
+  getProgress as getWorkflowProgress,
+  type ResearchWorkflowService,
+  type WorkflowProgress,
+  type WorkflowOptions
+} from './src/research-workflow-service'
+
+// Web Crawling Service (Comprehensive)
+export {
+  createWebCrawlingService,
+  webCrawlingService,
+  startCrawl,
+  processUrl,
+  extractLinks,
+  fetchRobotsTxt,
+  isUrlAllowed,
+  processHtmlContent,
+  getCrawlProgress,
+  executeCrawl,
+  pauseCrawl,
+  resumeCrawl,
+  getCrawlArtifacts,
+  cancelCrawl,
+  type WebCrawlingService,
+  type CrawlOptions,
+  type CrawlProgress,
+  type CrawlSession,
+  type CrawlArtifactsOptions,
+  type CrawlArtifactsResult,
+  type CrawlArtifactPayload
+} from './src/web-crawling-service'
+
+// AI Link Relevance Service
+export {
+  createAiLinkRelevanceService,
+  aiLinkRelevanceService,
+  type AiLinkRelevanceServiceDeps,
+  type LinkRelevanceOptions,
+  type LinkRelevanceResult,
+  type BatchRelevanceResult
+} from './src/ai-link-relevance-service'
+
+// Crawl Debug Service
+export {
+  createCrawlDebugService,
+  crawlDebugService,
+  type CrawlDebugService,
+  type CrawlDebugEvent,
+  type EventCategory,
+  type EventLevel,
+  type EventFilters,
+  type CrawlDebugStats
+} from './src/crawl-debug-service'

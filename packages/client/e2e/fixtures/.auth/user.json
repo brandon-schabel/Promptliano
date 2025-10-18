@@ -2,7 +2,7 @@
   "cookies": [],
   "origins": [
     {
-      "origin": "http://localhost:1420",
+      "origin": "http://localhost:5173",
       "localStorage": [
         {
           "name": "projectTabs",

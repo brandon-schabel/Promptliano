@@ -9,19 +9,33 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SetupRouteImport } from './routes/setup'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ProvidersRouteImport } from './routes/providers'
 import { Route as PromptsRouteImport } from './routes/prompts'
 import { Route as ProjectsRouteImport } from './routes/projects'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as HealthRouteImport } from './routes/health'
 import { Route as DevSwaggerRouteImport } from './routes/dev-swagger'
+import { Route as DevMermaidRouteImport } from './routes/dev-mermaid'
 import { Route as DevMcpRouteImport } from './routes/dev-mcp'
 import { Route as DevDrizzleRouteImport } from './routes/dev-drizzle'
+import { Route as DeepResearchRouteImport } from './routes/deep-research'
 import { Route as ChatRouteImport } from './routes/chat'
 import { Route as AssetsRouteImport } from './routes/assets'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as DeepResearchIndexRouteImport } from './routes/deep-research/index'
 import { Route as QueueDashboardQueueIdRouteImport } from './routes/queue-dashboard.$queueId'
+import { Route as DeepResearchResearchIdRouteImport } from './routes/deep-research.$researchId'
+import { Route as DeepResearchResearchIdIndexRouteImport } from './routes/deep-research/$researchId/index'
+import { Route as DeepResearchResearchIdSourcesSourceIdRouteImport } from './routes/deep-research.$researchId.sources.$sourceId'
+import { Route as DeepResearchResearchIdSourcesSourceIdIndexRouteImport } from './routes/deep-research/$researchId/sources/$sourceId/index'
 
+const SetupRoute = SetupRouteImport.update({
+  id: '/setup',
+  path: '/setup',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -42,6 +56,11 @@ const ProjectsRoute = ProjectsRouteImport.update({
   path: '/projects',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const HealthRoute = HealthRouteImport.update({
   id: '/health',
   path: '/health',
@@ -52,6 +71,11 @@ const DevSwaggerRoute = DevSwaggerRouteImport.update({
   path: '/dev-swagger',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DevMermaidRoute = DevMermaidRouteImport.update({
+  id: '/dev-mermaid',
+  path: '/dev-mermaid',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DevMcpRoute = DevMcpRouteImport.update({
   id: '/dev-mcp',
   path: '/dev-mcp',
@@ -60,6 +84,11 @@ const DevMcpRoute = DevMcpRouteImport.update({
 const DevDrizzleRoute = DevDrizzleRouteImport.update({
   id: '/dev-drizzle',
   path: '/dev-drizzle',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DeepResearchRoute = DeepResearchRouteImport.update({
+  id: '/deep-research',
+  path: '/deep-research',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ChatRoute = ChatRouteImport.update({
@@ -77,25 +106,62 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DeepResearchIndexRoute = DeepResearchIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => DeepResearchRoute,
+} as any)
 const QueueDashboardQueueIdRoute = QueueDashboardQueueIdRouteImport.update({
   id: '/queue-dashboard/$queueId',
   path: '/queue-dashboard/$queueId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DeepResearchResearchIdRoute = DeepResearchResearchIdRouteImport.update({
+  id: '/$researchId',
+  path: '/$researchId',
+  getParentRoute: () => DeepResearchRoute,
+} as any)
+const DeepResearchResearchIdIndexRoute =
+  DeepResearchResearchIdIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => DeepResearchResearchIdRoute,
+  } as any)
+const DeepResearchResearchIdSourcesSourceIdRoute =
+  DeepResearchResearchIdSourcesSourceIdRouteImport.update({
+    id: '/sources/$sourceId',
+    path: '/sources/$sourceId',
+    getParentRoute: () => DeepResearchResearchIdRoute,
+  } as any)
+const DeepResearchResearchIdSourcesSourceIdIndexRoute =
+  DeepResearchResearchIdSourcesSourceIdIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => DeepResearchResearchIdSourcesSourceIdRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/assets': typeof AssetsRoute
   '/chat': typeof ChatRoute
+  '/deep-research': typeof DeepResearchRouteWithChildren
   '/dev-drizzle': typeof DevDrizzleRoute
   '/dev-mcp': typeof DevMcpRoute
+  '/dev-mermaid': typeof DevMermaidRoute
   '/dev-swagger': typeof DevSwaggerRoute
   '/health': typeof HealthRoute
+  '/login': typeof LoginRoute
   '/projects': typeof ProjectsRoute
   '/prompts': typeof PromptsRoute
   '/providers': typeof ProvidersRoute
   '/settings': typeof SettingsRoute
+  '/setup': typeof SetupRoute
+  '/deep-research/$researchId': typeof DeepResearchResearchIdRouteWithChildren
   '/queue-dashboard/$queueId': typeof QueueDashboardQueueIdRoute
+  '/deep-research/': typeof DeepResearchIndexRoute
+  '/deep-research/$researchId/': typeof DeepResearchResearchIdIndexRoute
+  '/deep-research/$researchId/sources/$sourceId': typeof DeepResearchResearchIdSourcesSourceIdRouteWithChildren
+  '/deep-research/$researchId/sources/$sourceId/': typeof DeepResearchResearchIdSourcesSourceIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -103,28 +169,43 @@ export interface FileRoutesByTo {
   '/chat': typeof ChatRoute
   '/dev-drizzle': typeof DevDrizzleRoute
   '/dev-mcp': typeof DevMcpRoute
+  '/dev-mermaid': typeof DevMermaidRoute
   '/dev-swagger': typeof DevSwaggerRoute
   '/health': typeof HealthRoute
+  '/login': typeof LoginRoute
   '/projects': typeof ProjectsRoute
   '/prompts': typeof PromptsRoute
   '/providers': typeof ProvidersRoute
   '/settings': typeof SettingsRoute
+  '/setup': typeof SetupRoute
   '/queue-dashboard/$queueId': typeof QueueDashboardQueueIdRoute
+  '/deep-research': typeof DeepResearchIndexRoute
+  '/deep-research/$researchId': typeof DeepResearchResearchIdIndexRoute
+  '/deep-research/$researchId/sources/$sourceId': typeof DeepResearchResearchIdSourcesSourceIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/assets': typeof AssetsRoute
   '/chat': typeof ChatRoute
+  '/deep-research': typeof DeepResearchRouteWithChildren
   '/dev-drizzle': typeof DevDrizzleRoute
   '/dev-mcp': typeof DevMcpRoute
+  '/dev-mermaid': typeof DevMermaidRoute
   '/dev-swagger': typeof DevSwaggerRoute
   '/health': typeof HealthRoute
+  '/login': typeof LoginRoute
   '/projects': typeof ProjectsRoute
   '/prompts': typeof PromptsRoute
   '/providers': typeof ProvidersRoute
   '/settings': typeof SettingsRoute
+  '/setup': typeof SetupRoute
+  '/deep-research/$researchId': typeof DeepResearchResearchIdRouteWithChildren
   '/queue-dashboard/$queueId': typeof QueueDashboardQueueIdRoute
+  '/deep-research/': typeof DeepResearchIndexRoute
+  '/deep-research/$researchId/': typeof DeepResearchResearchIdIndexRoute
+  '/deep-research/$researchId/sources/$sourceId': typeof DeepResearchResearchIdSourcesSourceIdRouteWithChildren
+  '/deep-research/$researchId/sources/$sourceId/': typeof DeepResearchResearchIdSourcesSourceIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -132,15 +213,24 @@ export interface FileRouteTypes {
     | '/'
     | '/assets'
     | '/chat'
+    | '/deep-research'
     | '/dev-drizzle'
     | '/dev-mcp'
+    | '/dev-mermaid'
     | '/dev-swagger'
     | '/health'
+    | '/login'
     | '/projects'
     | '/prompts'
     | '/providers'
     | '/settings'
+    | '/setup'
+    | '/deep-research/$researchId'
     | '/queue-dashboard/$queueId'
+    | '/deep-research/'
+    | '/deep-research/$researchId/'
+    | '/deep-research/$researchId/sources/$sourceId'
+    | '/deep-research/$researchId/sources/$sourceId/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -148,46 +238,72 @@ export interface FileRouteTypes {
     | '/chat'
     | '/dev-drizzle'
     | '/dev-mcp'
+    | '/dev-mermaid'
     | '/dev-swagger'
     | '/health'
+    | '/login'
     | '/projects'
     | '/prompts'
     | '/providers'
     | '/settings'
+    | '/setup'
     | '/queue-dashboard/$queueId'
+    | '/deep-research'
+    | '/deep-research/$researchId'
+    | '/deep-research/$researchId/sources/$sourceId'
   id:
     | '__root__'
     | '/'
     | '/assets'
     | '/chat'
+    | '/deep-research'
     | '/dev-drizzle'
     | '/dev-mcp'
+    | '/dev-mermaid'
     | '/dev-swagger'
     | '/health'
+    | '/login'
     | '/projects'
     | '/prompts'
     | '/providers'
     | '/settings'
+    | '/setup'
+    | '/deep-research/$researchId'
     | '/queue-dashboard/$queueId'
+    | '/deep-research/'
+    | '/deep-research/$researchId/'
+    | '/deep-research/$researchId/sources/$sourceId'
+    | '/deep-research/$researchId/sources/$sourceId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AssetsRoute: typeof AssetsRoute
   ChatRoute: typeof ChatRoute
+  DeepResearchRoute: typeof DeepResearchRouteWithChildren
   DevDrizzleRoute: typeof DevDrizzleRoute
   DevMcpRoute: typeof DevMcpRoute
+  DevMermaidRoute: typeof DevMermaidRoute
   DevSwaggerRoute: typeof DevSwaggerRoute
   HealthRoute: typeof HealthRoute
+  LoginRoute: typeof LoginRoute
   ProjectsRoute: typeof ProjectsRoute
   PromptsRoute: typeof PromptsRoute
   ProvidersRoute: typeof ProvidersRoute
   SettingsRoute: typeof SettingsRoute
+  SetupRoute: typeof SetupRoute
   QueueDashboardQueueIdRoute: typeof QueueDashboardQueueIdRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/setup': {
+      id: '/setup'
+      path: '/setup'
+      fullPath: '/setup'
+      preLoaderRoute: typeof SetupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/settings': {
       id: '/settings'
       path: '/settings'
@@ -216,6 +332,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProjectsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/health': {
       id: '/health'
       path: '/health'
@@ -230,6 +353,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DevSwaggerRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/dev-mermaid': {
+      id: '/dev-mermaid'
+      path: '/dev-mermaid'
+      fullPath: '/dev-mermaid'
+      preLoaderRoute: typeof DevMermaidRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/dev-mcp': {
       id: '/dev-mcp'
       path: '/dev-mcp'
@@ -242,6 +372,13 @@ declare module '@tanstack/react-router' {
       path: '/dev-drizzle'
       fullPath: '/dev-drizzle'
       preLoaderRoute: typeof DevDrizzleRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/deep-research': {
+      id: '/deep-research'
+      path: '/deep-research'
+      fullPath: '/deep-research'
+      preLoaderRoute: typeof DeepResearchRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/chat': {
@@ -265,6 +402,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/deep-research/': {
+      id: '/deep-research/'
+      path: '/'
+      fullPath: '/deep-research/'
+      preLoaderRoute: typeof DeepResearchIndexRouteImport
+      parentRoute: typeof DeepResearchRoute
+    }
     '/queue-dashboard/$queueId': {
       id: '/queue-dashboard/$queueId'
       path: '/queue-dashboard/$queueId'
@@ -272,21 +416,99 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof QueueDashboardQueueIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/deep-research/$researchId': {
+      id: '/deep-research/$researchId'
+      path: '/$researchId'
+      fullPath: '/deep-research/$researchId'
+      preLoaderRoute: typeof DeepResearchResearchIdRouteImport
+      parentRoute: typeof DeepResearchRoute
+    }
+    '/deep-research/$researchId/': {
+      id: '/deep-research/$researchId/'
+      path: '/'
+      fullPath: '/deep-research/$researchId/'
+      preLoaderRoute: typeof DeepResearchResearchIdIndexRouteImport
+      parentRoute: typeof DeepResearchResearchIdRoute
+    }
+    '/deep-research/$researchId/sources/$sourceId': {
+      id: '/deep-research/$researchId/sources/$sourceId'
+      path: '/sources/$sourceId'
+      fullPath: '/deep-research/$researchId/sources/$sourceId'
+      preLoaderRoute: typeof DeepResearchResearchIdSourcesSourceIdRouteImport
+      parentRoute: typeof DeepResearchResearchIdRoute
+    }
+    '/deep-research/$researchId/sources/$sourceId/': {
+      id: '/deep-research/$researchId/sources/$sourceId/'
+      path: '/'
+      fullPath: '/deep-research/$researchId/sources/$sourceId/'
+      preLoaderRoute: typeof DeepResearchResearchIdSourcesSourceIdIndexRouteImport
+      parentRoute: typeof DeepResearchResearchIdSourcesSourceIdRoute
+    }
   }
 }
+
+interface DeepResearchResearchIdSourcesSourceIdRouteChildren {
+  DeepResearchResearchIdSourcesSourceIdIndexRoute: typeof DeepResearchResearchIdSourcesSourceIdIndexRoute
+}
+
+const DeepResearchResearchIdSourcesSourceIdRouteChildren: DeepResearchResearchIdSourcesSourceIdRouteChildren =
+  {
+    DeepResearchResearchIdSourcesSourceIdIndexRoute:
+      DeepResearchResearchIdSourcesSourceIdIndexRoute,
+  }
+
+const DeepResearchResearchIdSourcesSourceIdRouteWithChildren =
+  DeepResearchResearchIdSourcesSourceIdRoute._addFileChildren(
+    DeepResearchResearchIdSourcesSourceIdRouteChildren,
+  )
+
+interface DeepResearchResearchIdRouteChildren {
+  DeepResearchResearchIdIndexRoute: typeof DeepResearchResearchIdIndexRoute
+  DeepResearchResearchIdSourcesSourceIdRoute: typeof DeepResearchResearchIdSourcesSourceIdRouteWithChildren
+}
+
+const DeepResearchResearchIdRouteChildren: DeepResearchResearchIdRouteChildren =
+  {
+    DeepResearchResearchIdIndexRoute: DeepResearchResearchIdIndexRoute,
+    DeepResearchResearchIdSourcesSourceIdRoute:
+      DeepResearchResearchIdSourcesSourceIdRouteWithChildren,
+  }
+
+const DeepResearchResearchIdRouteWithChildren =
+  DeepResearchResearchIdRoute._addFileChildren(
+    DeepResearchResearchIdRouteChildren,
+  )
+
+interface DeepResearchRouteChildren {
+  DeepResearchResearchIdRoute: typeof DeepResearchResearchIdRouteWithChildren
+  DeepResearchIndexRoute: typeof DeepResearchIndexRoute
+}
+
+const DeepResearchRouteChildren: DeepResearchRouteChildren = {
+  DeepResearchResearchIdRoute: DeepResearchResearchIdRouteWithChildren,
+  DeepResearchIndexRoute: DeepResearchIndexRoute,
+}
+
+const DeepResearchRouteWithChildren = DeepResearchRoute._addFileChildren(
+  DeepResearchRouteChildren,
+)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AssetsRoute: AssetsRoute,
   ChatRoute: ChatRoute,
+  DeepResearchRoute: DeepResearchRouteWithChildren,
   DevDrizzleRoute: DevDrizzleRoute,
   DevMcpRoute: DevMcpRoute,
+  DevMermaidRoute: DevMermaidRoute,
   DevSwaggerRoute: DevSwaggerRoute,
   HealthRoute: HealthRoute,
+  LoginRoute: LoginRoute,
   ProjectsRoute: ProjectsRoute,
   PromptsRoute: PromptsRoute,
   ProvidersRoute: ProvidersRoute,
   SettingsRoute: SettingsRoute,
+  SetupRoute: SetupRoute,
   QueueDashboardQueueIdRoute: QueueDashboardQueueIdRoute,
 }
 export const routeTree = rootRouteImport

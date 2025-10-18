@@ -25,11 +25,11 @@ const statusIcons = {
 }
 
 const statusColors = {
-  queued: 'bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800',
-  in_progress: 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800',
-  completed: 'bg-green-500/10 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800',
-  failed: 'bg-red-500/10 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800',
-  cancelled: 'bg-gray-500/10 text-gray-700 dark:text-gray-400 border-gray-200 dark:border-gray-800'
+  queued: 'bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/30 dark:border-blue-500/50',
+  in_progress: 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30 dark:border-amber-500/50',
+  completed: 'bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/30 dark:border-green-500/50',
+  failed: 'bg-red-500/10 text-red-700 dark:text-red-400 border-red-500/30 dark:border-red-500/50',
+  cancelled: 'bg-gray-500/10 text-gray-700 dark:text-gray-400 border-border'
 }
 
 export function QueueBadge({

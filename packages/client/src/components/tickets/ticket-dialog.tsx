@@ -247,14 +247,14 @@ export function TicketDialog({ isOpen, onClose, ticketWithTasks, projectId }: Ti
                       item={ticketWithTasks.ticket}
                       projectId={Number(projectId)}
                       size='md'
-                      className='bg-white/20 backdrop-blur-sm border-white/30 text-white'
+                      className='bg-white/20 backdrop-blur-sm border-current/20 text-white'
                     />
                   ) : (
                     <AddToQueueButton
                       onAddToQueue={() => setIsQueueDialogOpen(true)}
                       size='sm'
                       variant='outline'
-                      className='bg-white/20 backdrop-blur-sm border-white/30 text-white hover:bg-white/30'
+                      className='bg-white/20 backdrop-blur-sm border-current/20 text-white hover:bg-white/30'
                     />
                   )}
                 </div>

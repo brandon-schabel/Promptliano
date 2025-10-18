@@ -103,10 +103,10 @@ export function KanbanCard({
   }
 
   const priorityColors = {
-    low: 'bg-green-500/10 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800',
-    normal: 'bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800',
-    high: 'bg-orange-500/10 text-orange-700 dark:text-orange-400 border-orange-200 dark:border-orange-800',
-    urgent: 'bg-red-500/10 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800'
+    low: 'bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/30 dark:border-green-500/50',
+    normal: 'bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/30 dark:border-blue-500/50',
+    high: 'bg-orange-500/10 text-orange-700 dark:text-orange-400 border-orange-500/30 dark:border-orange-500/50',
+    urgent: 'bg-red-500/10 text-red-700 dark:text-red-400 border-red-500/30 dark:border-red-500/50'
   }
 
   // Ticket styling - more prominent
@@ -133,11 +133,11 @@ export function KanbanCard({
             'cursor-move hover:shadow-lg transition-all duration-200 border-2 bg-card/50 backdrop-blur-sm',
             isDragging && 'shadow-xl ring-2 ring-primary scale-105',
             overlay && 'shadow-2xl',
-            priority === 'urgent' && 'border-red-300 dark:border-red-700 bg-red-50/50 dark:bg-red-950/20',
-            priority === 'high' && 'border-orange-300 dark:border-orange-700 bg-orange-50/50 dark:bg-orange-950/20',
-            priority === 'low' && 'border-green-300 dark:border-green-700 bg-green-50/50 dark:bg-green-950/20',
+            priority === 'urgent' && 'border-red-500/30 dark:border-red-500/50 bg-red-50/50 dark:bg-red-950/20',
+            priority === 'high' && 'border-orange-500/30 dark:border-orange-500/50 bg-orange-50/50 dark:bg-orange-950/20',
+            priority === 'low' && 'border-green-500/30 dark:border-green-500/50 bg-green-50/50 dark:bg-green-950/20',
             (!priority || priority === 'normal') &&
-              'border-blue-300 dark:border-blue-700 bg-blue-50/50 dark:bg-blue-950/20',
+              'border-blue-500/30 dark:border-blue-500/50 bg-blue-50/50 dark:bg-blue-950/20',
             completeQueueItemMutation.isPending && 'opacity-50'
           )}
         >
@@ -211,7 +211,7 @@ export function KanbanCard({
               {queueName && (
                 <Badge
                   variant='outline'
-                  className='text-xs gap-1 bg-purple-50 dark:bg-purple-950/30 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800'
+                  className='text-xs gap-1 bg-purple-50 dark:bg-purple-950/30 text-purple-700 dark:text-purple-300 border-purple-500/30 dark:border-purple-500/50'
                 >
                   <Inbox className='h-3 w-3' />
                   {queueName}
@@ -226,12 +226,12 @@ export function KanbanCard({
                   className={cn(
                     'text-xs font-semibold uppercase tracking-wider',
                     priority === 'urgent'
-                      ? 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300 border-red-200 dark:border-red-800'
+                      ? 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300 border-red-500/30 dark:border-red-500/50'
                       : priority === 'high'
-                        ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300 border-orange-200 dark:border-orange-800'
+                        ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300 border-orange-500/30 dark:border-orange-500/50'
                         : priority === 'low'
-                          ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300 border-green-200 dark:border-green-800'
-                          : 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 border-blue-200 dark:border-blue-800'
+                          ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300 border-green-500/30 dark:border-green-500/50'
+                          : 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 border-blue-500/30 dark:border-blue-500/50'
                   )}
                 >
                   {priority}

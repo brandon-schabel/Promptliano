@@ -8313,6 +8313,86 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/ai/mermaid/fix": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Fix and optimize mermaid diagram code
+         * @description Uses AI to fix syntax errors and optimize mermaid diagram code structure
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            /** @description Mermaid code to fix along with optional error message and user intent */
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["MermaidFixRequest"];
+                };
+            };
+            responses: {
+                /** @description Success */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MermaidFixResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Resource Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Validation Error */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/models": {
         parameters: {
             query?: never;
@@ -15960,6 +16040,1811 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/research": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List all research sessions */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Success */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ResearchRecordListResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Resource Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Validation Error */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** Create a new research session */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["CreateResearchRequest"];
+                };
+            };
+            responses: {
+                /** @description Research created successfully */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ResearchRecordResponse"];
+                    };
+                };
+                /** @description Validation Error */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["OperationSuccessResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["OperationSuccessResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/research/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a specific research session */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Success */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ResearchRecordResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Resource Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Validation Error */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        /** Delete a research session */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Success */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["OperationSuccessResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Resource Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Validation Error */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        /** Update a research session */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["UpdateResearchRequest"];
+                };
+            };
+            responses: {
+                /** @description Success */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ResearchRecordResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Resource Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Validation Error */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+            };
+        };
+        trace?: never;
+    };
+    "/api/research/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start a new research session with automatic source gathering */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["CreateResearchRequest"];
+                };
+            };
+            responses: {
+                /** @description Success */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ResearchRecordResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Resource Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Validation Error */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/research/{id}/sources": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get all sources for a research session */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Success */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ResearchSourceListResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Resource Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Validation Error */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** Add a source to research */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AddSourceRequest"];
+                };
+            };
+            responses: {
+                /** @description Success */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ResearchSourceResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Resource Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Validation Error */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/research/sources/{id}/process": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Process a specific source */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Success */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["OperationSuccessResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Resource Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Validation Error */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/research/sources/{id}/processed-data": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get processed data for a specific source */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Success */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ResearchProcessedDataResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Resource Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Validation Error */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/research/{id}/outline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Generate document outline */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["GenerateOutlineRequest"];
+                };
+            };
+            responses: {
+                /** @description Success */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["GenerateOutlineResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Resource Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Validation Error */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/research/{id}/sections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get all sections for a research document */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Success */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ResearchDocumentSectionListResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Resource Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Validation Error */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/research/sections/{id}/build": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Build a specific section */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["BuildSectionRequest"];
+                };
+            };
+            responses: {
+                /** @description Success */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ResearchDocumentSectionResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Resource Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Validation Error */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/research/sections/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update a section */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["UpdateSectionRequest"];
+                };
+            };
+            responses: {
+                /** @description Success */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ResearchDocumentSectionResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Resource Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Validation Error */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+            };
+        };
+        trace?: never;
+    };
+    "/api/research/{id}/progress": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get research progress */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Success */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ResearchProgressResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Resource Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Validation Error */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/research/{id}/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Export research document */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ExportRequest"];
+                };
+            };
+            responses: {
+                /** @description Success */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ResearchExportResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Resource Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Validation Error */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/research/{id}/execute": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Execute workflow from current state to completion */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["ExecuteWorkflowRequest"];
+                };
+            };
+            responses: {
+                /** @description Success */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["OperationSuccessResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Resource Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Validation Error */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/research/{id}/resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Resume workflow from failed/stopped state */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Success */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["OperationSuccessResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Resource Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Validation Error */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/research/{id}/stop": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Stop automatic workflow execution */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Success */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["OperationSuccessResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Resource Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Validation Error */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/research/{id}/workflow-status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get detailed workflow status with action availability */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Success */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["WorkflowStatusResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Resource Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Validation Error */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/research/{id}/crawl-progress": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get web crawling progress
+         * @description Get real-time web crawling progress for a research session with crawl mode enabled
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Success */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CrawlProgressResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Resource Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Validation Error */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/deep-research/{researchId}/debug/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get debug events for a research session
+         * @description Retrieve filtered debug events from the web crawling system
+         */
+        get: {
+            parameters: {
+                query?: {
+                    category?: "url-processing" | "ai-filtering" | "robots" | "extraction" | "queue-management" | "error";
+                    level?: "debug" | "info" | "warn" | "error";
+                    limit?: number;
+                    from?: number | null;
+                    to?: number | null;
+                };
+                header?: never;
+                path: {
+                    researchId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Success */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CrawlDebugEventListResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Resource Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Validation Error */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        /**
+         * Clear all debug events
+         * @description Remove all debug events for a research session
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    researchId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Success */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["OperationSuccessResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Resource Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Validation Error */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/deep-research/{researchId}/debug/stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get debug statistics for a research session
+         * @description Retrieve aggregated statistics including counts, rates, and timing data
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    researchId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Success */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CrawlDebugStatsResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Resource Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Validation Error */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/deep-research/{researchId}/debug/activity": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get recent debug activity
+         * @description Retrieve the most recent debug events for real-time monitoring
+         */
+        get: {
+            parameters: {
+                query?: {
+                    limit?: number;
+                };
+                header?: never;
+                path: {
+                    researchId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Success */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CrawlDebugEventListResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Resource Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Validation Error */
+                422: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ApiErrorResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/model-configs": {
         parameters: {
             query?: never;
@@ -17552,10 +19437,14 @@ export interface components {
                 suggestedFiles: {
                     path: string;
                     relevance: number;
-                    reason: string;
+                    reason?: string;
+                    reasons?: string[];
                     fileType: string;
                     aiConfidence?: number;
+                    confidence?: number;
                     aiReasons?: string[];
+                    lineCount?: number;
+                    totalLines?: number;
                 }[];
                 totalFiles: number;
                 analyzedFiles: number;
@@ -17572,6 +19461,14 @@ export interface components {
                     confidence: number;
                     reasons: string[];
                 }[];
+                selectedDirectories?: string[];
+                totalDirectories?: number;
+                filesFromDirectories?: number;
+                lineCountPerFile?: number;
+                aiModel?: string;
+                directorySelectionTime?: number;
+                fileFetchTime?: number;
+                suggestionTime?: number;
             };
         };
         SuggestFilesRequestBody: {
@@ -17601,10 +19498,36 @@ export interface components {
              */
             includeScores: boolean;
             /**
+             * @description Include detailed AI-generated reasons for each file suggestion (default: false to save tokens)
+             * @default false
+             * @example false
+             */
+            includeReasons: boolean;
+            /**
              * @description Additional context used to bias relevance scoring
              * @example Focus on MCP transport tools and remove unused prompts
              */
             userContext?: string;
+            /**
+             * @description Number of lines to read from each file (V2 only)
+             * @default 50
+             * @example 50
+             */
+            lineCount: number;
+            /**
+             * @description Optional: manually specify directories to search (skips AI directory selection)
+             * @example [
+             *       "src/auth",
+             *       "src/api"
+             *     ]
+             */
+            directories?: string[];
+            /**
+             * @description If true and directories provided, skip AI directory selection stage
+             * @default false
+             * @example false
+             */
+            skipDirectorySelection: boolean;
         };
         Ticket: {
             id: number;
@@ -18749,6 +20672,51 @@ export interface components {
             userInput: string;
             options?: components["schemas"]["AiSdkOptions"] & unknown;
         };
+        MermaidFixOutput: {
+            /**
+             * @description The corrected/optimized mermaid diagram code (raw, without markdown wrapper)
+             * @example graph TD
+             *       A[Start] --> B[Process]
+             *       B --> C{Decision}
+             *       C -->|Yes| D[End]
+             */
+            fixedCode: string;
+            /**
+             * @description Brief explanation of what was fixed or improved
+             * @example Fixed syntax error: Changed -> to --> for proper arrow notation. Added decision node as requested.
+             */
+            explanation: string;
+            /**
+             * @description The type of mermaid diagram
+             * @example flowchart
+             * @enum {string}
+             */
+            diagramType?: "flowchart" | "sequence" | "class" | "state" | "er" | "gantt" | "pie" | "unknown";
+        };
+        MermaidFixResponse: {
+            /** @enum {boolean} */
+            success: true;
+            data: components["schemas"]["MermaidFixOutput"];
+        };
+        MermaidFixRequest: {
+            /**
+             * @description The current mermaid diagram code (possibly invalid or needing optimization)
+             * @example graph TD
+             *       A[Start] -> B[Process]
+             */
+            mermaidCode: string;
+            /**
+             * @description The error message if mermaid rendering failed
+             * @example Syntax error in graph: unexpected token
+             */
+            error?: string;
+            /**
+             * @description What the user wants to achieve or fix in the diagram
+             * @example Add a decision node and connect it to the end state
+             */
+            userIntent?: string;
+            options?: components["schemas"]["AiSdkOptions"] & unknown;
+        };
         UnifiedModel: {
             /**
              * @description Model identifier
@@ -19187,13 +21155,13 @@ export interface components {
             /**
              * Format: int64
              * @description Unix timestamp in milliseconds, between 1970 and 2050. Input can be string, number, or Date.
-             * @example 1759279306739
+             * @example 1760137990547
              */
             created: number;
             /**
              * Format: int64
              * @description Unix timestamp in milliseconds, between 1970 and 2050. Input can be string, number, or Date.
-             * @example 1759279306739
+             * @example 1760137990547
              */
             updated: number;
         };
@@ -19274,13 +21242,13 @@ export interface components {
             /**
              * Format: int64
              * @description Unix timestamp in milliseconds, between 1970 and 2050. Input can be string, number, or Date.
-             * @example 1759279306739
+             * @example 1760137990547
              */
             startedAt: number;
             /**
              * Format: int64
              * @description Unix timestamp in milliseconds, between 1970 and 2050. Input can be string, number, or Date.
-             * @example 1759279306739
+             * @example 1760137990547
              */
             completedAt: number;
         };
@@ -20167,6 +22135,402 @@ export interface components {
             checked?: boolean;
             status?: number;
             error?: string;
+        };
+        ResearchRecord: {
+            id: number;
+            projectId: number | null;
+            topic: string;
+            description: string | null;
+            /** @enum {string} */
+            status: "initializing" | "gathering" | "processing" | "building" | "complete" | "failed";
+            totalSources: number | null;
+            processedSources: number | null;
+            sectionsTotal: number | null;
+            sectionsCompleted: number | null;
+            maxSources: number | null;
+            maxDepth: number | null;
+            /** @enum {string} */
+            strategy: "fast" | "balanced" | "thorough";
+            metadata: string | number | boolean | null | {
+                [key: string]: unknown;
+            } | unknown[];
+            createdAt: number;
+            updatedAt: number;
+            completedAt: number | null;
+        };
+        ResearchRecordResponse: {
+            /** @enum {boolean} */
+            success: true;
+            data: components["schemas"]["ResearchRecord"];
+        };
+        CreateResearchRequest: {
+            projectId?: number;
+            topic: string;
+            description?: string;
+            /** @default 10 */
+            maxSources: number;
+            /** @default 3 */
+            maxDepth: number;
+            /**
+             * @default balanced
+             * @enum {string}
+             */
+            strategy: "fast" | "balanced" | "thorough";
+            searchQueries?: string[];
+            /** @default true */
+            autoExecute: boolean;
+            modelConfig?: {
+                provider?: string;
+                model?: string;
+                temperature?: number;
+                maxTokens?: number;
+            };
+            /** @default false */
+            enableCrawling: boolean;
+            /** Format: uri */
+            crawlSeedUrl?: string;
+            /** @default 2 */
+            crawlMaxDepth: number;
+            /** @default 20 */
+            crawlMaxPages: number;
+            /** @default 0.6 */
+            crawlRelevanceThreshold: number;
+        };
+        ResearchRecordListResponse: {
+            /** @enum {boolean} */
+            success: true;
+            data: components["schemas"]["ResearchRecord"][];
+        };
+        UpdateResearchRequest: {
+            topic?: string;
+            description?: string;
+            /** @enum {string} */
+            status?: "initializing" | "gathering" | "processing" | "building" | "complete" | "failed";
+        };
+        ResearchSource: {
+            id: number;
+            researchId: number;
+            url: string;
+            title: string | null;
+            /** @enum {string} */
+            sourceType: "web" | "pdf" | "academic" | "api";
+            /** @enum {string} */
+            status: "pending" | "fetching" | "processing" | "complete" | "failed";
+            contentLength: number | null;
+            tokenCount: number | null;
+            cited: boolean | null;
+            citationCount: number | null;
+            errorMessage: string | null;
+            retryCount: number | null;
+            fetchedAt: number | null;
+            createdAt: number;
+            updatedAt: number;
+        };
+        ResearchSourceResponse: {
+            /** @enum {boolean} */
+            success: true;
+            data: components["schemas"]["ResearchSource"];
+        };
+        AddSourceRequest: {
+            /** Format: uri */
+            url: string;
+            /**
+             * @default web
+             * @enum {string}
+             */
+            sourceType: "web" | "pdf" | "academic" | "api";
+        };
+        ResearchSourceListResponse: {
+            /** @enum {boolean} */
+            success: true;
+            data: components["schemas"]["ResearchSource"][];
+        };
+        ResearchProcessedData: {
+            id: number;
+            sourceId: number;
+            researchId: number;
+            rawContent: string | null;
+            cleanedContent: string | null;
+            markdown: string | null;
+            summary: string | null;
+            title: string | null;
+            excerpt: string | null;
+            author: string | null;
+            publishDate: number | null;
+            keywords: string | number | boolean | null | {
+                [key: string]: unknown;
+            } | unknown[];
+            entities: string | number | boolean | null | {
+                [key: string]: unknown;
+            } | unknown[];
+            tokenCount: number | null;
+            relevanceScore: number | null;
+            createdAt: number;
+        };
+        ResearchProcessedDataResponse: {
+            /** @enum {boolean} */
+            success: true;
+            data: components["schemas"]["ResearchProcessedData"];
+        };
+        GenerateOutlineResponse: {
+            /** @enum {boolean} */
+            success: true;
+            data: {
+                title: string;
+                sections: {
+                    title: string;
+                    description: string;
+                    level: number;
+                    subsections?: {
+                        title: string;
+                        description: string;
+                        level: number;
+                    }[];
+                }[];
+                estimatedTokens: number;
+                estimatedTime: number;
+            };
+        };
+        GenerateOutlineRequest: {
+            topic: string;
+            /** @default 8 */
+            sectionsCount: number;
+            /** @default 2 */
+            depth: number;
+        };
+        ResearchDocumentSection: {
+            id: number;
+            researchId: number;
+            title: string;
+            description: string | null;
+            content: string | null;
+            orderIndex: number;
+            level: number | null;
+            parentSectionId: number | null;
+            citedSourceIds: string | number | boolean | null | {
+                [key: string]: unknown;
+            } | unknown[];
+            /** @enum {string} */
+            status: "pending" | "drafting" | "complete" | "reviewed";
+            wordCount: number | null;
+            tokenCount: number | null;
+            createdAt: number;
+            updatedAt: number;
+        };
+        ResearchDocumentSectionListResponse: {
+            /** @enum {boolean} */
+            success: true;
+            data: components["schemas"]["ResearchDocumentSection"][];
+        };
+        ResearchDocumentSectionResponse: {
+            /** @enum {boolean} */
+            success: true;
+            data: components["schemas"]["ResearchDocumentSection"];
+        };
+        BuildSectionRequest: {
+            sectionId: number;
+            userContext?: string;
+            /** @default false */
+            includeSubsections: boolean;
+        };
+        UpdateSectionRequest: {
+            title?: string;
+            description?: string;
+            content?: string;
+            orderIndex?: number;
+            /** @enum {string} */
+            status?: "pending" | "drafting" | "complete" | "reviewed";
+        };
+        ResearchProgressResponse: {
+            /** @enum {boolean} */
+            success: true;
+            data: {
+                researchId: number;
+                /** @enum {string} */
+                status: "initializing" | "gathering" | "processing" | "building" | "complete" | "failed";
+                progress: {
+                    totalSources: number;
+                    processedSources: number;
+                    sectionsTotal: number;
+                    sectionsCompleted: number;
+                    percentage: number;
+                };
+                currentPhase: string;
+                estimatedTimeRemaining?: number;
+            };
+        };
+        ResearchExport: {
+            id: number;
+            researchId: number;
+            /** @enum {string} */
+            format: "markdown" | "pdf" | "html" | "docx";
+            filename: string;
+            size: number | null;
+            downloadUrl: string | null;
+            downloadCount: number | null;
+            content: string | null;
+            createdAt: number;
+            expiresAt: number | null;
+        };
+        ResearchExportResponse: {
+            /** @enum {boolean} */
+            success: true;
+            data: components["schemas"]["ResearchExport"];
+        };
+        ExportRequest: {
+            /** @enum {string} */
+            format: "markdown" | "pdf" | "html" | "docx";
+            /** @default true */
+            includeToc: boolean;
+            /** @default true */
+            includeReferences: boolean;
+            filename?: string;
+        };
+        ExecuteWorkflowRequest: {
+            options?: {
+                skipGathering?: boolean;
+                skipProcessing?: boolean;
+                skipBuilding?: boolean;
+                modelConfig?: {
+                    provider?: string;
+                    model?: string;
+                    temperature?: number;
+                    maxTokens?: number;
+                };
+            };
+        };
+        WorkflowStatusResponse: {
+            /** @enum {boolean} */
+            success: true;
+            data: {
+                researchId: number;
+                /** @enum {string} */
+                status: "initializing" | "gathering" | "processing" | "building" | "complete" | "failed";
+                currentPhase: string;
+                canResume: boolean;
+                canExecute: boolean;
+                canStop: boolean;
+                progress: {
+                    percentage: number;
+                    totalSources: number;
+                    processedSources: number;
+                    sectionsTotal: number;
+                    sectionsCompleted: number;
+                };
+                estimatedTimeRemaining?: number;
+                lastError?: string;
+            };
+        };
+        CrawlProgressResponse: {
+            /** @enum {boolean} */
+            success: true;
+            data: {
+                researchId: number;
+                crawlEnabled: boolean;
+                crawlId?: string;
+                seedUrl?: string;
+                progress?: {
+                    urlsCrawled: number;
+                    urlsPending: number;
+                    urlsFailed: number;
+                    currentDepth: number;
+                };
+                config?: {
+                    maxDepth: number;
+                    maxPages: number;
+                    relevanceThreshold: number;
+                };
+            };
+        };
+        CrawlDebugEventListResponse: {
+            /** @enum {boolean} */
+            success: true;
+            data: {
+                id: string;
+                researchId: number;
+                timestamp: number;
+                /** @enum {string} */
+                category: "url-processing" | "ai-filtering" | "robots" | "extraction" | "queue-management" | "error";
+                /** @enum {string} */
+                level: "debug" | "info" | "warn" | "error";
+                message: string;
+                metadata: {
+                    url?: string;
+                    urlId?: number;
+                    score?: number;
+                    reasoning?: string;
+                    duration?: number;
+                    depth?: number;
+                    queueSize?: number;
+                    crawlId?: string;
+                    error?: string;
+                    statusCode?: number;
+                    contentLength?: number;
+                    linksFound?: number;
+                    linksAccepted?: number;
+                    linksRejected?: number;
+                    threshold?: number;
+                } & {
+                    [key: string]: unknown;
+                };
+            }[];
+        };
+        CrawlDebugStatsResponse: {
+            /** @enum {boolean} */
+            success: true;
+            data: {
+                researchId: number;
+                totalEvents: number;
+                eventsByCategory: {
+                    "url-processing"?: number;
+                    "ai-filtering"?: number;
+                    robots?: number;
+                    extraction?: number;
+                    "queue-management"?: number;
+                    error?: number;
+                };
+                eventsByLevel: {
+                    debug?: number;
+                    info?: number;
+                    warn?: number;
+                    error?: number;
+                };
+                averageProcessingTimeMs?: number;
+                aiAcceptanceRate?: number;
+                recentActivity: {
+                    id: string;
+                    researchId: number;
+                    timestamp: number;
+                    /** @enum {string} */
+                    category: "url-processing" | "ai-filtering" | "robots" | "extraction" | "queue-management" | "error";
+                    /** @enum {string} */
+                    level: "debug" | "info" | "warn" | "error";
+                    message: string;
+                    metadata: {
+                        url?: string;
+                        urlId?: number;
+                        score?: number;
+                        reasoning?: string;
+                        duration?: number;
+                        depth?: number;
+                        queueSize?: number;
+                        crawlId?: string;
+                        error?: string;
+                        statusCode?: number;
+                        contentLength?: number;
+                        linksFound?: number;
+                        linksAccepted?: number;
+                        linksRejected?: number;
+                        threshold?: number;
+                    } & {
+                        [key: string]: unknown;
+                    };
+                }[];
+                timeRange: {
+                    oldest: number;
+                    newest: number;
+                };
+            };
         };
         ModelConfig: {
             id: number;

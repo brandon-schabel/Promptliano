@@ -443,7 +443,7 @@ export function LocalFirstContent() {
             </a>
             <a
               href='/docs/guides'
-              className='inline-flex items-center px-6 py-3 rounded-lg border border-border hover:bg-accent transition-colors font-medium'
+              className='inline-flex items-center px-6 py-3 rounded-lg border hover:bg-accent transition-colors font-medium'
             >
               Learn More
             </a>

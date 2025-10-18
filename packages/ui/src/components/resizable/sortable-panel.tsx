@@ -64,7 +64,7 @@ export function SortablePanel({
           'cursor-grab active:cursor-grabbing',
           'bg-background/80 backdrop-blur-sm rounded-md',
           'border border-border/50 shadow-sm',
-          'hover:bg-accent hover:border-border hover:scale-110',
+          'hover:bg-accent hover:hover:scale-110',
           'transition-all duration-200',
           'px-2 py-1',
           isCurrentlyDragging && 'cursor-grabbing scale-110 bg-accent border-primary',

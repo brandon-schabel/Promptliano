@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@promptliano/hook-factory": "workspace:*"
+    "@promptliano/hook-factory": "workspace:*",
+    "@promptliano/schemas": "workspace:*"
   },
   "devDependencies": {
     "@types/bun": "latest",

@@ -118,7 +118,7 @@
     "tailwind-merge": "^2.2.0",
     "tailwindcss-animate": "^1.0.7",
     "vaul": "^0.9.0",
-    "zod": "^4.1.5"
+    "zod": "4.1.12"
   },
   "peerDependenciesMeta": {
     "react-dom": {
@@ -131,6 +131,7 @@
     "@tanstack/zod-form-adapter": "^0.42.1",
     "ai": "^5.0.52",
     "embla-carousel-react": "^8.6.0",
+    "mermaid": "^11.12.0",
     "nanoid": "^5.1.6",
     "react-syntax-highlighter": "^15.6.6",
     "streamdown": "^1.3.0",

@@ -299,7 +299,7 @@ export function QueueItemDetailsDialog({ item, projectId, open, onOpenChange }: 
                         <Bot className='h-4 w-4' />
                         Agent Assignment
                       </h3>
-                      <div className='p-4 rounded-lg border'>
+                      <div className='p-4 rounded-lg border border-border'>
                         <p className='font-medium'>{item.agentId}</p>
                         <p className='text-sm text-muted-foreground mt-1'>
                           This agent is responsible for processing this task
@@ -318,8 +318,10 @@ export function QueueItemDetailsDialog({ item, projectId, open, onOpenChange }: 
                         <XCircle className='h-4 w-4' />
                         Error Details
                       </h3>
-                      <div className='p-4 rounded-lg border border-red-200 bg-red-50'>
-                        <pre className='text-sm whitespace-pre-wrap text-red-800'>{item.errorMessage}</pre>
+                      <div className='p-4 rounded-lg border border-red-500/30 dark:border-red-500/50 bg-red-50 dark:bg-red-950/20'>
+                        <pre className='text-sm whitespace-pre-wrap text-red-800 dark:text-red-200'>
+                          {item.errorMessage}
+                        </pre>
                       </div>
                     </div>
                   </>

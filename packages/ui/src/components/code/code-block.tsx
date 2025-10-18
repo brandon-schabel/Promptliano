@@ -61,7 +61,7 @@ const CodeBlock = React.forwardRef<HTMLDivElement, CodeBlockProps>(
     return (
       <div ref={ref} className={cn('relative group', className)} {...props}>
         {fileName && (
-          <div className='flex items-center justify-between px-4 py-2 border-b border-border bg-muted/50'>
+          <div className='flex items-center justify-between px-4 py-2 border-b bg-muted/50'>
             <span className='text-xs text-muted-foreground'>{fileName}</span>
             {language && <span className='text-xs text-muted-foreground'>{language}</span>}
           </div>

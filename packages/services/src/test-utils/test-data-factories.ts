@@ -50,5 +50,31 @@ export const TestDataFactory = {
     description: generateSentence(),
     tags: [generateId(), generateId()],
     ...overrides
+  }),
+
+  modelConfig: (overrides = {}) => ({
+    name: `config_${generateId()}`,
+    displayName: generateWords(2),
+    provider: 'anthropic',
+    model: 'claude-3-haiku-20240307',
+    temperature: 0.7,
+    maxTokens: 4096,
+    topP: 1,
+    topK: 0,
+    frequencyPenalty: 0,
+    presencePenalty: 0,
+    responseFormat: null,
+    systemPrompt: null,
+    isSystemPreset: false,
+    isDefault: false,
+    isActive: true,
+    description: generateSentence(),
+    presetCategory: 'custom',
+    uiIcon: null,
+    uiColor: null,
+    uiOrder: 0,
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+    ...overrides
   })
 }

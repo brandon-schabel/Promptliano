@@ -94,12 +94,21 @@ export const assetsSearchSchema = z.object({
 
 // Settings page search schema
 export const settingsTabSchema = z
-  .enum(['general', 'server', 'local-providers', 'global-mcp', 'dev'])
+  .enum(['general', 'server', 'local-providers', 'global-mcp', 'users', 'dev'])
   .catch('general')
   .optional()
 
 export const settingsSearchSchema = z.object({
   tab: settingsTabSchema
+})
+
+// Login/Setup search schemas
+export const loginSearchSchema = z.object({
+  redirect: z.string().optional().catch(undefined)
+})
+
+export const setupSearchSchema = z.object({
+  step: z.enum(['account', 'complete']).catch('account').optional()
 })
 
 // Queue dashboard search schema
@@ -123,6 +132,8 @@ export type TicketsSearch = z.infer<typeof ticketsSearchSchema>
 export type AssetsSearch = z.infer<typeof assetsSearchSchema>
 export type SettingsSearch = z.infer<typeof settingsSearchSchema>
 export type SettingsTab = z.infer<typeof settingsTabSchema>
+export type LoginSearch = z.infer<typeof loginSearchSchema>
+export type SetupSearch = z.infer<typeof setupSearchSchema>
 export type QueueDashboardSearch = z.infer<typeof queueDashboardSearchSchema>
 
 // Utility function to merge search schemas
@@ -133,6 +144,40 @@ export function mergeSearchSchemas<T extends z.ZodObject<any>, U extends z.ZodOb
   return schema1.merge(schema2) as any
 }
 
+// Deep Research page search schema
+export const deepResearchSearchSchema = z.object({
+  search: z.string().catch('').optional(),
+  filter: z.enum(['all', 'active', 'complete']).catch('all').optional()
+})
+
+// Deep Research detail view search schema
+export const deepResearchDetailSearchSchema = z.object({
+  tab: z.enum(['overview', 'sources', 'sections', 'document', 'debug']).catch('overview').optional()
+})
+
+// Source Dashboard search schema with table state
+export const sourceDashboardSearchSchema = z.object({
+  tab: z.enum(['overview', 'links', 'content', 'errors']).catch('overview').optional(),
+  // Pagination
+  page: z.coerce.number().min(1).catch(1).optional(),
+  limit: z.coerce.number().min(10).max(100).catch(20).optional(),
+  // Sorting
+  sortBy: z.enum(['discoveredAt', 'url', 'depth', 'relevanceScore', 'title', 'status']).catch('discoveredAt').optional(),
+  sortOrder: z.enum(['asc', 'desc']).catch('desc').optional(),
+  // Filters
+  status: z.string().optional().catch(undefined),
+  search: z.string().optional().catch(undefined),
+  minDepth: z.coerce.number().catch(undefined).optional(),
+  maxDepth: z.coerce.number().catch(undefined).optional(),
+  from: z.string().optional().catch(undefined),
+  to: z.string().optional().catch(undefined)
+})
+
+// Type exports
+export type DeepResearchSearch = z.infer<typeof deepResearchSearchSchema>
+export type DeepResearchDetailSearch = z.infer<typeof deepResearchDetailSearchSchema>
+export type SourceDashboardSearch = z.infer<typeof sourceDashboardSearchSchema>
+
 // Default search params to strip from URLs (when they match these values)
 export const defaultSearchParams = {
   tab: '',
@@ -140,5 +185,7 @@ export const defaultSearchParams = {
   prefill: false,
   status: 'open',
   priority: 'normal',
-  type: 'image'
+  type: 'image',
+  search: '',
+  filter: 'all'
 } as const

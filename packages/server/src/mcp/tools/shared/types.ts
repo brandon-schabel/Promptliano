@@ -211,3 +211,17 @@ export const MarkdownPromptManagerSchema = z.object({
   projectId: z.number().optional(),
   data: z.any().optional()
 })
+
+// Web Crawling Manager Types
+export enum WebCrawlingAction {
+  CRAWL_WEBPAGE = 'crawl_webpage',
+  CRAWL_WEBSITE = 'crawl_website',
+  SEARCH_CACHED = 'search_cached',
+  GET_HISTORY = 'get_history',
+  CHECK_ROBOTS = 'check_robots'
+}
+
+export const WebCrawlingSchema = z.object({
+  action: z.nativeEnum(WebCrawlingAction),
+  data: z.any().optional()
+})

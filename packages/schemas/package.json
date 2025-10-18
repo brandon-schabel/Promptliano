@@ -15,8 +15,9 @@
     "README.md"
   ],
   "dependencies": {
+    "@hono/zod-openapi": "^1.1.0",
     "@promptliano/config": "workspace:*",
-    "@hono/zod-openapi": "^1.1.0"
+    "zod": "4.1.12"
   },
   "devDependencies": {
     "@types/bun": "latest"

@@ -384,10 +384,21 @@
                     "reason": {
                       "type": "string"
                     },
+                    "reasons": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
                     "fileType": {
                       "type": "string"
                     },
                     "aiConfidence": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 1
+                    },
+                    "confidence": {
                       "type": "number",
                       "minimum": 0,
                       "maximum": 1
@@ -397,12 +408,17 @@
                       "items": {
                         "type": "string"
                       }
+                    },
+                    "lineCount": {
+                      "type": "number"
+                    },
+                    "totalLines": {
+                      "type": "number"
                     }
                   },
                   "required": [
                     "path",
                     "relevance",
-                    "reason",
                     "fileType"
                   ]
                 }
@@ -461,6 +477,33 @@
                     "reasons"
                   ]
                 }
+              },
+              "selectedDirectories": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "totalDirectories": {
+                "type": "number"
+              },
+              "filesFromDirectories": {
+                "type": "number"
+              },
+              "lineCountPerFile": {
+                "type": "number"
+              },
+              "aiModel": {
+                "type": "string"
+              },
+              "directorySelectionTime": {
+                "type": "number"
+              },
+              "fileFetchTime": {
+                "type": "number"
+              },
+              "suggestionTime": {
+                "type": "number"
               }
             },
             "required": [
@@ -515,11 +558,42 @@
             "example": true,
             "description": "Return per-file relevance scores when available"
           },
+          "includeReasons": {
+            "type": "boolean",
+            "default": false,
+            "example": false,
+            "description": "Include detailed AI-generated reasons for each file suggestion (default: false to save tokens)"
+          },
           "userContext": {
             "type": "string",
             "minLength": 1,
             "example": "Focus on MCP transport tools and remove unused prompts",
             "description": "Additional context used to bias relevance scoring"
+          },
+          "lineCount": {
+            "type": "integer",
+            "minimum": 10,
+            "maximum": 200,
+            "default": 50,
+            "example": 50,
+            "description": "Number of lines to read from each file (V2 only)"
+          },
+          "directories": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "example": [
+              "src/auth",
+              "src/api"
+            ],
+            "description": "Optional: manually specify directories to search (skips AI directory selection)"
+          },
+          "skipDirectorySelection": {
+            "type": "boolean",
+            "default": false,
+            "example": false,
+            "description": "If true and directories provided, skip AI directory selection stage"
           }
         }
       },
@@ -4026,6 +4100,92 @@
           "userInput"
         ]
       },
+      "MermaidFixOutput": {
+        "type": "object",
+        "properties": {
+          "fixedCode": {
+            "type": "string",
+            "description": "The corrected/optimized mermaid diagram code (raw, without markdown wrapper)",
+            "example": "graph TD\n  A[Start] --> B[Process]\n  B --> C{Decision}\n  C -->|Yes| D[End]"
+          },
+          "explanation": {
+            "type": "string",
+            "description": "Brief explanation of what was fixed or improved",
+            "example": "Fixed syntax error: Changed -> to --> for proper arrow notation. Added decision node as requested."
+          },
+          "diagramType": {
+            "type": "string",
+            "enum": [
+              "flowchart",
+              "sequence",
+              "class",
+              "state",
+              "er",
+              "gantt",
+              "pie",
+              "unknown"
+            ],
+            "description": "The type of mermaid diagram",
+            "example": "flowchart"
+          }
+        },
+        "required": [
+          "fixedCode",
+          "explanation"
+        ]
+      },
+      "MermaidFixResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "$ref": "#/components/schemas/MermaidFixOutput"
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ]
+      },
+      "MermaidFixRequest": {
+        "type": "object",
+        "properties": {
+          "mermaidCode": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The current mermaid diagram code (possibly invalid or needing optimization)",
+            "example": "graph TD\n  A[Start] -> B[Process]"
+          },
+          "error": {
+            "type": "string",
+            "description": "The error message if mermaid rendering failed",
+            "example": "Syntax error in graph: unexpected token"
+          },
+          "userIntent": {
+            "type": "string",
+            "description": "What the user wants to achieve or fix in the diagram",
+            "example": "Add a decision node and connect it to the end state"
+          },
+          "options": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AiSdkOptions"
+              },
+              {
+                "description": "Optional AI model configuration for the fix operation"
+              }
+            ]
+          }
+        },
+        "required": [
+          "mermaidCode"
+        ]
+      },
       "UnifiedModel": {
         "type": "object",
         "properties": {
@@ -5920,13 +6080,13 @@
             "type": "integer",
             "format": "int64",
             "description": "Unix timestamp in milliseconds, between 1970 and 2050. Input can be string, number, or Date.",
-            "example": 1759279306739
+            "example": 1760137990547
           },
           "updated": {
             "type": "integer",
             "format": "int64",
             "description": "Unix timestamp in milliseconds, between 1970 and 2050. Input can be string, number, or Date.",
-            "example": 1759279306739
+            "example": 1760137990547
           }
         },
         "required": [
@@ -6069,13 +6229,13 @@
             "type": "integer",
             "format": "int64",
             "description": "Unix timestamp in milliseconds, between 1970 and 2050. Input can be string, number, or Date.",
-            "example": 1759279306739
+            "example": 1760137990547
           },
           "completedAt": {
             "type": "integer",
             "format": "int64",
             "description": "Unix timestamp in milliseconds, between 1970 and 2050. Input can be string, number, or Date.",
-            "example": 1759279306739
+            "example": 1760137990547
           }
         },
         "required": [
@@ -9028,6 +9188,1759 @@
         "required": [
           "success",
           "upstream"
+        ]
+      },
+      "ResearchRecord": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "projectId": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "topic": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "initializing",
+              "gathering",
+              "processing",
+              "building",
+              "complete",
+              "failed"
+            ]
+          },
+          "totalSources": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "processedSources": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "sectionsTotal": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "sectionsCompleted": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "maxSources": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "maxDepth": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "strategy": {
+            "type": "string",
+            "enum": [
+              "fast",
+              "balanced",
+              "thorough"
+            ]
+          },
+          "metadata": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              },
+              {
+                "type": "object",
+                "additionalProperties": {}
+              },
+              {
+                "type": "array",
+                "items": {}
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "createdAt": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "updatedAt": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "completedAt": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "id",
+          "projectId",
+          "topic",
+          "description",
+          "status",
+          "totalSources",
+          "processedSources",
+          "sectionsTotal",
+          "sectionsCompleted",
+          "maxSources",
+          "maxDepth",
+          "strategy",
+          "metadata",
+          "createdAt",
+          "updatedAt",
+          "completedAt"
+        ]
+      },
+      "ResearchRecordResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "$ref": "#/components/schemas/ResearchRecord"
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ]
+      },
+      "CreateResearchRequest": {
+        "type": "object",
+        "properties": {
+          "projectId": {
+            "type": "integer",
+            "exclusiveMinimum": 0
+          },
+          "topic": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "maxSources": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 50,
+            "default": 10
+          },
+          "maxDepth": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5,
+            "default": 3
+          },
+          "strategy": {
+            "type": "string",
+            "enum": [
+              "fast",
+              "balanced",
+              "thorough"
+            ],
+            "default": "balanced"
+          },
+          "searchQueries": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            },
+            "maxItems": 20
+          },
+          "autoExecute": {
+            "type": "boolean",
+            "default": true
+          },
+          "modelConfig": {
+            "type": "object",
+            "properties": {
+              "provider": {
+                "type": "string"
+              },
+              "model": {
+                "type": "string"
+              },
+              "temperature": {
+                "type": "number"
+              },
+              "maxTokens": {
+                "type": "number"
+              }
+            }
+          },
+          "enableCrawling": {
+            "type": "boolean",
+            "default": false
+          },
+          "crawlSeedUrl": {
+            "type": "string",
+            "maxLength": 2000,
+            "format": "uri"
+          },
+          "crawlMaxDepth": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5,
+            "default": 2
+          },
+          "crawlMaxPages": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100,
+            "default": 20
+          },
+          "crawlRelevanceThreshold": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "default": 0.6
+          }
+        },
+        "required": [
+          "topic"
+        ]
+      },
+      "ResearchRecordListResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ResearchRecord"
+            }
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ]
+      },
+      "UpdateResearchRequest": {
+        "type": "object",
+        "properties": {
+          "topic": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "initializing",
+              "gathering",
+              "processing",
+              "building",
+              "complete",
+              "failed"
+            ]
+          }
+        }
+      },
+      "ResearchSource": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "researchId": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "url": {
+            "type": "string"
+          },
+          "title": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "sourceType": {
+            "type": "string",
+            "enum": [
+              "web",
+              "pdf",
+              "academic",
+              "api"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "fetching",
+              "processing",
+              "complete",
+              "failed"
+            ]
+          },
+          "contentLength": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "tokenCount": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "cited": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "citationCount": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "errorMessage": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "retryCount": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "fetchedAt": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "createdAt": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "updatedAt": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "id",
+          "researchId",
+          "url",
+          "title",
+          "sourceType",
+          "status",
+          "contentLength",
+          "tokenCount",
+          "cited",
+          "citationCount",
+          "errorMessage",
+          "retryCount",
+          "fetchedAt",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "ResearchSourceResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "$ref": "#/components/schemas/ResearchSource"
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ]
+      },
+      "AddSourceRequest": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "maxLength": 2000,
+            "format": "uri"
+          },
+          "sourceType": {
+            "type": "string",
+            "enum": [
+              "web",
+              "pdf",
+              "academic",
+              "api"
+            ],
+            "default": "web"
+          }
+        },
+        "required": [
+          "url"
+        ]
+      },
+      "ResearchSourceListResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ResearchSource"
+            }
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ]
+      },
+      "ResearchProcessedData": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "sourceId": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "researchId": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "rawContent": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "cleanedContent": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "markdown": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "summary": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "title": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "excerpt": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "author": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "publishDate": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "keywords": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              },
+              {
+                "type": "object",
+                "additionalProperties": {}
+              },
+              {
+                "type": "array",
+                "items": {}
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "entities": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              },
+              {
+                "type": "object",
+                "additionalProperties": {}
+              },
+              {
+                "type": "array",
+                "items": {}
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "tokenCount": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "relevanceScore": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": -140737488355328,
+            "maximum": 140737488355327
+          },
+          "createdAt": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "id",
+          "sourceId",
+          "researchId",
+          "rawContent",
+          "cleanedContent",
+          "markdown",
+          "summary",
+          "title",
+          "excerpt",
+          "author",
+          "publishDate",
+          "keywords",
+          "entities",
+          "tokenCount",
+          "relevanceScore",
+          "createdAt"
+        ]
+      },
+      "ResearchProcessedDataResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "$ref": "#/components/schemas/ResearchProcessedData"
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ]
+      },
+      "GenerateOutlineResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "type": "object",
+            "properties": {
+              "title": {
+                "type": "string"
+              },
+              "sections": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "title": {
+                      "type": "string"
+                    },
+                    "description": {
+                      "type": "string"
+                    },
+                    "level": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 6
+                    },
+                    "subsections": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "title": {
+                            "type": "string"
+                          },
+                          "description": {
+                            "type": "string"
+                          },
+                          "level": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 6
+                          }
+                        },
+                        "required": [
+                          "title",
+                          "description",
+                          "level"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "description",
+                    "level"
+                  ]
+                }
+              },
+              "estimatedTokens": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "estimatedTime": {
+                "type": "integer",
+                "minimum": 0
+              }
+            },
+            "required": [
+              "title",
+              "sections",
+              "estimatedTokens",
+              "estimatedTime"
+            ]
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ]
+      },
+      "GenerateOutlineRequest": {
+        "type": "object",
+        "properties": {
+          "topic": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          },
+          "sectionsCount": {
+            "type": "integer",
+            "minimum": 3,
+            "maximum": 20,
+            "default": 8
+          },
+          "depth": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 3,
+            "default": 2
+          }
+        },
+        "required": [
+          "topic"
+        ]
+      },
+      "ResearchDocumentSection": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "researchId": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "content": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "orderIndex": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "level": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "parentSectionId": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "citedSourceIds": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              },
+              {
+                "type": "object",
+                "additionalProperties": {}
+              },
+              {
+                "type": "array",
+                "items": {}
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "drafting",
+              "complete",
+              "reviewed"
+            ]
+          },
+          "wordCount": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "tokenCount": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "createdAt": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "updatedAt": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "id",
+          "researchId",
+          "title",
+          "description",
+          "content",
+          "orderIndex",
+          "level",
+          "parentSectionId",
+          "citedSourceIds",
+          "status",
+          "wordCount",
+          "tokenCount",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "ResearchDocumentSectionListResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ResearchDocumentSection"
+            }
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ]
+      },
+      "ResearchDocumentSectionResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "$ref": "#/components/schemas/ResearchDocumentSection"
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ]
+      },
+      "BuildSectionRequest": {
+        "type": "object",
+        "properties": {
+          "sectionId": {
+            "type": "integer",
+            "exclusiveMinimum": 0
+          },
+          "userContext": {
+            "type": "string",
+            "maxLength": 5000
+          },
+          "includeSubsections": {
+            "type": "boolean",
+            "default": false
+          }
+        },
+        "required": [
+          "sectionId"
+        ]
+      },
+      "UpdateSectionRequest": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 1000
+          },
+          "content": {
+            "type": "string",
+            "maxLength": 100000
+          },
+          "orderIndex": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "drafting",
+              "complete",
+              "reviewed"
+            ]
+          }
+        }
+      },
+      "ResearchProgressResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "type": "object",
+            "properties": {
+              "researchId": {
+                "type": "integer",
+                "exclusiveMinimum": 0
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "initializing",
+                  "gathering",
+                  "processing",
+                  "building",
+                  "complete",
+                  "failed"
+                ]
+              },
+              "progress": {
+                "type": "object",
+                "properties": {
+                  "totalSources": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "processedSources": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "sectionsTotal": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "sectionsCompleted": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "percentage": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 100
+                  }
+                },
+                "required": [
+                  "totalSources",
+                  "processedSources",
+                  "sectionsTotal",
+                  "sectionsCompleted",
+                  "percentage"
+                ]
+              },
+              "currentPhase": {
+                "type": "string"
+              },
+              "estimatedTimeRemaining": {
+                "type": "integer",
+                "minimum": 0
+              }
+            },
+            "required": [
+              "researchId",
+              "status",
+              "progress",
+              "currentPhase"
+            ]
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ]
+      },
+      "ResearchExport": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "researchId": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "markdown",
+              "pdf",
+              "html",
+              "docx"
+            ]
+          },
+          "filename": {
+            "type": "string"
+          },
+          "size": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "downloadUrl": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "downloadCount": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "content": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "createdAt": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "expiresAt": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "id",
+          "researchId",
+          "format",
+          "filename",
+          "size",
+          "downloadUrl",
+          "downloadCount",
+          "content",
+          "createdAt",
+          "expiresAt"
+        ]
+      },
+      "ResearchExportResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "$ref": "#/components/schemas/ResearchExport"
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ]
+      },
+      "ExportRequest": {
+        "type": "object",
+        "properties": {
+          "format": {
+            "type": "string",
+            "enum": [
+              "markdown",
+              "pdf",
+              "html",
+              "docx"
+            ]
+          },
+          "includeToc": {
+            "type": "boolean",
+            "default": true
+          },
+          "includeReferences": {
+            "type": "boolean",
+            "default": true
+          },
+          "filename": {
+            "type": "string",
+            "maxLength": 255
+          }
+        },
+        "required": [
+          "format"
+        ]
+      },
+      "ExecuteWorkflowRequest": {
+        "type": "object",
+        "properties": {
+          "options": {
+            "type": "object",
+            "properties": {
+              "skipGathering": {
+                "type": "boolean"
+              },
+              "skipProcessing": {
+                "type": "boolean"
+              },
+              "skipBuilding": {
+                "type": "boolean"
+              },
+              "modelConfig": {
+                "type": "object",
+                "properties": {
+                  "provider": {
+                    "type": "string"
+                  },
+                  "model": {
+                    "type": "string"
+                  },
+                  "temperature": {
+                    "type": "number"
+                  },
+                  "maxTokens": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "WorkflowStatusResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "type": "object",
+            "properties": {
+              "researchId": {
+                "type": "integer",
+                "exclusiveMinimum": 0
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "initializing",
+                  "gathering",
+                  "processing",
+                  "building",
+                  "complete",
+                  "failed"
+                ]
+              },
+              "currentPhase": {
+                "type": "string"
+              },
+              "canResume": {
+                "type": "boolean"
+              },
+              "canExecute": {
+                "type": "boolean"
+              },
+              "canStop": {
+                "type": "boolean"
+              },
+              "progress": {
+                "type": "object",
+                "properties": {
+                  "percentage": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 100
+                  },
+                  "totalSources": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "processedSources": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "sectionsTotal": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "sectionsCompleted": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                },
+                "required": [
+                  "percentage",
+                  "totalSources",
+                  "processedSources",
+                  "sectionsTotal",
+                  "sectionsCompleted"
+                ]
+              },
+              "estimatedTimeRemaining": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "lastError": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "researchId",
+              "status",
+              "currentPhase",
+              "canResume",
+              "canExecute",
+              "canStop",
+              "progress"
+            ]
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ]
+      },
+      "CrawlProgressResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "type": "object",
+            "properties": {
+              "researchId": {
+                "type": "integer",
+                "exclusiveMinimum": 0
+              },
+              "crawlEnabled": {
+                "type": "boolean"
+              },
+              "crawlId": {
+                "type": "string"
+              },
+              "seedUrl": {
+                "type": "string"
+              },
+              "progress": {
+                "type": "object",
+                "properties": {
+                  "urlsCrawled": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "urlsPending": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "urlsFailed": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "currentDepth": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                },
+                "required": [
+                  "urlsCrawled",
+                  "urlsPending",
+                  "urlsFailed",
+                  "currentDepth"
+                ]
+              },
+              "config": {
+                "type": "object",
+                "properties": {
+                  "maxDepth": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 5
+                  },
+                  "maxPages": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100
+                  },
+                  "relevanceThreshold": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1
+                  }
+                },
+                "required": [
+                  "maxDepth",
+                  "maxPages",
+                  "relevanceThreshold"
+                ]
+              }
+            },
+            "required": [
+              "researchId",
+              "crawlEnabled"
+            ]
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ]
+      },
+      "CrawlDebugEventListResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "researchId": {
+                  "type": "number"
+                },
+                "timestamp": {
+                  "type": "number"
+                },
+                "category": {
+                  "type": "string",
+                  "enum": [
+                    "url-processing",
+                    "ai-filtering",
+                    "robots",
+                    "extraction",
+                    "queue-management",
+                    "error"
+                  ]
+                },
+                "level": {
+                  "type": "string",
+                  "enum": [
+                    "debug",
+                    "info",
+                    "warn",
+                    "error"
+                  ]
+                },
+                "message": {
+                  "type": "string"
+                },
+                "metadata": {
+                  "type": "object",
+                  "properties": {
+                    "url": {
+                      "type": "string"
+                    },
+                    "urlId": {
+                      "type": "number"
+                    },
+                    "score": {
+                      "type": "number"
+                    },
+                    "reasoning": {
+                      "type": "string"
+                    },
+                    "duration": {
+                      "type": "number"
+                    },
+                    "depth": {
+                      "type": "number"
+                    },
+                    "queueSize": {
+                      "type": "number"
+                    },
+                    "crawlId": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "statusCode": {
+                      "type": "number"
+                    },
+                    "contentLength": {
+                      "type": "number"
+                    },
+                    "linksFound": {
+                      "type": "number"
+                    },
+                    "linksAccepted": {
+                      "type": "number"
+                    },
+                    "linksRejected": {
+                      "type": "number"
+                    },
+                    "threshold": {
+                      "type": "number"
+                    }
+                  },
+                  "additionalProperties": {}
+                }
+              },
+              "required": [
+                "id",
+                "researchId",
+                "timestamp",
+                "category",
+                "level",
+                "message",
+                "metadata"
+              ]
+            }
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ]
+      },
+      "CrawlDebugStatsResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "data": {
+            "type": "object",
+            "properties": {
+              "researchId": {
+                "type": "number"
+              },
+              "totalEvents": {
+                "type": "number"
+              },
+              "eventsByCategory": {
+                "type": "object",
+                "properties": {
+                  "url-processing": {
+                    "type": "number"
+                  },
+                  "ai-filtering": {
+                    "type": "number"
+                  },
+                  "robots": {
+                    "type": "number"
+                  },
+                  "extraction": {
+                    "type": "number"
+                  },
+                  "queue-management": {
+                    "type": "number"
+                  },
+                  "error": {
+                    "type": "number"
+                  }
+                }
+              },
+              "eventsByLevel": {
+                "type": "object",
+                "properties": {
+                  "debug": {
+                    "type": "number"
+                  },
+                  "info": {
+                    "type": "number"
+                  },
+                  "warn": {
+                    "type": "number"
+                  },
+                  "error": {
+                    "type": "number"
+                  }
+                }
+              },
+              "averageProcessingTimeMs": {
+                "type": "number"
+              },
+              "aiAcceptanceRate": {
+                "type": "number"
+              },
+              "recentActivity": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "researchId": {
+                      "type": "number"
+                    },
+                    "timestamp": {
+                      "type": "number"
+                    },
+                    "category": {
+                      "type": "string",
+                      "enum": [
+                        "url-processing",
+                        "ai-filtering",
+                        "robots",
+                        "extraction",
+                        "queue-management",
+                        "error"
+                      ]
+                    },
+                    "level": {
+                      "type": "string",
+                      "enum": [
+                        "debug",
+                        "info",
+                        "warn",
+                        "error"
+                      ]
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "metadata": {
+                      "type": "object",
+                      "properties": {
+                        "url": {
+                          "type": "string"
+                        },
+                        "urlId": {
+                          "type": "number"
+                        },
+                        "score": {
+                          "type": "number"
+                        },
+                        "reasoning": {
+                          "type": "string"
+                        },
+                        "duration": {
+                          "type": "number"
+                        },
+                        "depth": {
+                          "type": "number"
+                        },
+                        "queueSize": {
+                          "type": "number"
+                        },
+                        "crawlId": {
+                          "type": "string"
+                        },
+                        "error": {
+                          "type": "string"
+                        },
+                        "statusCode": {
+                          "type": "number"
+                        },
+                        "contentLength": {
+                          "type": "number"
+                        },
+                        "linksFound": {
+                          "type": "number"
+                        },
+                        "linksAccepted": {
+                          "type": "number"
+                        },
+                        "linksRejected": {
+                          "type": "number"
+                        },
+                        "threshold": {
+                          "type": "number"
+                        }
+                      },
+                      "additionalProperties": {}
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "researchId",
+                    "timestamp",
+                    "category",
+                    "level",
+                    "message",
+                    "metadata"
+                  ]
+                }
+              },
+              "timeRange": {
+                "type": "object",
+                "properties": {
+                  "oldest": {
+                    "type": "number"
+                  },
+                  "newest": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "oldest",
+                  "newest"
+                ]
+              }
+            },
+            "required": [
+              "researchId",
+              "totalEvents",
+              "eventsByCategory",
+              "eventsByLevel",
+              "recentActivity",
+              "timeRange"
+            ]
+          }
+        },
+        "required": [
+          "success",
+          "data"
         ]
       },
       "ModelConfig": {
@@ -20906,6 +22819,78 @@
         }
       }
     },
+    "/api/ai/mermaid/fix": {
+      "post": {
+        "tags": [
+          "AI"
+        ],
+        "summary": "Fix and optimize mermaid diagram code",
+        "description": "Uses AI to fix syntax errors and optimize mermaid diagram code structure",
+        "requestBody": {
+          "required": true,
+          "description": "Mermaid code to fix along with optional error message and user intent",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MermaidFixRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MermaidFixResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/models": {
       "get": {
         "tags": [
@@ -31572,6 +33557,1898 @@
         }
       }
     },
+    "/api/research": {
+      "post": {
+        "tags": [
+          "Deep Research"
+        ],
+        "summary": "Create a new research session",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateResearchRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Research created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResearchRecordResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperationSuccessResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperationSuccessResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Deep Research"
+        ],
+        "summary": "List all research sessions",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResearchRecordListResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/research/{id}": {
+      "get": {
+        "tags": [
+          "Deep Research"
+        ],
+        "summary": "Get a specific research session",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResearchRecordResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Deep Research"
+        ],
+        "summary": "Update a research session",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateResearchRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResearchRecordResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Deep Research"
+        ],
+        "summary": "Delete a research session",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperationSuccessResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/research/start": {
+      "post": {
+        "tags": [
+          "Deep Research"
+        ],
+        "summary": "Start a new research session with automatic source gathering",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateResearchRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResearchRecordResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/research/{id}/sources": {
+      "post": {
+        "tags": [
+          "Deep Research"
+        ],
+        "summary": "Add a source to research",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddSourceRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResearchSourceResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Deep Research"
+        ],
+        "summary": "Get all sources for a research session",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResearchSourceListResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/research/sources/{id}/process": {
+      "post": {
+        "tags": [
+          "Deep Research"
+        ],
+        "summary": "Process a specific source",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperationSuccessResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/research/sources/{id}/processed-data": {
+      "get": {
+        "tags": [
+          "Deep Research"
+        ],
+        "summary": "Get processed data for a specific source",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResearchProcessedDataResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/research/{id}/outline": {
+      "post": {
+        "tags": [
+          "Deep Research"
+        ],
+        "summary": "Generate document outline",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenerateOutlineRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenerateOutlineResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/research/{id}/sections": {
+      "get": {
+        "tags": [
+          "Deep Research"
+        ],
+        "summary": "Get all sections for a research document",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResearchDocumentSectionListResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/research/sections/{id}/build": {
+      "post": {
+        "tags": [
+          "Deep Research"
+        ],
+        "summary": "Build a specific section",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BuildSectionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResearchDocumentSectionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/research/sections/{id}": {
+      "patch": {
+        "tags": [
+          "Deep Research"
+        ],
+        "summary": "Update a section",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateSectionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResearchDocumentSectionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/research/{id}/progress": {
+      "get": {
+        "tags": [
+          "Deep Research"
+        ],
+        "summary": "Get research progress",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResearchProgressResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/research/{id}/export": {
+      "post": {
+        "tags": [
+          "Deep Research"
+        ],
+        "summary": "Export research document",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExportRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResearchExportResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/research/{id}/execute": {
+      "post": {
+        "tags": [
+          "Deep Research",
+          "Workflow"
+        ],
+        "summary": "Execute workflow from current state to completion",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExecuteWorkflowRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperationSuccessResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/research/{id}/resume": {
+      "post": {
+        "tags": [
+          "Deep Research",
+          "Workflow"
+        ],
+        "summary": "Resume workflow from failed/stopped state",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperationSuccessResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/research/{id}/stop": {
+      "post": {
+        "tags": [
+          "Deep Research",
+          "Workflow"
+        ],
+        "summary": "Stop automatic workflow execution",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperationSuccessResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/research/{id}/workflow-status": {
+      "get": {
+        "tags": [
+          "Deep Research",
+          "Workflow"
+        ],
+        "summary": "Get detailed workflow status with action availability",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkflowStatusResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/research/{id}/crawl-progress": {
+      "get": {
+        "tags": [
+          "Deep Research",
+          "Crawl"
+        ],
+        "summary": "Get web crawling progress",
+        "description": "Get real-time web crawling progress for a research session with crawl mode enabled",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CrawlProgressResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/deep-research/{researchId}/debug/events": {
+      "get": {
+        "tags": [
+          "Deep Research",
+          "Debug"
+        ],
+        "summary": "Get debug events for a research session",
+        "description": "Retrieve filtered debug events from the web crawling system",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0
+            },
+            "required": true,
+            "name": "researchId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "url-processing",
+                "ai-filtering",
+                "robots",
+                "extraction",
+                "queue-management",
+                "error"
+              ]
+            },
+            "required": false,
+            "name": "category",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "debug",
+                "info",
+                "warn",
+                "error"
+              ]
+            },
+            "required": false,
+            "name": "level",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 1000,
+              "default": 100
+            },
+            "required": false,
+            "name": "limit",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "required": false,
+            "name": "from",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "required": false,
+            "name": "to",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CrawlDebugEventListResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Deep Research",
+          "Debug"
+        ],
+        "summary": "Clear all debug events",
+        "description": "Remove all debug events for a research session",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0
+            },
+            "required": true,
+            "name": "researchId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperationSuccessResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/deep-research/{researchId}/debug/stats": {
+      "get": {
+        "tags": [
+          "Deep Research",
+          "Debug"
+        ],
+        "summary": "Get debug statistics for a research session",
+        "description": "Retrieve aggregated statistics including counts, rates, and timing data",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0
+            },
+            "required": true,
+            "name": "researchId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CrawlDebugStatsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/deep-research/{researchId}/debug/activity": {
+      "get": {
+        "tags": [
+          "Deep Research",
+          "Debug"
+        ],
+        "summary": "Get recent debug activity",
+        "description": "Retrieve the most recent debug events for real-time monitoring",
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0
+            },
+            "required": true,
+            "name": "researchId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 100,
+              "default": 10
+            },
+            "required": false,
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CrawlDebugEventListResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/model-configs": {
       "get": {
         "tags": [
@@ -33263,6 +37140,12 @@
       "ok": true
     },
     "copilotEmbedRoutes": {
+      "ok": true
+    },
+    "deepResearchRoutes": {
+      "ok": true
+    },
+    "crawlDebugRoutes": {
       "ok": true
     },
     "modelConfigRoutes": {

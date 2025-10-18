@@ -429,7 +429,7 @@ export function ProcessTable({ projectId, onProcessSelect, showHistory = false }
         </div>
       </div>
 
-      <div className='rounded-md border'>
+      <div className='rounded-md border border-border'>
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (

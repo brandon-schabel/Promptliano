@@ -1,10 +1,7 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   darkMode: ['class'],
-  content: [
-    './src/**/*.{js,ts,jsx,tsx}',
-    './node_modules/streamdown/dist/**/*.{js,ts,jsx,tsx}'
-  ],
+  content: ['./src/**/*.{js,ts,jsx,tsx}', './node_modules/streamdown/dist/**/*.{js,ts,jsx,tsx}'],
   theme: {
     container: {
       center: true,
@@ -132,5 +129,9 @@ module.exports = {
       }
     }
   },
+  borderColor: ({ theme }) => ({
+    ...theme('colors'),
+    DEFAULT: 'hsl(var(--border) / <alpha-value>)'
+  }),
   plugins: [require('tailwindcss-animate'), require('@tailwindcss/typography')]
 }

@@ -15,6 +15,62 @@
       "when": 1758900000000,
       "tag": "0001_chat_streams",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1759000000000,
+      "tag": "0002_add_auth_tables",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1759604266693,
+      "tag": "0003_abandoned_golden_guardian",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1759618166658,
+      "tag": "0004_funny_nekra",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1760025004763,
+      "tag": "0005_mixed_shocker",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1760100000000,
+      "tag": "0006_add_research_composite_indexes",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1760031995791,
+      "tag": "0007_remarkable_vulture",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1760154838000,
+      "tag": "0008_add_research_metadata",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1760280636391,
+      "tag": "0009_flowery_chamber",
+      "breakpoints": true
     }
   ]
 }

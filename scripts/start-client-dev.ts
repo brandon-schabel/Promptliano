@@ -9,17 +9,17 @@ async function killPort(port: number) {
     for (const pid of pids) await $`kill -9 ${pid}`.quiet()
     if (pids.length) console.log(`🔪 Killed ${pids.length} process(es) on port ${port}`)
     if (pids.length) return
-  } catch {}
+  } catch { }
   try {
     await $`bash -lc "command -v fuser >/dev/null 2>&1 && fuser -k ${port}/tcp || true"`.quiet()
     console.log(`🔪 Killed process(es) via fuser on port ${port}`)
     return
-  } catch {}
+  } catch { }
   if (process.platform === 'win32') {
     try {
       await $`powershell -NoProfile -Command "Get-NetTCPConnection -LocalPort ${port} -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force }"`.quiet()
       console.log(`🔪 Killed process(es) on port ${port} (Windows)`)
-    } catch {}
+    } catch { }
   }
 }
 
@@ -27,9 +27,9 @@ async function startClientDev() {
   try {
     const rootDir = process.cwd()
 
-    // Start client (Vite runs on 1420 by default)
+    // Start client (Vite runs on 5173 by default)
     console.log('🚀 Starting client...')
-    await killPort(1420)
+    await killPort(5173)
     const clientProcess = Bun.spawn(['bun', 'run', 'dev'], {
       cwd: join(rootDir, 'packages', 'client'),
       stdio: ['inherit', 'inherit', 'inherit']
@@ -43,7 +43,7 @@ async function startClientDev() {
     })
 
     // Keep the script running
-    await new Promise(() => {})
+    await new Promise(() => { })
   } catch (error) {
     console.error('❌ Error starting client:', error)
     process.exit(1)

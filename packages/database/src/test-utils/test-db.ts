@@ -513,6 +513,49 @@ function createSchemaTable(rawDb: Database, verbose: boolean) {
       status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'success', 'error')),
       created_at INTEGER NOT NULL,
       updated_at INTEGER NOT NULL
+    )`,
+
+    // Model configs table
+    `CREATE TABLE IF NOT EXISTS model_configs (
+      id INTEGER PRIMARY KEY,
+      name TEXT NOT NULL,
+      display_name TEXT,
+      provider TEXT NOT NULL,
+      model TEXT NOT NULL,
+      temperature REAL DEFAULT 0.7,
+      max_tokens INTEGER DEFAULT 4096,
+      top_p REAL DEFAULT 1,
+      top_k INTEGER DEFAULT 0,
+      frequency_penalty REAL DEFAULT 0,
+      presence_penalty REAL DEFAULT 0,
+      response_format TEXT,
+      system_prompt TEXT,
+      is_system_preset INTEGER DEFAULT 0 NOT NULL,
+      is_default INTEGER DEFAULT 0 NOT NULL,
+      is_active INTEGER DEFAULT 1 NOT NULL,
+      description TEXT,
+      preset_category TEXT,
+      ui_icon TEXT,
+      ui_color TEXT,
+      ui_order INTEGER DEFAULT 0,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL
+    )`,
+
+    // Model presets table
+    `CREATE TABLE IF NOT EXISTS model_presets (
+      id INTEGER PRIMARY KEY,
+      name TEXT NOT NULL,
+      description TEXT,
+      config_id INTEGER NOT NULL REFERENCES model_configs(id) ON DELETE CASCADE,
+      category TEXT DEFAULT 'general',
+      is_system_preset INTEGER DEFAULT 0 NOT NULL,
+      is_active INTEGER DEFAULT 1 NOT NULL,
+      usage_count INTEGER DEFAULT 0 NOT NULL,
+      last_used_at INTEGER,
+      metadata TEXT,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL
     )`
   ]
 
@@ -536,7 +579,12 @@ function createSchemaTable(rawDb: Database, verbose: boolean) {
     'CREATE INDEX IF NOT EXISTS selected_files_project_idx ON selected_files(project_id)',
     'CREATE INDEX IF NOT EXISTS selected_files_file_idx ON selected_files(file_id)',
     'CREATE INDEX IF NOT EXISTS mcp_executions_project_idx ON mcp_executions(project_id)',
-    'CREATE INDEX IF NOT EXISTS mcp_executions_session_idx ON mcp_executions(session_id)'
+    'CREATE INDEX IF NOT EXISTS mcp_executions_session_idx ON mcp_executions(session_id)',
+    'CREATE INDEX IF NOT EXISTS model_configs_name_idx ON model_configs(name)',
+    'CREATE INDEX IF NOT EXISTS model_configs_provider_idx ON model_configs(provider)',
+    'CREATE INDEX IF NOT EXISTS model_configs_is_default_idx ON model_configs(is_default)',
+    'CREATE INDEX IF NOT EXISTS model_presets_category_idx ON model_presets(category)',
+    'CREATE INDEX IF NOT EXISTS model_presets_config_idx ON model_presets(config_id)'
   ]
 
   console.log('[TEST DB] Creating schema tables...')
@@ -635,6 +683,8 @@ async function seedTestData(db: ReturnType<typeof drizzle>, verbose: boolean) {
  */
 async function resetAllTables(db: ReturnType<typeof createSerializedDrizzleClient>) {
   const tableNames = [
+    'model_presets',
+    'model_configs',
     'mcp_executions',
     'selected_files',
     'files',

@@ -373,6 +373,52 @@ export const MermaidDiagramGeneratorSchema = z
   })
   .openapi('MermaidDiagramGeneratorOutput')
 
+// Schema for fixing/optimizing mermaid diagrams
+export const MermaidFixRequestSchema = z
+  .object({
+    mermaidCode: z.string().min(1).openapi({
+      description: 'The current mermaid diagram code (possibly invalid or needing optimization)',
+      example: 'graph TD\n  A[Start] -> B[Process]'
+    }),
+    error: z.string().optional().openapi({
+      description: 'The error message if mermaid rendering failed',
+      example: 'Syntax error in graph: unexpected token'
+    }),
+    userIntent: z.string().optional().openapi({
+      description: 'What the user wants to achieve or fix in the diagram',
+      example: 'Add a decision node and connect it to the end state'
+    }),
+    options: AiSdkOptionsSchema.optional().openapi({
+      description: 'Optional AI model configuration for the fix operation'
+    })
+  })
+  .openapi('MermaidFixRequest')
+
+// Schema for the structured output from AI when fixing mermaid
+export const MermaidFixOutputSchema = z
+  .object({
+    fixedCode: z.string().openapi({
+      description: 'The corrected/optimized mermaid diagram code (raw, without markdown wrapper)',
+      example: 'graph TD\n  A[Start] --> B[Process]\n  B --> C{Decision}\n  C -->|Yes| D[End]'
+    }),
+    explanation: z.string().openapi({
+      description: 'Brief explanation of what was fixed or improved',
+      example: 'Fixed syntax error: Changed -> to --> for proper arrow notation. Added decision node as requested.'
+    }),
+    diagramType: z.enum(['flowchart', 'sequence', 'class', 'state', 'er', 'gantt', 'pie', 'unknown']).optional().openapi({
+      description: 'The type of mermaid diagram',
+      example: 'flowchart'
+    })
+  })
+  .openapi('MermaidFixOutput')
+
+export const MermaidFixResponseSchema = z
+  .object({
+    success: z.literal(true),
+    data: MermaidFixOutputSchema
+  })
+  .openapi('MermaidFixResponse')
+
 // Export internal schemas needed by routes
 export const FileSuggestionsZodSchema = z.object({
   fileIds: z.array(z.number())
@@ -575,6 +621,41 @@ The output should be a markdown code block containing the mermaid diagram that c
       maxTokens: 2000
     },
     schema: MermaidDiagramGeneratorSchema
+  },
+  mermaidFixer: {
+    name: 'Mermaid Diagram Fixer',
+    description: 'Fixes and optimizes mermaid diagrams with syntax errors or improvements',
+    promptTemplate: `Fix and optimize the following mermaid diagram: {userInput}
+
+CRITICAL INSTRUCTIONS:
+1. Fix any syntax errors in the mermaid code
+2. Follow proper mermaid syntax for the diagram type
+3. Optimize the layout and structure for better readability
+4. Keep the original intent and structure when possible
+5. Return ONLY the raw mermaid code (without markdown wrapper)
+6. Use proper arrow notations (-->, -.>, ==>, etc.)
+7. Ensure all node IDs are valid and consistent
+
+If there are no errors, suggest improvements for clarity and best practices.`,
+    systemPrompt: `You are an expert in mermaid diagram syntax and best practices. Your role is to:
+1. Identify and fix syntax errors in mermaid diagrams
+2. Optimize diagram structure for clarity and readability
+3. Follow mermaid.js syntax precisely
+4. Provide helpful explanations of what was changed and why
+5. Maintain the original diagram's intent while improving its quality
+
+Common mermaid syntax rules:
+- Use --> for solid arrows, -.-> for dotted arrows, ==> for thick arrows
+- Node IDs should be alphanumeric (no spaces)
+- Labels should be in square brackets [Label] or parentheses (Label)
+- Subgraphs need proper indentation and syntax
+- Class and state diagrams have specific syntax requirements`,
+    modelSettings: {
+      model: 'gpt-4o',
+      temperature: 0.2,
+      maxTokens: 2000
+    },
+    schema: MermaidFixOutputSchema
   },
   chatNaming: {
     name: 'Chat Name Generation',

@@ -18,7 +18,7 @@ const isProdEnv = !isDevEnv && !isTestEnv
 
 const DEV_PORT = 3147
 const PROD_PORT = 3579
-const CLIENT_PORT = 1420
+const CLIENT_PORT = 5173
 const PREVIEW_PORT = getEnvVar('VITE_PREVIEW_PORT', '4173')
 
 // Determine if running in Docker/container environment
@@ -48,8 +48,8 @@ export const serverConfig: ServerConfig = {
       `https://${getEnvVar('DOMAIN', 'localhost')}`
     ],
     allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    credentials: true,
-    allowHeaders: ['Content-Type', 'Authorization', 'Cookie']
+    credentials: true, // ✅ Allow cookies in CORS requests
+    allowHeaders: ['Content-Type', 'Authorization', 'Cookie', 'X-CSRF-Token'] // ✅ Include CSRF token header
   },
 
   // Environment-specific
