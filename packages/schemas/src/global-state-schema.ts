@@ -445,7 +445,15 @@ export const appSettingsSchema = z
         mcpInspector: false,
         aiSdk: false
       })
-      .openapi({ description: 'Configuration for enabling/disabling various development tools in the application UI.' })
+      .openapi({ description: 'Configuration for enabling/disabling various development tools in the application UI.' }),
+    deepResearchEnabled: z
+      .boolean()
+      .optional()
+      .default(false)
+      .openapi({
+        description: 'Whether the Deep Research feature is enabled and visible in navigation.',
+        example: false
+      })
   })
   .openapi('AppSettings', {
     description:
@@ -567,7 +575,8 @@ export const createSafeGlobalState = (): GlobalState => ({
       swaggerUI: false,
       mcpInspector: false,
       aiSdk: false
-    }
+    },
+    deepResearchEnabled: false
   },
   projectTabs: {
     defaultTab: {

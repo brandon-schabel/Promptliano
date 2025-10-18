@@ -62,6 +62,7 @@ export function SettingsPage() {
     codeThemeLight,
     theme,
     enableChatAutoNaming = true,
+    deepResearchEnabled = false,
     devToolsEnabled = {
       tanstackQuery: false,
       tanstackRouter: false,
@@ -302,6 +303,34 @@ export function SettingsPage() {
                   onCheckedChange={(checked) => {
                     updateSettings({
                       enableChatAutoNaming: checked
+                    })
+                  }}
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Feature Settings</CardTitle>
+              <CardDescription>Enable or disable experimental features</CardDescription>
+            </CardHeader>
+            <CardContent className='space-y-6'>
+              <div className='flex items-center justify-between'>
+                <div className='space-y-0.5'>
+                  <Label htmlFor='deep-research-enabled' className='text-sm font-medium'>
+                    Deep Research (Beta)
+                  </Label>
+                  <p className='text-sm text-muted-foreground'>
+                    Enable the Deep Research feature for web crawling and research workflows
+                  </p>
+                </div>
+                <Switch
+                  id='deep-research-enabled'
+                  checked={deepResearchEnabled}
+                  onCheckedChange={(checked) => {
+                    updateSettings({
+                      deepResearchEnabled: checked
                     })
                   }}
                 />

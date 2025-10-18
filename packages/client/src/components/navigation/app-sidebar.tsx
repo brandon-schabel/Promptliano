@@ -85,14 +85,6 @@ const baseNavigationSections = [
         testId: 'sidebar-nav-prompts'
       },
       {
-        id: 'deep-research',
-        title: 'Deep Research',
-        href: '/deep-research',
-        icon: FileText,
-        routeIds: ['/deep-research'],
-        testId: 'sidebar-nav-deep-research'
-      },
-      {
         id: 'providers',
         title: 'Providers',
         href: '/providers',
@@ -130,12 +122,30 @@ export function AppSidebar({ ...props }: React.HTMLAttributes<HTMLDivElement>) {
     mcpInspector: false,
     aiSdk: false
   }
+  const deepResearchEnabled = settings?.deepResearchEnabled || false
 
   const globalTheme = theme || 'dark'
 
-  // Create dynamic navigation sections based on dev tools enabled
+  // Create dynamic navigation sections based on dev tools and feature flags
   const navigationSections = React.useMemo(() => {
     const sections = [...baseNavigationSections]
+
+    // Add Deep Research to Tools section if enabled
+    if (deepResearchEnabled) {
+      const toolsSection = sections.find((section) => section.title === 'Tools')
+      if (toolsSection) {
+        // Insert Deep Research after Prompts
+        const promptsIndex = toolsSection.items.findIndex((item) => item.id === 'prompts')
+        toolsSection.items.splice(promptsIndex + 1, 0, {
+          id: 'deep-research',
+          title: 'Deep Research',
+          href: '/deep-research',
+          icon: FileText,
+          routeIds: ['/deep-research'],
+          testId: 'sidebar-nav-deep-research'
+        })
+      }
+    }
 
     // Add dev tools section if any dev tools are enabled
     const enabledDevTools = []
@@ -181,7 +191,7 @@ export function AppSidebar({ ...props }: React.HTMLAttributes<HTMLDivElement>) {
     }
 
     return sections
-  }, [devToolsEnabled])
+  }, [devToolsEnabled, deepResearchEnabled])
 
   useEffect(() => {
     if (globalTheme === 'dark') {
